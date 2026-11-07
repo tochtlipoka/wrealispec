@@ -173,6 +173,10 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
 .lvl.l2 .lv-seg.on{background:#D9B320} .lvl.l2 .lv-label{color:var(--ink)}
 .lvl.l3 .lv-seg.on, .lvl.l4 .lv-seg.on{background:var(--ok)} .lvl.l3 .lv-label, .lvl.l4 .lv-label{color:var(--ok)}
 .tries{font-weight:700}
+.pick-label{font-weight:700;font-size:.9rem}
+.seg button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:4px}
+.steps li::marker{font-family:var(--f-mono);color:var(--margin)}
 .wcount{font-family:var(--f-mono);font-size:.82rem;color:var(--ink-soft)}
 .wcount[data-state="ok"]{color:var(--ok);font-weight:700}
 .wcount[data-state="high"]{color:var(--margin)}
@@ -202,8 +206,8 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
   <section class="panel" data-step="0">
     <div class="panel-head">
       <span class="eyebrow">Fase 1 · Escribe y corrijo</span>
-      <h2>Tu historia en el cuaderno</h2>
-      <p class="muted">Escribe sobre el tema en tu cuaderno, con pluma. Cuando termines, toma una foto clara de la página y súbela aquí.</p>
+      <h2>Tu historia</h2>
+      <p class="muted">Escribe tu historia aquí o sube una foto de tu cuaderno. Yo la corrijo y te doy mis observaciones.</p>
     </div>
     <div class="grid2">
       <div class="field"><label for="topic">Tema que te dio el profesor</label><input type="text" id="topic"></div>
@@ -212,18 +216,33 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
         <span class="small muted" id="wordGoal"></span>
       </div>
     </div>
-    <div class="drop" id="drop">
-      <img id="preview" alt="Foto de tu cuaderno" hidden>
-      <p><strong>Arrastra aquí la foto de tu cuaderno</strong> o elígela</p>
-      <input type="file" id="photo" accept="image/jpeg,image/png,image/webp">
-      <p class="small muted" id="imgNote"></p>
+    <div class="field">
+      <span class="pick-label">¿Cómo quieres enviar tu historia?</span>
+      <div class="seg" role="tablist" aria-label="Cómo quieres enviar tu historia">
+        <button role="tab" id="tabType" aria-selected="true" aria-controls="paneType" data-in="type">Escríbela aquí</button>
+        <button role="tab" id="tabPhoto" aria-selected="false" aria-controls="panePhoto" data-in="photo">Sube una foto</button>
+      </div>
     </div>
-    <details id="typeBox">
-      <summary>¿Sin foto? Escribe o pega tu texto</summary>
-      <div class="field" style="margin-top:12px"><label for="typed">Tu texto tal como lo escribiste (con errores)</label><textarea id="typed"></textarea><span class="wcount" id="typedCount" aria-live="polite"></span></div>
-    </details>
+    <div id="paneType" role="tabpanel" aria-labelledby="tabType" class="field">
+      <label for="typed">Escribe tu historia en inglés, como te salga. No te preocupes por los errores: para eso es la corrección.</label>
+      <textarea id="typed" placeholder="My favorite character is…"></textarea>
+      <span class="wcount" id="typedCount" aria-live="polite"></span>
+    </div>
+    <div id="panePhoto" role="tabpanel" aria-labelledby="tabPhoto" class="field" hidden>
+      <ol class="steps">
+        <li>Escribe tu historia en tu cuaderno, con pluma.</li>
+        <li>Tómale una foto clara: derecha y con buena luz.</li>
+        <li>Súbela aquí.</li>
+      </ol>
+      <div class="drop" id="drop">
+        <img id="preview" alt="Foto de tu cuaderno" hidden>
+        <p><strong>Arrastra aquí la foto de tu cuaderno</strong> o elígela</p>
+        <input type="file" id="photo" accept="image/jpeg,image/png,image/webp">
+        <p class="small muted" id="imgNote"></p>
+      </div>
+    </div>
     <div class="row">
-      <button class="btn" id="btnCorrect">Corregir con IA</button>
+      <button class="btn" id="btnCorrect">Corregir mi historia</button>
       <span class="status" id="st1" role="status"></span>
     </div>
   </section>
@@ -585,11 +604,20 @@ function workerSample(){
 }
 const sampleP = (window.claude && window.claude.use) ? window.claude.use("sample") : Promise.resolve(workerSample());
 let canImages = false;
+let inputMode = "type";
+try { inputMode = localStorage.getItem("wrealispec.input") === "photo" ? "photo" : "type"; } catch(e){}
+function setInput(m){
+  inputMode = m; try { localStorage.setItem("wrealispec.input", m); } catch(e){}
+  document.querySelectorAll("[data-in]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.in === m)));
+  $("paneType").hidden = m !== "type"; $("panePhoto").hidden = m !== "photo";
+}
+document.querySelectorAll("[data-in]").forEach(b => b.addEventListener("click", () => setInput(b.dataset.in)));
+setInput(inputMode);
 sampleP.then(async (s) => {
   if (!s) { $("imgNote").textContent = "Demostración: la corrección con IA se activa en la siguiente versión."; return; }
   try { const lim = await s.limits(); canImages = !!lim.images; } catch(e){ canImages = false; }
   $("imgNote").textContent = canImages ? "JPG, PNG o WebP. Que la foto se vea derecha y con buena luz." : "Este visor no puede enviar fotos. Usa la opción de escribir o pegar tu texto.";
-  if (!canImages) $("typeBox").open = true;
+  if (!canImages) setInput("type");
 });
 const ERR = {
   network:"No hay conexión con el servidor de la IA. Revisa tu internet e inténtalo de nuevo.",
@@ -659,8 +687,9 @@ async function runCorrection(textOverride, statusEl, btn){
   const sample = await sampleP;
   if (!sample) return fail(statusEl, "En esta versión en línea la IA todavía no está conectada, así que no puede corregir tu texto. La corrección automática llega en la siguiente versión.");
   const text = textOverride ?? $("typed").value.trim();
-  const useImage = !textOverride && photoFile && canImages;
-  if (!useImage && !text) return fail(statusEl, "Sube la foto de tu cuaderno o escribe tu texto.");
+  if (!textOverride && inputMode === "photo" && !photoFile) return fail(statusEl, "Primero elige la foto de tu cuaderno.");
+  const useImage = !textOverride && inputMode === "photo" && photoFile && canImages;
+  if (!useImage && !text) return fail(statusEl, "Escribe tu historia antes de corregirla.");
   btn.disabled = true; busy(statusEl, useImage ? "Leyendo tu cuaderno y corrigiendo… (puede tardar un minuto)" : "Corrigiendo tu texto…");
   try {
     const opts = useImage ? { images:[photoFile] } : {};
