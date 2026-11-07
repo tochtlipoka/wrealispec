@@ -431,7 +431,8 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
 (() => {
 "use strict";
 const $ = (id) => document.getElementById(id);
-const LEVELS = { A1:[50,80], A2:[80,120], B1:[120,200], B2:[200,250], C1:[250,350] };
+// Metas de palabras por nivel, un poco arriba de los exámenes de Cambridge (A2 Key, B1 Preliminary, B2 First, C1 Advanced), porque aquí el alumno tiene toda la semana.
+const LEVELS = { A1:[40,60], A2:[60,100], B1:[100,150], B2:[150,220], C1:[220,300] };
 const STEPS = [
   { t:"Escribe y corrijo", sk:"WR", panels:[0,1] },
   { t:"Escucha y repite", sk:"LRS", panels:[2] },
@@ -701,7 +702,7 @@ function go(i, scrollTo){
 document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(Number(b.dataset.go)));
 
 /* ---------- Step 1 ---------- */
-function renderGoal(){ const [a,b] = LEVELS[$("level").value]; $("wordGoal").textContent = `Meta para ${$("level").value}: ${a} a ${b} palabras.`; updateTypedCount(); }
+function renderGoal(){ const [a,b] = LEVELS[$("level").value]; $("wordGoal").textContent = `Meta para ${$("level").value}: ${a} a ${b} palabras (referencia: exámenes de Cambridge).`; updateTypedCount(); }
 function updateTypedCount(){
   const n = countWords($("typed").value); const [a,b] = LEVELS[$("level").value] || [0,999]; const el = $("typedCount");
   const state = n === 0 ? "" : n < a ? "low" : n > b ? "high" : "ok";
