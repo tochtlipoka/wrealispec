@@ -547,7 +547,43 @@ summary_es: 1 sentence in Spanish, warm and encouraging, about how the student d
 $("promptView").textContent = correctionPrompt({ topic:"{tema}", level:"{nivel}" });
 
 /* ---------- Claude (sample capability) ---------- */
-const sampleP = (window.claude && window.claude.use) ? window.claude.use("sample") : Promise.resolve(null);
+/* ---------- IA en línea: servidor intermedio (Cloudflare Worker) con la API de Claude ---------- */
+const AI_URL = ""; // Dirección del Worker, p. ej. https://wrealispec-ai.TU-USUARIO.workers.dev — vacío = modo demostración
+async function toImagePayload(file){
+  // Reduce la foto (máx. 1600 px) para que suba rápido y cueste menos.
+  let blob = file;
+  try {
+    const bmp = await createImageBitmap(file);
+    const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas"); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    blob = await new Promise((res) => c.toBlob(res, "image/jpeg", 0.85)) || file;
+  } catch(e){}
+  const data = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1]); r.onerror = rej; r.readAsDataURL(blob); });
+  return { media_type: blob.type === "image/png" || blob.type === "image/webp" ? blob.type : "image/jpeg", data };
+}
+function workerSample(){
+  if (!AI_URL) return null;
+  const call = async (prompt, opts = {}) => {
+    const body = { prompt };
+    if (opts.images && opts.images[0]) body.image = await toImagePayload(opts.images[0]);
+    let r;
+    try { r = await fetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body) }); }
+    catch(e){ throw { code:"network" }; }
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw { code: d.error || "upstream_error" };
+    return d.text || "";
+  };
+  const s = async (prompt, opts) => ({ text: await call(prompt, opts), truncated: false });
+  s.json = async (prompt, opts) => {
+    const t = await call(prompt, opts); const m = t.match(/\{[\s\S]*\}/);
+    if (!m) throw { code:"invalid_json" };
+    try { return JSON.parse(m[0]); } catch(e){ throw { code:"invalid_json" }; }
+  };
+  s.limits = async () => ({ images: true });
+  return s;
+}
+const sampleP = (window.claude && window.claude.use) ? window.claude.use("sample") : Promise.resolve(workerSample());
 let canImages = false;
 sampleP.then(async (s) => {
   if (!s) { $("imgNote").textContent = "Demostración: la corrección con IA se activa en la siguiente versión."; return; }
@@ -556,6 +592,11 @@ sampleP.then(async (s) => {
   if (!canImages) $("typeBox").open = true;
 });
 const ERR = {
+  network:"No hay conexión con el servidor de la IA. Revisa tu internet e inténtalo de nuevo.",
+  upstream_error:"La IA no respondió esta vez. Inténtalo de nuevo en un momento.",
+  not_configured:"El servidor de la IA todavía no tiene su llave configurada.",
+  forbidden:"Esta página no tiene permiso para usar el servidor de la IA.",
+  bad_request:"La solicitud no es válida. Recarga la página e inténtalo de nuevo.",
   not_granted:"No diste permiso para usar Claude en esta página.", sampling_disabled:"Claude no está disponible en esta cuenta.",
   rate_limited:"Demasiadas solicitudes seguidas. Espera un momento e inténtalo de nuevo.", session_expired:"Tu sesión expiró. Vuelve a iniciar sesión.",
   image_rejected:"No pude abrir esa foto. Prueba con otra en JPG o PNG.", images_unavailable:"Este visor no puede enviar fotos. Escribe o pega tu texto.",
