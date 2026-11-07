@@ -2,6 +2,15 @@
 
 Writing · Reading · Listening · Speaking · Conversation
 
-Prototipo del método Wrealispec en 4 fases: Escribe y corrijo, Escucha y repite, Grábate y te dicto, Conversemos.
+Se escribe **Wrealispec** y se pronuncia **"realispec"** (la W es muda, como en *write*).
+
+Prototipo del método Wrealispec en 4 fases:
+
+1. **Escribe y corrijo**: escribes tu historia a mano y la IA la corrige.
+2. **Escucha y repite**: escuchas tu historia en modo continuo o eco.
+3. **Grábate y te dicto**: lees en voz alta, escuchas y respondes ejercicios sobre tu historia.
+4. **Conversemos**: conversas con tu profesor.
+
+Página en línea: https://tochtlipoka.github.io/wrealispec/
 
 Versión de demostración: las funciones con IA se activan en la siguiente versión.
