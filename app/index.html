@@ -212,7 +212,7 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
     <div class="grid2">
       <div class="field"><label for="topic">Tema que te dio el profesor</label><input type="text" id="topic"></div>
       <div class="field"><label for="level">Tu nivel</label>
-        <select id="level"><option>A1</option><option>A2</option><option>B1</option><option>B2</option></select>
+        <select id="level"><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option></select>
         <span class="small muted" id="wordGoal"></span>
       </div>
     </div>
@@ -415,7 +415,7 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
 (() => {
 "use strict";
 const $ = (id) => document.getElementById(id);
-const LEVELS = { A1:[50,80], A2:[80,120], B1:[120,200], B2:[200,250] };
+const LEVELS = { A1:[50,80], A2:[80,120], B1:[120,200], B2:[200,250], C1:[250,350] };
 const STEPS = [
   { t:"Escribe y corrijo", sk:"WR", panels:[0,1] },
   { t:"Escucha y repite", sk:"LRS", panels:[2] },
