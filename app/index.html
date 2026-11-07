@@ -173,6 +173,9 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
 .lvl.l2 .lv-seg.on{background:#D9B320} .lvl.l2 .lv-label{color:var(--ink)}
 .lvl.l3 .lv-seg.on, .lvl.l4 .lv-seg.on{background:var(--ok)} .lvl.l3 .lv-label, .lvl.l4 .lv-label{color:var(--ok)}
 .tries{font-weight:700}
+.wcount{font-family:var(--f-mono);font-size:.82rem;color:var(--ink-soft)}
+.wcount[data-state="ok"]{color:var(--ok);font-weight:700}
+.wcount[data-state="high"]{color:var(--margin)}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -217,7 +220,7 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
     </div>
     <details id="typeBox">
       <summary>¿Sin foto? Escribe o pega tu texto</summary>
-      <div class="field" style="margin-top:12px"><label for="typed">Tu texto tal como lo escribiste (con errores)</label><textarea id="typed"></textarea></div>
+      <div class="field" style="margin-top:12px"><label for="typed">Tu texto tal como lo escribiste (con errores)</label><textarea id="typed"></textarea><span class="wcount" id="typedCount" aria-live="polite"></span></div>
     </details>
     <div class="row">
       <button class="btn" id="btnCorrect">Corregir con IA</button>
@@ -590,7 +593,14 @@ function go(i, scrollTo){
 document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(Number(b.dataset.go)));
 
 /* ---------- Step 1 ---------- */
-function renderGoal(){ const [a,b] = LEVELS[$("level").value]; $("wordGoal").textContent = `Meta para ${$("level").value}: ${a} a ${b} palabras.`; }
+function renderGoal(){ const [a,b] = LEVELS[$("level").value]; $("wordGoal").textContent = `Meta para ${$("level").value}: ${a} a ${b} palabras.`; updateTypedCount(); }
+function updateTypedCount(){
+  const n = countWords($("typed").value); const [a,b] = LEVELS[$("level").value] || [0,999]; const el = $("typedCount");
+  const state = n === 0 ? "" : n < a ? "low" : n > b ? "high" : "ok";
+  const tip = state === "low" ? ` · te faltan ${a - n}` : state === "high" ? ` · te pasaste por ${n - b}` : state === "ok" ? " · ¡en la meta!" : "";
+  el.textContent = `${n} palabra${n === 1 ? "" : "s"} · meta ${$("level").value}: ${a}–${b}${tip}`; el.dataset.state = state;
+}
+$("typed").addEventListener("input", updateTypedCount);
 $("level").onchange = () => { S.level = $("level").value; renderGoal(); save(); };
 $("topic").oninput = () => { S.topic = $("topic").value; save(); };
 let photoFile = null;
@@ -606,7 +616,7 @@ drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove
 
 async function runCorrection(textOverride, statusEl, btn){
   const sample = await sampleP;
-  if (!sample) return fail(statusEl, "Demostración: la corrección con IA se activa en la siguiente versión.");
+  if (!sample) return fail(statusEl, "En esta versión en línea la IA todavía no está conectada, así que no puede corregir tu texto. La corrección automática llega en la siguiente versión.");
   const text = textOverride ?? $("typed").value.trim();
   const useImage = !textOverride && photoFile && canImages;
   if (!useImage && !text) return fail(statusEl, "Sube la foto de tu cuaderno o escribe tu texto.");
