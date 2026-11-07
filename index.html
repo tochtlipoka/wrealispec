@@ -7,13 +7,14 @@
 <meta name="description" content="Wrealispec: aprende inglés con tu propia historia. Writing · Reading · Listening · Speaking · Conversation.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Caveat:wght@500;700&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Instrument+Serif:ital@0;1&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Caveat:wght@500;700&family=JetBrains+Mono:wght@500&display=swap">
 <style>
 /* Layout: notebook-paper landing; hero with a corrected notebook line; five letters; four phases; teachers block. */
 :root{
   --paper:#F4F6FB; --sheet:#FFFFFF; --ink:#1B2559; --ink-soft:#56618A; --rule:#D9E1F0;
   --margin:#D3455A; --ok:#1C7A4E; --accent:#2B56E0; --accent-ink:#FFFFFF; --chip:#E8EDFA;
-  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-display:"Instrument Serif",Georgia,"Times New Roman",serif;
+  --f-head:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
   --f-body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
   --f-hand:"Caveat","Segoe Print","Comic Sans MS",cursive;
   --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
@@ -28,7 +29,9 @@ html{scroll-behavior:smooth}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.6;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .wrap{max-width:1040px;margin:0 auto}
-h1,h2,h3{font-family:var(--f-display);margin:0;line-height:1.1;text-wrap:balance}
+h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;line-height:1.05;text-wrap:balance}
+h3{font-family:var(--f-head);line-height:1.15}
+h1 em,h2 em{font-style:italic;color:var(--margin)}
 p{margin:0}
 a{color:var(--accent)}
 :focus-visible{outline:3px solid var(--accent);outline-offset:3px}
@@ -44,26 +47,33 @@ nav{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-
 .btn.ghost{background:transparent;color:var(--accent)}
 .btn.sm{padding:8px 14px;font-size:.9rem;border-radius:10px}
 
-.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:40px;align-items:center;padding-block:40px 56px}
-@media (max-width:820px){.hero{grid-template-columns:minmax(0,1fr);gap:28px;padding-top:20px}}
+/* Hero: the whole cover is one spiral notebook sheet */
+.hero{padding-block:16px 56px}
+.sheet{position:relative;background:var(--sheet);border:1px solid var(--rule);border-radius:6px 6px 16px 16px;
+  box-shadow:0 24px 50px -30px rgba(27,37,89,.45);overflow:hidden}
+.sheet::before{content:"";display:block;height:34px;border-bottom:1px solid var(--rule);
+  background:radial-gradient(circle at 50% 55%,var(--paper) 0 7px,var(--rule) 7.5px 8.5px,transparent 9px) 0 0/36px 34px repeat-x}
+.sheet-body{position:relative;padding:34px clamp(20px,5vw,64px) 44px clamp(58px,9vw,120px);
+  background:
+   linear-gradient(to right,transparent calc(clamp(58px,9vw,120px) - 22px),var(--margin) calc(clamp(58px,9vw,120px) - 22px),var(--margin) calc(clamp(58px,9vw,120px) - 20.5px),transparent calc(clamp(58px,9vw,120px) - 20.5px)),
+   repeating-linear-gradient(to bottom,transparent 0,transparent 43px,var(--rule) 43px,var(--rule) 44px)}
+.hand{font-family:var(--f-hand);font-size:clamp(1.7rem,4.2vw,2.6rem);line-height:2.1;color:var(--ink);margin:0 0 6px;max-width:30em}
+.hand .c{position:relative;display:inline-block}
+.hand del{text-decoration:line-through;text-decoration-color:var(--margin);text-decoration-thickness:3px;color:var(--ink-soft)}
+.hand ins{position:absolute;left:50%;bottom:62%;transform:translateX(-50%) rotate(-5deg);text-decoration:none;white-space:nowrap;
+  color:var(--ok);font-weight:700;font-size:.78em;line-height:1;animation:pen .5s ease-out both}
+.hand .caret{color:var(--ok);font-weight:700}
+.hand .c:nth-of-type(2) ins{animation-delay:.12s}.hand .c:nth-of-type(3) ins{animation-delay:.24s}.hand .c:nth-of-type(4) ins{animation-delay:.36s}
+@keyframes pen{from{opacity:0;transform:translateX(-50%) rotate(-5deg) translateY(6px)}}
 .eyebrow{font:500 .78rem var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--margin)}
-.hero h1{font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:800;margin-top:12px}
-.lead{font-size:1.15rem;color:var(--ink-soft);margin-top:16px;max-width:34em}
-.ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px}
-.say{margin-top:22px;font-size:.92rem;color:var(--ink-soft)}
+.hero h1{font-size:clamp(2.6rem,7vw,5rem);letter-spacing:-.01em;margin-top:14px;max-width:13em}
+.lead{font-size:1.15rem;color:var(--ink-soft);margin-top:18px;max-width:36em}
+.ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.say{margin-top:24px;font-size:.92rem;color:var(--ink-soft)}
 .say strong{color:var(--ink)}
 
-.notebook{position:relative;background:
-  linear-gradient(to right,transparent 40px,var(--margin) 40px,var(--margin) 41px,transparent 41px),
-  repeating-linear-gradient(to bottom,var(--sheet) 0,var(--sheet) 35px,var(--rule) 35px,var(--rule) 36px);
-  border:1px solid var(--rule);border-radius:14px;padding:18px 20px 22px 58px;line-height:36px;font-family:var(--f-hand);font-size:1.6rem;
-  box-shadow:0 18px 40px -24px rgba(27,37,89,.35);transform:rotate(-1.2deg)}
-.notebook .x{text-decoration:line-through;text-decoration-color:var(--margin);text-decoration-thickness:2px;color:var(--ink-soft)}
-.notebook .fix{color:var(--ok);font-weight:700}
-.notebook .tag{position:absolute;right:14px;bottom:-14px;transform:rotate(1.2deg);font:700 .78rem var(--f-mono);letter-spacing:.06em;text-transform:uppercase;background:var(--ok);color:var(--sheet);padding:6px 10px;border-radius:8px}
-
 section{padding-block:56px;border-top:1px solid var(--rule)}
-section h2{font-size:clamp(1.7rem,3.6vw,2.4rem);font-weight:800}
+section h2{font-size:clamp(2.1rem,4.6vw,3.1rem)}
 .sub{color:var(--ink-soft);margin-top:10px;max-width:40em}
 
 .letters{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-top:30px}
@@ -103,7 +113,7 @@ section h2{font-size:clamp(1.7rem,3.6vw,2.4rem);font-weight:800}
 .status{font-size:.9rem;color:var(--ink-soft);background:var(--chip);border-radius:12px;padding:14px 16px;margin-top:8px}
 footer{padding-block:28px 40px;border-top:1px solid var(--rule);display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:space-between;font-size:.9rem;color:var(--ink-soft)}
 footer a{color:inherit}
-@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.hand ins{animation:none}}
 </style>
 </head>
 <body>
@@ -121,19 +131,20 @@ footer a{color:inherit}
   </nav>
 
   <header class="hero">
-    <div>
-      <span class="eyebrow" data-i18n="hero.eyebrow"></span>
-      <h1 data-i18n="hero.title"></h1>
-      <p class="lead" data-i18n="hero.lead"></p>
-      <div class="ctas">
-        <a class="btn" href="app/" data-i18n="hero.cta1"></a>
-        <a class="btn ghost" href="#teachers" data-i18n="hero.cta2"></a>
+    <div class="sheet">
+      <div class="sheet-body">
+        <p class="hand" aria-label="I want to learn English with my own story.">
+          I want <span class="c"><span class="caret">‸</span><ins>to</ins></span> learn <span class="c"><del>english</del><ins>English</ins></span> <span class="c"><del>whit</del><ins>with</ins></span> my own <span class="c"><del>history</del><ins>story</ins></span>.
+        </p>
+        <span class="eyebrow" data-i18n="hero.eyebrow"></span>
+        <h1 data-i18n-html="hero.title"></h1>
+        <p class="lead" data-i18n="hero.lead"></p>
+        <div class="ctas">
+          <a class="btn" href="app/" data-i18n="hero.cta1"></a>
+          <a class="btn ghost" href="#teachers" data-i18n="hero.cta2"></a>
+        </div>
+        <p class="say" data-i18n-html="hero.say"></p>
       </div>
-      <p class="say" data-i18n-html="hero.say"></p>
-    </div>
-    <div class="notebook" aria-hidden="true">
-      Yesterday I had a good idea <span class="x">for improve</span> <span class="fix">to improve</span> my English. I <span class="x">wuld like tell</span> <span class="fix">would like to tell</span> you about it.
-      <span class="tag" data-i18n="hero.tag"></span>
     </div>
   </header>
 
@@ -203,7 +214,7 @@ const T = {
 es: {
   "nav.demo":"Probar la demo",
   "hero.eyebrow":"Método de inglés con IA y profesor",
-  "hero.title":"Aprende inglés con tu propia historia.",
+  "hero.title":"Aprende inglés con <em>tu propia historia</em>.",
   "hero.lead":"Escribes a mano, la IA te corrige, escuchas tu historia, la lees en voz alta y terminas conversando con tu profesor. Cada semana, un tema nuevo.",
   "hero.cta1":"Probar la demo",
   "hero.cta2":"¿Eres profesor o escuela?",
@@ -241,7 +252,7 @@ es: {
 pt: {
   "nav.demo":"Testar a demo",
   "hero.eyebrow":"Método de inglês com IA e professor",
-  "hero.title":"Aprenda inglês com a sua própria história.",
+  "hero.title":"Aprenda inglês com <em>a sua própria história</em>.",
   "hero.lead":"Você escreve à mão, a IA corrige, você escuta a sua história, lê em voz alta e termina conversando com o seu professor. Toda semana, um tema novo.",
   "hero.cta1":"Testar a demo",
   "hero.cta2":"Você é professor ou escola?",
@@ -279,7 +290,7 @@ pt: {
 en: {
   "nav.demo":"Try the demo",
   "hero.eyebrow":"An English method with AI and a teacher",
-  "hero.title":"Learn English through your own story.",
+  "hero.title":"Learn English through <em>your own story</em>.",
   "hero.lead":"You write by hand, AI corrects it, you listen to your story, read it aloud and finish with a real conversation with your teacher. A new topic every week.",
   "hero.cta1":"Try the demo",
   "hero.cta2":"Are you a teacher or a school?",
