@@ -174,6 +174,12 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
 .lvl.l3 .lv-seg.on, .lvl.l4 .lv-seg.on{background:var(--ok)} .lvl.l3 .lv-label, .lvl.l4 .lv-label{color:var(--ok)}
 .tries{font-weight:700}
 .pick-label{font-weight:700;font-size:.9rem}
+.assign{border:1px solid var(--rule);border-left:4px solid var(--margin);border-radius:12px;background:var(--paper);padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.as-q{font-family:var(--f-display);font-weight:800;font-size:1.15rem}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:.88rem;padding:5px 11px;border-radius:999px;background:var(--chip);color:var(--ink-soft);border:1px solid var(--rule)}
+.chip.ok{background:var(--ok);border-color:var(--ok);color:var(--sheet)}
+.chip.ok::before{content:"✓ "}
 .clarify{border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:14px}
 .cl-greet{font-size:1.05rem}
 .cl-quote{font-family:var(--f-hand);font-size:1.35rem;line-height:1.3}
@@ -221,6 +227,13 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
         <select id="level"><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option></select>
         <span class="small muted" id="wordGoal"></span>
       </div>
+    </div>
+    <div class="assign" id="assignBox" hidden>
+      <span class="eyebrow">Lo que te pidió tu profesor</span>
+      <p class="as-q" id="asQ"></p>
+      <p class="small" id="asStruct"></p>
+      <div class="chips" id="asChips"></div>
+      <p class="small muted">Las palabras se marcan en verde cuando ya las usaste en tu historia.</p>
     </div>
     <div class="field">
       <span class="pick-label">¿Cómo quieres enviar tu historia?</span>
@@ -283,6 +296,10 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
         </details>
       </div>
       <div class="notebook" id="corrBox"><span class="lbl">Texto corregido</span><span id="corrText"></span></div>
+    </div>
+    <div class="field" id="asgRes" hidden>
+      <h3>Lo que te pidió tu profesor</h3>
+      <div class="errors" id="asgList"></div>
     </div>
     <div class="field">
       <h3>Errores clave <span class="muted small" id="wc"></span></h3>
@@ -401,14 +418,22 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
           <div class="field"><label for="tfGram">Gramática</label><select id="tfGram"></select></div>
           <div class="field"><label for="tfVoc">Vocabulario</label><select id="tfVoc"></select></div>
         </div>
-        <div class="field"><label for="tfText">Comentarios generales</label><textarea id="tfText" placeholder="Lo que hizo bien, en qué trabajar la próxima semana…"></textarea></div>
+        <div class="field"><label for="tfText">Comentarios generales</label><textarea id="tfText" placeholder="Lo que hizo bien, en qué trabajar para la próxima clase…"></textarea></div>
         <div class="row"><button class="btn" id="btnTfSave">Guardar retroalimentación</button><button class="btn quiet" id="btnTfCancel">Cancelar</button></div>
       </div>
     </div>
     <hr style="border:0;border-top:1px solid var(--rule);width:100%;margin:6px 0">
     <div class="field">
-      <h3>Nuevo tema</h3>
-      <div class="row"><input type="text" id="newTopic" placeholder="El tema que te dio tu profesor" style="flex:1;min-width:200px"><button class="btn" id="btnNew">Empezar nueva historia</button></div>
+      <h3>Tarea para la próxima clase</h3>
+      <p class="small muted">El profesor la deja al final de la clase. Solo la pregunta detonadora es obligatoria.</p>
+      <div class="field"><label for="newTopic">Pregunta detonadora</label><input type="text" id="newTopic" placeholder="Ej. What did you do last weekend?"></div>
+      <div class="field"><label for="hwStruct">Estructura a practicar</label><input type="text" id="hwStruct" placeholder="Ej. Pasado simple"></div>
+      <div class="grid2">
+        <div class="field"><label for="hwVerbs">Verbos a usar</label><input type="text" id="hwVerbs" placeholder="Ej. went, visited, ate"><span class="small muted">Sepáralos con comas, en la forma en que deben usarlos.</span></div>
+        <div class="field"><label for="hwAdj">Adjetivos a usar</label><input type="text" id="hwAdj" placeholder="Ej. amazing, tired"></div>
+      </div>
+      <div class="checks"><label><input type="checkbox" id="hwQ"> Su historia debe incluir al menos una pregunta.</label></div>
+      <div class="row"><button class="btn" id="btnNew">Empezar nueva historia</button><a class="btn ghost" id="btnBook" target="_blank" rel="noopener" hidden>Agenda tu próxima clase</a></div>
       <p class="small muted">Esta historia se guarda en tu historial, en este navegador.</p>
     </div>
   </section>
@@ -431,7 +456,7 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
 (() => {
 "use strict";
 const $ = (id) => document.getElementById(id);
-// Metas de palabras por nivel, un poco arriba de los exámenes de Cambridge (A2 Key, B1 Preliminary, B2 First, C1 Advanced), porque aquí el alumno tiene toda la semana.
+// Metas de palabras por nivel, un poco arriba de los exámenes de Cambridge (A2 Key, B1 Preliminary, B2 First, C1 Advanced), porque aquí el alumno tiene de 2 a 5 días entre clase y clase.
 const LEVELS = { A1:[40,60], A2:[60,100], B1:[100,150], B2:[150,220], C1:[220,300] };
 const STEPS = [
   { t:"Escribe y corrijo", sk:"WR", panels:[0,1] },
@@ -461,12 +486,12 @@ const SAMPLE = {
     "Explicaste un proceso completo en orden: escribir, foto, corrección, repetir.",
     "Usaste conectores como \"for example\" y \"that is to say\" para ordenar tus ideas.",
   ],
-  feedback_es: "Tu idea se entiende de principio a fin y el texto tiene buena extensión. Enfócate esta semana en usar to + verbo después de need, would like y para expresar propósito.",
+  feedback_es: "Tu idea se entiende de principio a fin y el texto tiene buena extensión. Para tu próxima historia, enfócate en usar to + verbo después de need, would like y para expresar propósito.",
   word_count: 190,
   teacher_questions: [
     "Why do you think writing by hand helps you learn English?",
     "How do you feel when you read your text out loud?",
-    "What topic would you like to write about next week?",
+    "What topic would you like to write about for our next class?",
   ],
   useful_phrases: [
     { en:"My idea is to practice the four skills.", es:"Mi idea es practicar las cuatro habilidades." },
@@ -483,6 +508,8 @@ function blank(topic, level){
     word_count:0, teacher_questions:[], useful_phrases:[], step:0 });
 }
 function normalize(s){
+  s.assignment = s.assignment || null;
+  s.assignment_check = Array.isArray(s.assignment_check) ? s.assignment_check : [];
   s.errChecked = Array.isArray(s.errChecked) ? s.errChecked : [];
   s.reading = s.reading || { text:"", pct:null, res:null };
   s.reading.attempts = Array.isArray(s.reading.attempts) ? s.reading.attempts : (s.reading.pct != null ? [s.reading.pct] : []);
@@ -501,6 +528,16 @@ store.current = normalize(store.current); store.history = (store.history || []).
 let S = store.current;
 
 /* ---------- Fixed AI instructions ---------- */
+function splitList(t){ return String(t || "").split(/[,;\n]+/).map(x => x.trim()).filter(Boolean); }
+function asgBlock(a){
+  if (!a) return "";
+  const parts = [];
+  if (a.structure) parts.push(`use this structure: ${a.structure}`);
+  if (a.verbs && a.verbs.length) parts.push(`use these verbs: ${a.verbs.join(", ")}`);
+  if (a.adjectives && a.adjectives.length) parts.push(`use these adjectives: ${a.adjectives.join(", ")}`);
+  if (a.needQuestion) parts.push("include at least one question");
+  return parts.length ? "\n\nThe teacher asked the student to: " + parts.join("; ") + "." : "";
+}
 function clarBlock(clar){
   if (!clar || !clar.length) return "";
   return "\n\nBefore this correction, the student explained what they meant in some parts (they may answer in Spanish or Portuguese). Use these meanings when you correct, keep the student's words where possible, and explain each confusion in the errors list:\n" +
@@ -522,23 +559,24 @@ Tasks:
 Reply with only JSON in this shape:
 {"transcription":"","not_english":false,"off_topic":false,"questions":[{"quote":"","guess_en":"","question_es":""}],"greeting_es":"","note_es":""}`;
 }
-function correctionPrompt({ topic, level, text, clar }){
+function correctionPrompt({ topic, level, text, clar, asg }){
   return `You are the writing corrector of Wrealispec, an English method for Spanish-speaking adults. The student handwrote a short story in a notebook.
 Student level (CEFR): ${level}. Topic given by the teacher: "${topic}".
-${text ? `Here is the student's text, already transcribed and confirmed by the student:\n"""\n${text}\n"""` : `The attached image is a photo of the student's notebook page.`}${clarBlock(clar)}
+${text ? `Here is the student's text, already transcribed and confirmed by the student:\n"""\n${text}\n"""` : `The attached image is a photo of the student's notebook page.`}${clarBlock(clar)}${asgBlock(asg)}
 
 Rules:
 1. transcription: ${text ? "copy the text above exactly." : "copy exactly what the student wrote, including every mistake. Do NOT correct anything here. If a word is unreadable, write [?]."}
 2. corrected: rewrite the text so it is correct, natural English. Keep the student's ideas, order and voice. Change only what is needed. Do not add new ideas. Use vocabulary at most one level above ${level}.
 3. errors: the most important mistakes (maximum 8). Prioritize repeated mistakes and mistakes that change the meaning. For each one: "original" (exact words from the transcription), "correction", "type" (grammar | vocabulary | spelling | word_order | punctuation), "rule_es" (short explanation in simple Spanish, maximum 20 words).
 4. strengths_es: 2 specific things the student did well, in Spanish.
-5. feedback_es: 2 sentences in Spanish, in a warm, encouraging tone like a friendly teacher. First what was good, then the one thing to focus on next week. Never use numbers or grades.
+5. feedback_es: 2 sentences in Spanish, in a warm, encouraging tone like a friendly teacher. First what was good, then the one thing to focus on before the next class. Never use numbers or grades.
 6. word_count: number of words in the transcription.
 7. teacher_questions: 3 simple follow-up questions in English, at level ${level}, that a teacher can ask in a video call about this story to start a conversation.
 8. useful_phrases: 4 short English sentences the student can use to explain this story, each with "en" and "es".
+9. assignment_check: only if the teacher gave requirements above; one entry per requirement (the structure, each word to use, the question): "item" (the requirement, short), "ok" (true if the student used it correctly), "note_es" (warm, maximum 15 words, in Spanish). If there are no requirements, use an empty list.
 
 Reply with only JSON in this shape:
-{"transcription":"","corrected":"","errors":[{"original":"","correction":"","type":"","rule_es":""}],"strengths_es":["",""],"feedback_es":"","word_count":0,"teacher_questions":["","",""],"useful_phrases":[{"en":"","es":""}]}`;
+{"transcription":"","corrected":"","errors":[{"original":"","correction":"","type":"","rule_es":""}],"strengths_es":["",""],"feedback_es":"","word_count":0,"teacher_questions":["","",""],"useful_phrases":[{"en":"","es":""}],"assignment_check":[{"item":"","ok":true,"note_es":""}]}`;
 }
 function retellPrompt(level, story, retell){
   return `You are an English tutor for Wrealispec. The student (CEFR ${level}) studied this story many times:
@@ -733,7 +771,7 @@ async function runCorrection(textOverride, statusEl, btn, clar){
   btn.disabled = true; busy(statusEl, useImage ? "Leyendo tu cuaderno y corrigiendo… (puede tardar un minuto)" : "Corrigiendo tu texto…");
   try {
     const opts = useImage ? { images:[photoFile] } : {};
-    const r = await sample.json(correctionPrompt({ topic: S.topic, level: S.level, text: useImage ? "" : text, clar }), opts);
+    const r = await sample.json(correctionPrompt({ topic: S.topic, level: S.level, text: useImage ? "" : text, clar, asg: S.assignment }), opts);
     if (!r || typeof r.corrected !== "string" || !r.corrected.trim()) throw { code:"invalid_json" };
     const fresh = blank(S.topic, S.level);
     Object.assign(S, fresh, {
@@ -743,6 +781,8 @@ async function runCorrection(textOverride, statusEl, btn, clar){
       feedback_es: String(r.feedback_es || ""), word_count: Number(r.word_count) || countWords(r.transcription || text),
       teacher_questions: Array.isArray(r.teacher_questions) ? r.teacher_questions : [],
       useful_phrases: Array.isArray(r.useful_phrases) ? r.useful_phrases : [],
+      assignment: S.assignment || null,
+      assignment_check: Array.isArray(r.assignment_check) ? r.assignment_check.filter(x => x && x.item) : [],
     });
     S.example = false; busy(statusEl, ""); $("clarify").hidden = true; save(); renderAll(); go(0, 1);
   } catch(e){ if (e && e.code === "cancelled") busy(statusEl,""); else fail(statusEl, errMsg(e)); }
@@ -863,7 +903,7 @@ function renderCorrect(){
   S.strengths_es.forEach(s => { const li = document.createElement("li"); li.textContent = s; ul.append(li); });
   st.append(ul); st.hidden = !S.strengths_es.length;
   $("origText").textContent = S.transcription; $("fixTrans").value = S.transcription; $("corrText").textContent = S.corrected;
-  renderErrors($("errList"), S.errors, true); errCount();
+  renderErrors($("errList"), S.errors, true); errCount(); renderAsgRes();
 }
 
 /* ---------- Speech ---------- */
@@ -1104,6 +1144,7 @@ function summaryText(){
   const lines = [`WREALISPEC · Resumen para el profesor`, `Alumno: ${store.name || "—"}`, `Tema: ${S.topic}`, `Nivel: ${S.level} · Fecha: ${S.date}`, `Palabras escritas: ${S.word_count}`, ``,
     `Errores clave:`, ...S.errors.map(e => `- ${e.original} → ${e.correction}`), ``,
     `Correcciones revisadas: ${S.errors.filter((_, i) => S.errChecked[i]).length} de ${S.errors.length}`,
+    ...(S.assignment_check.length ? [`Tarea: ${S.assignment_check.filter(x => x.ok).length} de ${S.assignment_check.length} puntos logrados`, ...S.assignment_check.map(x => `  ${x.ok ? "✓" : "↻"} ${x.item}`)] : []),
     `Lectura en voz alta: ${S.reading.attempts.length ? `${lvLabel(bestReading())} (${S.reading.attempts.length} intento${S.reading.attempts.length > 1 ? "s" : ""})` : "pendiente"}`,
     `Escucha y responde: ${qaScore() ?? "pendiente"}`,
     `Retell (ideas principales): ${S.retell.res ? lvLabel(Math.round(Number(S.retell.res.coverage_pct)||0)) : "pendiente"}`,
@@ -1147,11 +1188,43 @@ function renderClass(){
 }
 $("btnCopySum").onclick = () => copy(summaryText(), $("st6"));
 $("btnNew").onclick = () => {
-  if (!S.example && S.corrected) { store.history = [S, ...store.history.filter(h => h.id !== S.id)].slice(0, 50); }
   const t = $("newTopic").value.trim();
-  store.current = blank(t || "Who is your favorite character?", S.level); S = store.current; photoFile = null;
-  $("preview").hidden = true; $("photo").value = ""; $("typed").value = ""; $("newTopic").value = ""; save(); renderAll(); go(0);
+  if (!t) { $("newTopic").focus(); $("newTopic").placeholder = "Escribe aquí la pregunta detonadora"; return; }
+  if (!S.example && S.corrected) { store.history = [S, ...store.history.filter(h => h.id !== S.id)].slice(0, 50); }
+  const a = { topic: t, structure: $("hwStruct").value.trim(), verbs: splitList($("hwVerbs").value), adjectives: splitList($("hwAdj").value), needQuestion: $("hwQ").checked };
+  const hasReq = a.structure || a.verbs.length || a.adjectives.length || a.needQuestion;
+  store.current = blank(t, S.level); S = store.current; S.assignment = hasReq ? a : null; photoFile = null;
+  $("preview").hidden = true; $("photo").value = ""; $("typed").value = "";
+  ["newTopic","hwStruct","hwVerbs","hwAdj"].forEach(id => { $(id).value = ""; }); $("hwQ").checked = false;
+  save(); renderAll(); go(0);
 };
+/* ---------- Assignment tracking ---------- */
+function usedWord(text, w){
+  const esc = w.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^a-z'])${esc}([^a-z']|$)`, "i").test(text);
+}
+function renderAssign(){
+  const a = S.assignment, box = $("assignBox");
+  if (!a){ box.hidden = true; return; }
+  box.hidden = false;
+  $("asQ").textContent = a.topic || S.topic;
+  $("asStruct").textContent = a.structure ? `Estructura: ${a.structure}` : "";
+  const text = (inputMode === "type" ? $("typed").value : "") || S.transcription || "";
+  const chips = $("asChips"); chips.innerHTML = "";
+  const add = (label, ok) => { const c = document.createElement("span"); c.className = "chip" + (ok ? " ok" : ""); c.textContent = label; chips.append(c); };
+  (a.verbs || []).forEach(v => add(v, usedWord(text, v)));
+  (a.adjectives || []).forEach(v => add(v, usedWord(text, v)));
+  if (a.needQuestion) add("una pregunta (?)", /\?/.test(text));
+}
+$("typed").addEventListener("input", renderAssign);
+function renderAsgRes(){
+  const list = S.assignment_check || [];
+  $("asgRes").hidden = !list.length;
+  renderErrors($("asgList"), list.map(x => ({ original: x.ok ? "✓ Lo lograste" : "↻ Te faltó", correction: x.item, type: "", rule_es: x.note_es || "" })));
+}
+/* ---------- Booking (Calendly / Cal.com) ---------- */
+const BOOKING_URL = ""; // p. ej. https://calendly.com/tu-usuario/clase-wrealispec
+if (BOOKING_URL){ $("btnBook").href = BOOKING_URL; $("btnBook").hidden = false; }
 
 /* ---------- History ---------- */
 function renderHist(){
@@ -1174,7 +1247,7 @@ function renderHist(){
 
 /* ---------- Render ---------- */
 function renderStep(i){
-  if (i === 0){ $("topic").value = S.topic; $("level").value = S.level; renderGoal(); }
+  if (i === 0){ $("topic").value = S.topic; $("level").value = S.level; renderGoal(); renderAssign(); }
   if (i === 1) renderCorrect();
   if (i === 2) renderListen();
   if (i === 4) renderPhase3();
