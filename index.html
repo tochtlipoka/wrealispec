@@ -3,1019 +3,340 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="Wrealispec: aprende inglés escribiendo, leyendo, escuchando, hablando y conversando con tu propia historia.">
-<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Wrealispec</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Wrealispec: aprende inglés con tu propia historia. Writing · Reading · Listening · Speaking · Conversation.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Caveat:wght@500;700&family=JetBrains+Mono:wght@500&display=swap">
 <style>
-/* Layout: one notebook-like column; a step rail across the top; the student's text always sits on ruled paper. */
+/* Layout: notebook-paper landing; hero with a corrected notebook line; five letters; four phases; teachers block. */
 :root{
   --paper:#F4F6FB; --sheet:#FFFFFF; --ink:#1B2559; --ink-soft:#56618A; --rule:#D9E1F0;
-  --margin:#D3455A; --ok:#1C7A4E; --accent:#2B56E0; --accent-ink:#FFFFFF; --hl:#FFF0A6; --chip:#E8EDFA;
-  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
-  --f-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
-  --f-hand:"Caveat", "Segoe Print", "Comic Sans MS", cursive;
-  --f-mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+  --margin:#D3455A; --ok:#1C7A4E; --accent:#2B56E0; --accent-ink:#FFFFFF; --chip:#E8EDFA;
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
+  --f-hand:"Caveat","Segoe Print","Comic Sans MS",cursive;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+@media (prefers-color-scheme: dark){:root{
   --paper:#0E1322; --sheet:#161D33; --ink:#E5E9F7; --ink-soft:#A1AACB; --rule:#28324F;
-  --margin:#F2707F; --ok:#4FC48C; --accent:#7D9BFF; --accent-ink:#0E1322; --hl:#4D4521; --chip:#222B47; color-scheme:dark }}
-:root[data-theme="dark"]{
-  --paper:#0E1322; --sheet:#161D33; --ink:#E5E9F7; --ink-soft:#A1AACB; --rule:#28324F;
-  --margin:#F2707F; --ok:#4FC48C; --accent:#7D9BFF; --accent-ink:#0E1322; --hl:#4D4521; --chip:#222B47; color-scheme:dark }
-
+  --margin:#F2707F; --ok:#4FC48C; --accent:#7D9BFF; --accent-ink:#0E1322; --chip:#222B47; color-scheme:dark }}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;
-  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:20px 48px}
-.wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
-h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;line-height:1.15}
-h2{font-size:1.45rem;font-weight:800}
-h3{font-size:1.05rem;font-weight:600}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1040px;margin:0 auto}
+h1,h2,h3{font-family:var(--f-display);margin:0;line-height:1.1;text-wrap:balance}
 p{margin:0}
-.muted{color:var(--ink-soft)}
-.small{font-size:.88rem}
+a{color:var(--accent)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 
-header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px}
-.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-.brand h1{font-family:var(--f-hand);font-size:2.6rem;font-weight:700;letter-spacing:.5px}
-.brand h1 b{color:var(--margin);font-weight:700}
-.skills{display:flex;gap:6px;flex-wrap:wrap}
-.skill{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:999px;background:var(--chip);color:var(--ink-soft);transition:background .2s,color .2s}
-.skill.on{background:var(--accent);color:var(--accent-ink)}
-
-.rail{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:0;margin:0;list-style:none}
-.rail button{width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:9px 10px;border:1px solid var(--rule);border-radius:10px;background:var(--sheet);color:var(--ink-soft);font:inherit;cursor:pointer;text-align:left;min-width:0}
-.rail button .n{font-family:var(--f-mono);font-size:.72rem}
-.rail button .t{font-weight:700;font-size:.9rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.rail button[aria-current="step"]{border-color:var(--accent);box-shadow:inset 0 -3px 0 var(--accent)}
-.rail button.done .n::after{content:" ✓";color:var(--ok)}
-.rail button:focus-visible, button:focus-visible, select:focus-visible, textarea:focus-visible, input:focus-visible, summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-@media (max-width:620px){.rail{grid-template-columns:repeat(2,minmax(0,1fr))}}
-
-.panel{background:var(--sheet);border:1px solid var(--rule);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:18px;min-width:0}
-.panel-head{display:flex;flex-direction:column;gap:6px}
-.eyebrow{font-family:var(--f-mono);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--margin)}
-
-.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
-@media (max-width:700px){.grid2{grid-template-columns:minmax(0,1fr)}}
-label{font-weight:700;font-size:.9rem}
-.field{display:flex;flex-direction:column;gap:6px;min-width:0}
-input[type=text],select,textarea{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:10px;padding:10px 12px;width:100%}
-textarea{min-height:140px;resize:vertical;line-height:1.6}
-input[type=range]{accent-color:var(--accent)}
-
-.btn{font:inherit;font-weight:700;border-radius:10px;padding:10px 16px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+nav{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-block:18px}
+.brand{font-family:var(--f-hand);font-weight:700;font-size:2.1rem;color:var(--ink);text-decoration:none;line-height:1}
+.brand b{color:var(--margin);font-weight:700}
+.nav-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.langs{display:inline-flex;border:1px solid var(--rule);border-radius:999px;overflow:hidden;background:var(--sheet)}
+.langs button{font:700 .8rem var(--f-mono);letter-spacing:.06em;padding:7px 12px;border:0;background:transparent;color:var(--ink-soft);cursor:pointer}
+.langs button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.btn{display:inline-flex;align-items:center;gap:8px;font:700 1rem var(--f-body);text-decoration:none;border-radius:12px;padding:12px 20px;border:2px solid var(--accent);background:var(--accent);color:var(--accent-ink)}
 .btn.ghost{background:transparent;color:var(--accent)}
-.btn.quiet{border-color:var(--rule);background:transparent;color:var(--ink)}
-.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.sm{padding:8px 14px;font-size:.9rem;border-radius:10px}
 
-/* Ruled notebook paper for the student's text */
+.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:40px;align-items:center;padding-block:40px 56px}
+@media (max-width:820px){.hero{grid-template-columns:minmax(0,1fr);gap:28px;padding-top:20px}}
+.eyebrow{font:500 .78rem var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--margin)}
+.hero h1{font-size:clamp(2.2rem,5.5vw,3.6rem);font-weight:800;margin-top:12px}
+.lead{font-size:1.15rem;color:var(--ink-soft);margin-top:16px;max-width:34em}
+.ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px}
+.say{margin-top:22px;font-size:.92rem;color:var(--ink-soft)}
+.say strong{color:var(--ink)}
+
 .notebook{position:relative;background:
-  linear-gradient(to right, transparent 38px, var(--margin) 38px, var(--margin) 39px, transparent 39px),
-  repeating-linear-gradient(to bottom, var(--sheet) 0, var(--sheet) 31px, var(--rule) 31px, var(--rule) 32px);
-  border:1px solid var(--rule);border-radius:10px;padding:6px 16px 10px 52px;line-height:32px;min-width:0;overflow-wrap:anywhere}
-.notebook.hand{font-family:var(--f-hand);font-size:1.4rem}
-.notebook .lbl{position:absolute;top:-11px;left:46px;background:var(--sheet);padding:0 6px;font-family:var(--f-mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);line-height:20px}
-.notebook .s{border-radius:4px;cursor:pointer;transition:background .15s}
-.notebook .s:hover{background:var(--chip)}
-.notebook .s.now{background:var(--hl)}
+  linear-gradient(to right,transparent 40px,var(--margin) 40px,var(--margin) 41px,transparent 41px),
+  repeating-linear-gradient(to bottom,var(--sheet) 0,var(--sheet) 35px,var(--rule) 35px,var(--rule) 36px);
+  border:1px solid var(--rule);border-radius:14px;padding:18px 20px 22px 58px;line-height:36px;font-family:var(--f-hand);font-size:1.6rem;
+  box-shadow:0 18px 40px -24px rgba(27,37,89,.35);transform:rotate(-1.2deg)}
+.notebook .x{text-decoration:line-through;text-decoration-color:var(--margin);text-decoration-thickness:2px;color:var(--ink-soft)}
+.notebook .fix{color:var(--ok);font-weight:700}
+.notebook .tag{position:absolute;right:14px;bottom:-14px;transform:rotate(1.2deg);font:700 .78rem var(--f-mono);letter-spacing:.06em;text-transform:uppercase;background:var(--ok);color:var(--sheet);padding:6px 10px;border-radius:8px}
 
-.drop{border:2px dashed var(--rule);border-radius:12px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;background:var(--paper)}
-.drop.over{border-color:var(--accent)}
-.drop img{max-height:220px;border-radius:8px;border:1px solid var(--rule)}
+section{padding-block:56px;border-top:1px solid var(--rule)}
+section h2{font-size:clamp(1.7rem,3.6vw,2.4rem);font-weight:800}
+.sub{color:var(--ink-soft);margin-top:10px;max-width:40em}
 
-.errors{display:flex;flex-direction:column;gap:0;border:1px solid var(--rule);border-radius:10px;overflow:hidden}
-.err{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:4px 16px;padding:12px 14px;border-top:1px solid var(--rule)}
-.err:first-child{border-top:0}
-.err .o{text-decoration:line-through;text-decoration-color:var(--margin);color:var(--ink-soft)}
-.err .c{color:var(--ok);font-weight:700}
-.err .r{grid-column:1 / -1;font-size:.9rem;color:var(--ink-soft)}
-.err .ty{font-family:var(--f-mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--margin);margin-right:6px}
-@media (max-width:520px){.err{grid-template-columns:minmax(0,1fr)}}
+.letters{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-top:30px}
+@media (max-width:820px){.letters{grid-template-columns:minmax(0,1fr)}}
+.letter{background:var(--sheet);border:1px solid var(--rule);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.letter .L{font-family:var(--f-hand);font-weight:700;font-size:3rem;line-height:1;color:var(--accent)}
+.letter.c{border-color:var(--margin)}
+.letter.c .L{color:var(--margin)}
+.letter h3{font-size:1.05rem;font-weight:600}
+.letter p{font-size:.95rem;color:var(--ink-soft)}
+@media (max-width:820px){.letter{display:grid;grid-template-columns:56px minmax(0,1fr);align-items:start;column-gap:12px}.letter .L{grid-row:span 2}}
 
-.note{border-left:3px solid var(--ok);padding:4px 0 4px 12px}
-.note.warn{border-left-color:var(--margin)}
-ul.clean{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.phases{list-style:none;margin:30px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;counter-reset:ph}
+@media (max-width:900px){.phases{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.phases{grid-template-columns:minmax(0,1fr)}}
+.phases li{counter-increment:ph;background:var(--sheet);border:1px solid var(--rule);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.phases li::before{content:"0" counter(ph);font:500 .8rem var(--f-mono);color:var(--margin);letter-spacing:.08em}
+.phases h3{font-size:1.2rem;font-weight:800}
+.phases p{font-size:.95rem;color:var(--ink-soft)}
 
-.status{font-size:.92rem;color:var(--ink-soft);min-height:1.4em}
-.status.bad{color:var(--margin)}
-.spinner{width:14px;height:14px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:spin .8s linear infinite;display:inline-block}
-@keyframes spin{to{transform:rotate(360deg)}}
+.levels{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.lv{font-weight:700;font-size:.92rem;padding:8px 14px;border-radius:999px;color:#fff}
+.lv:nth-child(1){background:#C9455A}.lv:nth-child(2){background:#D9782A}.lv:nth-child(3){background:#B8960F}
+.lv:nth-child(4){background:#1C7A4E}.lv:nth-child(5){background:#135C3A}
+.note{margin-top:16px;color:var(--ink-soft);max-width:40em}
 
-.score{display:flex;align-items:baseline;gap:8px}
-.score .big{font-family:var(--f-display);font-weight:800;font-size:2.4rem;font-variant-numeric:tabular-nums}
-.diff{line-height:2;overflow-wrap:anywhere}
-.diff .ok{color:var(--ok)}
-.diff .miss{color:var(--margin);text-decoration:underline wavy var(--margin);text-underline-offset:4px}
-.diff .extra{color:var(--ink-soft);text-decoration:line-through}
+.teach{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:36px;align-items:start}
+@media (max-width:820px){.teach{grid-template-columns:minmax(0,1fr)}}
+.teach ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:14px}
+.teach li{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px}
+.teach li::before{content:"✓";font-weight:700;color:var(--ok);font-size:1.1rem}
+.pilot{background:var(--ink);color:var(--paper);border-radius:16px;padding:26px;display:flex;flex-direction:column;gap:14px}
+.pilot h3{font-size:1.4rem;font-weight:800}
+.pilot p{color:var(--paper);opacity:.85}
+.pilot .btn{align-self:flex-start;background:var(--paper);color:var(--ink);border-color:var(--paper)}
 
-.turn{font-family:var(--f-display);font-weight:800;font-size:1.3rem;color:var(--margin)}
-.checks{display:flex;flex-direction:column;gap:8px}
-.checks label{font-weight:400;display:flex;gap:10px;align-items:flex-start;cursor:pointer}
-.checks input{margin-top:5px;accent-color:var(--ok);width:18px;height:18px}
-
-.qs{counter-reset:q;display:flex;flex-direction:column;gap:10px;padding:0;margin:0;list-style:none}
-.qs li{display:flex;gap:12px;align-items:flex-start}
-.qs li::before{counter-increment:q;content:counter(q);font-family:var(--f-mono);font-size:.8rem;min-width:26px;height:26px;border-radius:50%;background:var(--chip);display:grid;place-items:center;flex:none}
-.phr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 16px}
-.phr .en{font-weight:700}
-.phr .es{color:var(--ink-soft)}
-
-.summary{font-family:var(--f-mono);font-size:.85rem;white-space:pre-wrap;background:var(--paper);border:1px solid var(--rule);border-radius:10px;padding:14px;overflow-x:auto;max-height:340px}
-details{border:1px solid var(--rule);border-radius:12px;background:var(--sheet);padding:14px 18px}
-details summary{cursor:pointer;font-weight:700;font-family:var(--f-display)}
-details pre{font-family:var(--f-mono);font-size:.8rem;white-space:pre-wrap;overflow-wrap:anywhere;margin:12px 0 0;color:var(--ink-soft)}
-
-.hist{display:flex;flex-direction:column;gap:0;margin-top:10px}
-.hist button{all:unset;cursor:pointer;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;padding:10px 4px;border-top:1px solid var(--rule);align-items:center}
-.hist button:focus-visible{outline:3px solid var(--accent)}
-.hist .d{font-family:var(--f-mono);font-size:.78rem;color:var(--ink-soft)}
-.hist .tp{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tag{font-family:var(--f-mono);font-size:.72rem;padding:3px 8px;border-radius:999px;background:var(--chip);color:var(--ink-soft)}
-.example{font-family:var(--f-mono);font-size:.72rem;padding:3px 8px;border-radius:6px;background:var(--hl);color:var(--ink)}
-footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
-.seg{display:inline-flex;border:1px solid var(--rule);border-radius:10px;overflow:hidden;align-self:flex-start}
-.seg button{font:inherit;font-weight:700;padding:9px 18px;border:0;background:transparent;color:var(--ink-soft);cursor:pointer}
-.seg button[aria-checked="true"]{background:var(--accent);color:var(--accent-ink)}
-.err .chk{grid-column:1 / -1;font-weight:400;font-size:.88rem;display:flex;gap:8px;align-items:center;cursor:pointer;color:var(--ink-soft)}
-.err .chk input{accent-color:var(--ok);width:18px;height:18px}
-.err.seen{background:var(--paper)}
-.err.seen .c{opacity:.7}
-.sendbox{border:1px solid var(--rule);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--paper)}
-.qa{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;counter-reset:qa}
-.qa li{border:1px solid var(--rule);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;counter-increment:qa}
-.qa .qh{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.qa .qh::before{content:counter(qa);font-family:var(--f-mono);font-size:.8rem;min-width:26px;height:26px;border-radius:50%;background:var(--chip);display:grid;place-items:center}
-.qa .lab{font-weight:700}
-.qa .ptxt{font-style:italic;color:var(--ink-soft)}
-.qa textarea{min-height:64px}
-.qa .res{font-size:.92rem;border-left:3px solid var(--ok);padding-left:10px}
-.qa .res.no{border-left-color:var(--margin)}
-.rates{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-@media (max-width:620px){.rates{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.tfcard{border:1px solid var(--rule);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--paper)}
-.tfcard .stars{display:flex;flex-wrap:wrap;gap:6px}
-.tfcard p{white-space:pre-wrap}
-.lvl{display:flex;flex-direction:column;gap:8px}
-.lvl .lv-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px}
-.lvl .lv-label{font-family:var(--f-display);font-weight:800;font-size:2rem;line-height:1.1}
-.lvl .lv-msg{color:var(--ink-soft)}
-.lvl .lv-bar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;max-width:420px}
-.lvl .lv-seg{height:10px;border-radius:999px;background:var(--chip)}
-.lvl .lv-names{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;max-width:420px;font-size:.7rem;color:var(--ink-soft);text-align:center}
-.lvl.l0 .lv-seg.on{background:var(--margin)} .lvl.l0 .lv-label{color:var(--margin)}
-.lvl.l1 .lv-seg.on{background:#E08A3C} .lvl.l1 .lv-label{color:#C46F1F}
-.lvl.l2 .lv-seg.on{background:#D9B320} .lvl.l2 .lv-label{color:var(--ink)}
-.lvl.l3 .lv-seg.on, .lvl.l4 .lv-seg.on{background:var(--ok)} .lvl.l3 .lv-label, .lvl.l4 .lv-label{color:var(--ok)}
-.tries{font-weight:700}
-@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+.status{font-size:.9rem;color:var(--ink-soft);background:var(--chip);border-radius:12px;padding:14px 16px;margin-top:8px}
+footer{padding-block:28px 40px;border-top:1px solid var(--rule);display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:space-between;font-size:.9rem;color:var(--ink-soft)}
+footer a{color:inherit}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
-
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <div class="brand">
-      <h1>W<b>real</b>ispec</h1>
-      <span class="muted small">Writing · Reading · Listening · Speaking · Conversation</span>
+  <nav>
+    <a class="brand" href="#" aria-label="Wrealispec">W<b>real</b>ispec</a>
+    <div class="nav-r">
+      <div class="langs" role="group" aria-label="Idioma / Language">
+        <button data-lang="es" aria-pressed="false">ES</button>
+        <button data-lang="pt" aria-pressed="false">PT</button>
+        <button data-lang="en" aria-pressed="false">EN</button>
+      </div>
+      <a class="btn sm" href="app/" data-i18n="nav.demo">Probar la demo</a>
     </div>
-    <div class="skills" aria-label="Habilidades que trabajas en este paso">
-      <span class="skill" data-sk="W">Write</span>
-      <span class="skill" data-sk="R">Read</span>
-      <span class="skill" data-sk="L">Listen</span>
-      <span class="skill" data-sk="S">Speak</span>
-      <span class="skill" data-sk="C">Conversation</span>
+  </nav>
+
+  <header class="hero">
+    <div>
+      <span class="eyebrow" data-i18n="hero.eyebrow"></span>
+      <h1 data-i18n="hero.title"></h1>
+      <p class="lead" data-i18n="hero.lead"></p>
+      <div class="ctas">
+        <a class="btn" href="app/" data-i18n="hero.cta1"></a>
+        <a class="btn ghost" href="#teachers" data-i18n="hero.cta2"></a>
+      </div>
+      <p class="say" data-i18n-html="hero.say"></p>
+    </div>
+    <div class="notebook" aria-hidden="true">
+      Yesterday I had a good idea <span class="x">for improve</span> <span class="fix">to improve</span> my English. I <span class="x">wuld like tell</span> <span class="fix">would like to tell</span> you about it.
+      <span class="tag" data-i18n="hero.tag"></span>
     </div>
   </header>
 
-  <ol class="rail" id="rail"></ol>
-
-  <!-- 1 ESCRIBE -->
-  <section class="panel" data-step="0">
-    <div class="panel-head">
-      <span class="eyebrow">Fase 1 · Escribe y corrijo</span>
-      <h2>Tu historia en el cuaderno</h2>
-      <p class="muted">Escribe sobre el tema en tu cuaderno, con pluma. Cuando termines, toma una foto clara de la página y súbela aquí.</p>
+  <section aria-labelledby="sk-t">
+    <h2 id="sk-t" data-i18n="skills.title"></h2>
+    <p class="sub" data-i18n="skills.sub"></p>
+    <div class="letters">
+      <div class="letter"><span class="L">W</span><h3>Writing</h3><p data-i18n="skills.w"></p></div>
+      <div class="letter"><span class="L">R</span><h3>Reading</h3><p data-i18n="skills.r"></p></div>
+      <div class="letter"><span class="L">L</span><h3>Listening</h3><p data-i18n="skills.l"></p></div>
+      <div class="letter"><span class="L">S</span><h3>Speaking</h3><p data-i18n="skills.s"></p></div>
+      <div class="letter c"><span class="L">C</span><h3>Conversation</h3><p data-i18n="skills.c"></p></div>
     </div>
-    <div class="grid2">
-      <div class="field"><label for="topic">Tema que te dio el profesor</label><input type="text" id="topic"></div>
-      <div class="field"><label for="level">Tu nivel</label>
-        <select id="level"><option>A1</option><option>A2</option><option>B1</option><option>B2</option></select>
-        <span class="small muted" id="wordGoal"></span>
+  </section>
+
+  <section aria-labelledby="ph-t">
+    <h2 id="ph-t" data-i18n="phases.title"></h2>
+    <p class="sub" data-i18n="phases.sub"></p>
+    <ol class="phases">
+      <li><h3 data-i18n="p1.t"></h3><p data-i18n="p1.d"></p></li>
+      <li><h3 data-i18n="p2.t"></h3><p data-i18n="p2.d"></p></li>
+      <li><h3 data-i18n="p3.t"></h3><p data-i18n="p3.d"></p></li>
+      <li><h3 data-i18n="p4.t"></h3><p data-i18n="p4.d"></p></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="lv-t">
+    <h2 id="lv-t" data-i18n="lv.title"></h2>
+    <p class="sub" data-i18n="lv.sub"></p>
+    <div class="levels">
+      <span class="lv" data-i18n="lv.1"></span><span class="lv" data-i18n="lv.2"></span><span class="lv" data-i18n="lv.3"></span><span class="lv" data-i18n="lv.4"></span><span class="lv" data-i18n="lv.5"></span>
+    </div>
+    <p class="note" data-i18n="lv.note"></p>
+  </section>
+
+  <section id="teachers" aria-labelledby="t-t">
+    <div class="teach">
+      <div>
+        <h2 id="t-t" data-i18n="t.title"></h2>
+        <p class="sub" data-i18n="t.sub"></p>
+        <ul style="margin-top:24px">
+          <li><span data-i18n="t.1"></span></li>
+          <li><span data-i18n="t.2"></span></li>
+          <li><span data-i18n="t.3"></span></li>
+          <li><span data-i18n="t.4"></span></li>
+        </ul>
+      </div>
+      <div class="pilot">
+        <h3 data-i18n="pilot.t"></h3>
+        <p data-i18n="pilot.d"></p>
+        <a class="btn" href="https://hpopoca.com" target="_blank" rel="noopener" data-i18n="pilot.cta"></a>
       </div>
     </div>
-    <div class="drop" id="drop">
-      <img id="preview" alt="Foto de tu cuaderno" hidden>
-      <p><strong>Arrastra aquí la foto de tu cuaderno</strong> o elígela</p>
-      <input type="file" id="photo" accept="image/jpeg,image/png,image/webp">
-      <p class="small muted" id="imgNote"></p>
-    </div>
-    <details id="typeBox">
-      <summary>¿Sin foto? Escribe o pega tu texto</summary>
-      <div class="field" style="margin-top:12px"><label for="typed">Tu texto tal como lo escribiste (con errores)</label><textarea id="typed"></textarea></div>
-    </details>
-    <div class="row">
-      <button class="btn" id="btnCorrect">Corregir con IA</button>
-      <span class="status" id="st1" role="status"></span>
-    </div>
+    <p class="status" data-i18n="status"></p>
   </section>
 
-  <!-- 2 CORRIGE -->
-  <section class="panel" data-step="1" hidden>
-    <div class="panel-head">
-      <span class="eyebrow">Fase 1 · Tu corrección</span>
-      <h2>Lo que escribiste y cómo queda corregido</h2>
-      <p class="muted" id="fbLine"></p>
-    </div>
-    <div class="note" id="strengths"></div>
-    <div class="grid2">
-      <div class="field">
-        <div class="notebook hand" id="origBox"><span class="lbl">Lo que leí en tu cuaderno</span><span id="origText"></span></div>
-        <details>
-          <summary>¿Leí mal alguna palabra? Corrígela</summary>
-          <div class="field" style="margin-top:12px">
-            <textarea id="fixTrans" aria-label="Transcripción editable"></textarea>
-            <div class="row"><button class="btn quiet" id="btnRecorrect">Volver a corregir con este texto</button><span class="status" id="st2" role="status"></span></div>
-          </div>
-        </details>
-      </div>
-      <div class="notebook" id="corrBox"><span class="lbl">Texto corregido</span><span id="corrText"></span></div>
-    </div>
-    <div class="field">
-      <h3>Errores clave <span class="muted small" id="wc"></span></h3>
-      <div class="errors" id="errList"></div>
-    </div>
-    <p class="note warn small">Ahora copia el texto corregido en tu cuaderno, otra vez a mano. Así fijas las correcciones.</p>
-    <div class="row"><button class="btn" data-go="1">Siguiente fase: Escucha y repite</button></div>
-  </section>
-
-  <!-- FASE 2 -->
-  <section class="panel" data-step="2" hidden>
-    <div class="panel-head">
-      <span class="eyebrow">Fase 2 · Escucha y repite</span>
-      <h2>Escucha tu historia y repítela</h2>
-      <p class="muted">Elige cómo practicar. Toca cualquier oración para escucharla sola.</p>
-    </div>
-    <div class="seg" role="radiogroup" aria-label="Modalidad">
-      <button role="radio" data-mode="cont" aria-checked="true">Continuo</button>
-      <button role="radio" data-mode="eco" aria-checked="false">Modo eco</button>
-    </div>
-    <p class="muted small" id="modeHelp"></p>
-    <div class="grid2">
-      <div class="field"><label for="voice">Voz</label><select id="voice"></select></div>
-      <div class="field"><label for="rate">Velocidad <span id="rateVal" class="muted"></span></label><input type="range" id="rate" min="0.6" max="1.15" step="0.05" value="0.85"></div>
-    </div>
-    <div class="row">
-      <button class="btn" id="btnPlay">Escuchar todo</button>
-      <button class="btn quiet" id="btnStop">Detener</button>
-      <span class="turn" id="turn" aria-live="polite"></span>
-    </div>
-    <div class="notebook" id="listenBox"><span class="lbl">Tu historia</span><span id="listenText"></span></div>
-    <p class="small muted" id="voiceNote"></p>
-    <div class="field">
-      <h3>Antes de pasar a la siguiente fase</h3>
-      <div class="checks">
-        <label><input type="checkbox" data-ck="0"> Entiendo cada palabra de mi historia.</label>
-        <label><input type="checkbox" data-ck="1"> Hice el modo eco al menos 3 veces.</label>
-        <label><input type="checkbox" data-ck="2"> Leí la historia completa en voz alta sin detenerme.</label>
-      </div>
-    </div>
-    <div class="row"><button class="btn" data-go="2">Siguiente fase: Grábate y te dicto</button></div>
-  </section>
-
-  <!-- FASE 3 -->
-  <section class="panel" data-step="4" hidden>
-    <div class="panel-head">
-      <span class="eyebrow">Fase 3 · Grábate y te dicto</span>
-      <h2>Lee tu historia y la IA te escucha</h2>
-      <p class="muted">Toca el recuadro de abajo y presiona el <strong>micrófono del teclado</strong> de tu celular (con el teclado en inglés), o en Windows presiona <strong>Windows + H</strong>. Lee tu historia completa en voz alta. El teclado escribe lo que entiende y la IA lo compara con tu historia.</p>
-    </div>
-    <div class="field"><label for="readIn">Lo que el micrófono escuchó</label><textarea id="readIn" spellcheck="false" autocomplete="off" placeholder="Presiona el micrófono del teclado y lee tu historia…"></textarea></div>
-    <div class="row"><button class="btn" id="btnRead">Evaluar mi lectura</button><span class="status" id="st4" role="status"></span></div>
-    <div id="readRes" hidden class="field">
-      <div class="lvl" id="readLv"></div>
-      <p class="tries" id="readTries"></p>
-      <div class="diff" id="readDiff"></div>
-      <p class="small muted"><span style="color:var(--ok)">Verde</span>: se entendió. <span style="color:var(--margin)">Rojo ondulado</span>: no se entendió o te la saltaste. <span style="text-decoration:line-through">Tachado</span>: el micrófono escuchó otra palabra.</p>
-      <p id="readFb"></p>
-      <div class="errors" id="readWords"></div>
-    </div>
-    <p class="small muted">El ritmo y la entonación todavía no se califican; esta revisión mide qué tan claro se entiende lo que dices.</p>
-    <div class="sendbox" id="sendBox" hidden>
-      <h3 id="sendTitle">Envía tu grabación a tu profesor</h3>
-      <p class="muted" id="sendText"></p>
-      <div class="row"><button class="btn ghost" id="btnSendMsg">Copiar mensaje para tu profesor</button><span class="status" id="st4b" role="status"></span></div>
-      <div class="checks"><label><input type="checkbox" data-ck="3"> Envié mi grabación a mi profesor.</label></div>
-    </div>
-
-    <hr style="border:0;border-top:1px solid var(--rule);width:100%;margin:6px 0">
-    <div class="panel-head">
-      <h2>Escucha y responde</h2>
-      <p class="muted">5 ejercicios cortos sobre tu historia. Escucha cada uno sin leerlo y responde por escrito en inglés.</p>
-    </div>
-    <div class="row"><button class="btn" id="btnQa">Crear ejercicios</button><span class="status" id="stQa" role="status"></span></div>
-    <ol class="qa" id="qaList"></ol>
-    <div class="row" id="qaCheckRow" hidden><button class="btn" id="btnQaCheck">Revisar respuestas</button><span class="status" id="stQa2" role="status"></span></div>
-    <div id="qaRes" hidden class="field"><div class="lvl" id="qaLv"></div><p class="muted" id="qaSum"></p></div>
-    <hr style="border:0;border-top:1px solid var(--rule);width:100%;margin:6px 0">
-    <div class="panel-head">
-      <h2>Ahora cuéntala con tus palabras</h2>
-      <p class="muted">Sin mirar, explica tu historia como se la contarías a un amigo. No tiene que ser igual; lo importante es que digas las ideas principales.</p>
-    </div>
-    <div class="field"><label for="retell">Tu versión</label><textarea id="retell"></textarea></div>
-    <div class="row"><button class="btn" id="btnRetell">Revisar mi versión</button><span class="status" id="st5" role="status"></span></div>
-    <div id="retellRes" hidden class="field">
-      <div class="lvl" id="covLv"></div>
-      <p id="retellFb"></p>
-      <div id="missing"></div>
-      <div class="errors" id="retellErrs"></div>
-    </div>
-    <div class="row"><button class="btn" data-go="3">Siguiente fase: Conversemos</button></div>
-  </section>
-
-  <!-- 6 CLASE -->
-  <section class="panel" data-step="5" hidden>
-    <div class="panel-head">
-      <span class="eyebrow">Fase 4 · Conversemos</span>
-      <h2>Listo para la videollamada con tu profesor</h2>
-      <p class="muted">Tu profesor te pedirá que expliques tu historia y te hará preguntas. Practica estas respuestas en voz alta.</p>
-    </div>
-    <div class="field"><h3>Preguntas que te pueden hacer</h3><ol class="qs" id="qs"></ol></div>
-    <div class="field"><h3>Frases útiles para tu explicación</h3><div class="phr" id="phr"></div></div>
-    <div class="field">
-      <h3>Resumen para tu profesor</h3>
-      <div class="summary" id="summary"></div>
-      <div class="row"><button class="btn ghost" id="btnCopySum">Copiar resumen</button><span class="status" id="st6" role="status"></span></div>
-    </div>
-    <div class="field">
-      <h3>Retroalimentación del profesor</h3>
-      <div id="tfView"></div>
-      <div class="row"><button class="btn ghost" id="btnTf">Dejar retroalimentación del profesor</button></div>
-      <div id="tfForm" hidden class="field tf">
-        <div class="rates">
-          <div class="field"><label for="tfPron">Pronunciación</label><select id="tfPron"></select></div>
-          <div class="field"><label for="tfFlu">Fluidez</label><select id="tfFlu"></select></div>
-          <div class="field"><label for="tfGram">Gramática</label><select id="tfGram"></select></div>
-          <div class="field"><label for="tfVoc">Vocabulario</label><select id="tfVoc"></select></div>
-        </div>
-        <div class="field"><label for="tfText">Comentarios generales</label><textarea id="tfText" placeholder="Lo que hizo bien, en qué trabajar la próxima semana…"></textarea></div>
-        <div class="row"><button class="btn" id="btnTfSave">Guardar retroalimentación</button><button class="btn quiet" id="btnTfCancel">Cancelar</button></div>
-      </div>
-    </div>
-    <hr style="border:0;border-top:1px solid var(--rule);width:100%;margin:6px 0">
-    <div class="field">
-      <h3>Nuevo tema</h3>
-      <div class="row"><input type="text" id="newTopic" placeholder="El tema que te dio tu profesor" style="flex:1;min-width:200px"><button class="btn" id="btnNew">Empezar nueva historia</button></div>
-      <p class="small muted">Esta historia se guarda en tu historial, en este navegador.</p>
-    </div>
-  </section>
-
-  <details id="histBox">
-    <summary>Mis historias <span class="muted small" id="histCount"></span></summary>
-    <div class="hist" id="hist"></div>
-  </details>
-
-  <details>
-    <summary>Instrucciones fijas de la IA (para profesores)</summary>
-    <p class="small muted" style="margin-top:10px">Así le pide Wrealispec a la IA cada corrección, para que la calidad sea la misma con cualquier alumno.</p>
-    <pre id="promptView"></pre>
-  </details>
-
-  <footer>Wrealispec v0.4 · prototipo para pruebas</footer>
+  <footer>
+    <span>W<b style="color:var(--margin)">real</b>ispec · Writing · Reading · Listening · Speaking · Conversation</span>
+    <span data-i18n-html="footer"></span>
+  </footer>
 </div>
 
 <script>
 (() => {
 "use strict";
-const $ = (id) => document.getElementById(id);
-const LEVELS = { A1:[50,80], A2:[80,120], B1:[120,200], B2:[200,250] };
-const STEPS = [
-  { t:"Escribe y corrijo", sk:"WR", panels:[0,1] },
-  { t:"Escucha y repite", sk:"LRS", panels:[2] },
-  { t:"Grábate y te dicto", sk:"SLW", panels:[4] },
-  { t:"Conversemos", sk:"C", panels:[5] },
-];
-const KEY = "wrelispek.v2";
-
-/* ---------- Example story (the user's real notebook page, loaded as a marked sample) ---------- */
-const SAMPLE = {
-  id: "ejemplo", example: true, date: "2026-11-03", level: "A2",
-  topic: "My idea to improve my English",
-  transcription: "I woke up very early at 6:00 am and get up 6:30 am. Yesterday I had a good Idea for improve my English skills. I wuld like tell about. My idea is practicing four habilities in English read, write, listening and speaking for example: You need all days, yes all days, write about a topic like your day a historical person, your experience personal or Job, is necesary write a text around between 100 to 500 words this is like one and half page or one page of Notebook. When you have you text must take a photo and send to one IA for check it ok, that is to say you write, take a photo, send to IA and IA reviews your text, the IA will give you feedback, when you have your feedback will must necesary that you write the correct text again. This text you will try to put them into another IA to see how to say it and you will have a text which you will beable to repeat out loud.",
-  corrected: "I woke up very early at 6:00 a.m. and got up at 6:30 a.m. Yesterday I had a good idea to improve my English skills, and I would like to tell you about it. My idea is to practice the four skills in English: reading, writing, listening and speaking. For example, you need to write every day, yes, every day, about a topic like your day, a historical person, your personal experience or your job. You need to write a text of between 100 and 500 words. This is about one page or one and a half pages of a notebook. When you have your text, you must take a photo and send it to an AI to check it. In other words, you write, take a photo and send it to the AI, and the AI reviews your text and gives you feedback. When you have your feedback, you must write the correct text again. Then you put this text into another AI to hear how to say it, and you will have a text that you will be able to repeat out loud.",
-  errors: [
-    { original:"get up 6:30 am", correction:"got up at 6:30 a.m.", type:"grammar", rule_es:"La historia está en pasado: get → got. Con horas se usa \"at\"." },
-    { original:"for improve", correction:"to improve", type:"grammar", rule_es:"Para expresar propósito usa to + verbo, no for + verbo." },
-    { original:"I wuld like tell about", correction:"I would like to tell you about it", type:"grammar", rule_es:"Would like va seguido de to + verbo. Tell necesita a quién: tell you." },
-    { original:"habilities", correction:"skills", type:"vocabulary", rule_es:"\"Habilities\" no existe. Para idiomas se dice skills." },
-    { original:"read, write, listening and speaking", correction:"reading, writing, listening and speaking", type:"grammar", rule_es:"En una lista usa la misma forma en todas: todas con -ing." },
-    { original:"You need all days ... write", correction:"you need to write every day", type:"grammar", rule_es:"Need + to + verbo. \"Todos los días\" es every day; all days no se usa." },
-    { original:"your experience personal", correction:"your personal experience", type:"word_order", rule_es:"En inglés el adjetivo va antes del sustantivo." },
-    { original:"you text / send to one IA", correction:"your text / send it to an AI", type:"spelling", rule_es:"Your = tu. En inglés es AI, y con vocal se dice an AI." },
-  ],
-  strengths_es: [
-    "Explicaste un proceso completo en orden: escribir, foto, corrección, repetir.",
-    "Usaste conectores como \"for example\" y \"that is to say\" para ordenar tus ideas.",
-  ],
-  feedback_es: "Tu idea se entiende de principio a fin y el texto tiene buena extensión. Enfócate esta semana en usar to + verbo después de need, would like y para expresar propósito.",
-  word_count: 190,
-  teacher_questions: [
-    "Why do you think writing by hand helps you learn English?",
-    "How do you feel when you read your text out loud?",
-    "What topic would you like to write about next week?",
-  ],
-  useful_phrases: [
-    { en:"My idea is to practice the four skills.", es:"Mi idea es practicar las cuatro habilidades." },
-    { en:"First, I write a text in my notebook.", es:"Primero, escribo un texto en mi cuaderno." },
-    { en:"Then the AI checks it and gives me feedback.", es:"Luego la IA lo revisa y me da retroalimentación." },
-    { en:"Finally, I repeat it out loud.", es:"Finalmente, lo repito en voz alta." },
-  ],
-  retell: { text:"", res:null }, checks:[false,false,false,false], step: 0,
-};
-
-function blank(topic, level){
-  return normalize({ id: String(Date.now()), example:false, date: new Date().toISOString().slice(0,10), level: level || "A2",
-    topic: topic || "Who is your favorite character?", transcription:"", corrected:"", errors:[], strengths_es:[], feedback_es:"",
-    word_count:0, teacher_questions:[], useful_phrases:[], step:0 });
+const T = {
+es: {
+  "nav.demo":"Probar la demo",
+  "hero.eyebrow":"Método de inglés con IA y profesor",
+  "hero.title":"Aprende inglés con tu propia historia.",
+  "hero.lead":"Escribes a mano, la IA te corrige, escuchas tu historia, la lees en voz alta y terminas conversando con tu profesor. Cada semana, un tema nuevo.",
+  "hero.cta1":"Probar la demo",
+  "hero.cta2":"¿Eres profesor o escuela?",
+  "hero.say":"Se escribe <strong>Wrealispec</strong> y se dice <strong>“realispec”</strong>: la W es muda, como en <em>write</em>.",
+  "hero.tag":"Corregido por IA",
+  "skills.title":"Cinco habilidades en una palabra",
+  "skills.sub":"Cada letra de Wrealispec es una habilidad, y la última es la más importante.",
+  "skills.w":"Escribes tu historia a mano, en tu cuaderno.",
+  "skills.r":"Lees tu texto corregido hasta entender cada palabra.",
+  "skills.l":"Escuchas cómo suena tu historia en inglés natural.",
+  "skills.s":"La lees en voz alta y la IA te escucha.",
+  "skills.c":"Speaking es hablar al aire. Conversation es intercambiar ideas con tu profesor.",
+  "phases.title":"Cuatro fases cada semana",
+  "phases.sub":"La IA te prepara entre clases. El profesor te hace conversar.",
+  "p1.t":"Escribe y corrijo","p1.d":"Subes la foto de tu cuaderno. La IA te da el texto corregido y te explica tus errores clave en tu idioma.",
+  "p2.t":"Escucha y repite","p2.d":"Escuchas tu historia de corrido o en modo eco, oración por oración, y la repites con el mismo ritmo.",
+  "p3.t":"Grábate y te dicto","p3.d":"La IA escucha tu lectura y te dice qué palabras practicar. Luego respondes ejercicios de escucha sobre tu historia.",
+  "p4.t":"Conversemos","p4.d":"Videollamada con tu profesor: explicas tu historia, te hace preguntas y recibes tu nuevo tema.",
+  "lv.title":"Sin calificaciones que desanimen",
+  "lv.sub":"En lugar de números, rangos que te motivan a seguir:",
+  "lv.1":"Te falta","lv.2":"Un poco más","lv.3":"Ya casi","lv.4":"Muy bien","lv.5":"¡Excelente!",
+  "lv.note":"Y si en tres intentos no llegas, tu profesor te escucha y reconoce tu esfuerzo.",
+  "t.title":"Para profesores y escuelas",
+  "t.sub":"Wrealispec convierte una clase de una hora en un método completo de una semana.",
+  "t.1":"La IA hace el trabajo pesado entre clases: corrige, genera el audio y da seguimiento.",
+  "t.2":"Tus alumnos llegan preparados, y la clase se dedica a conversar.",
+  "t.3":"Ofreces una semana completa de práctica, no solo una hora: eso eleva el valor de lo que enseñas.",
+  "t.4":"Recibes un resumen de cada alumno, listo para tu videollamada.",
+  "pilot.t":"Programa piloto",
+  "pilot.d":"Buscamos profesores y escuelas de inglés que quieran probar el método con sus alumnos.",
+  "pilot.cta":"Contactar a Héctor",
+  "status":"Wrealispec está en fase piloto. La demo muestra el método completo; las funciones con IA se activan en la siguiente versión.",
+  "footer":"Creado por <a href=\"https://hpopoca.com\" target=\"_blank\" rel=\"noopener\">Héctor Popoca</a>",
+},
+pt: {
+  "nav.demo":"Testar a demo",
+  "hero.eyebrow":"Método de inglês com IA e professor",
+  "hero.title":"Aprenda inglês com a sua própria história.",
+  "hero.lead":"Você escreve à mão, a IA corrige, você escuta a sua história, lê em voz alta e termina conversando com o seu professor. Toda semana, um tema novo.",
+  "hero.cta1":"Testar a demo",
+  "hero.cta2":"Você é professor ou escola?",
+  "hero.say":"Escreve-se <strong>Wrealispec</strong> e se diz <strong>“realispec”</strong>: o W é mudo, como em <em>write</em>.",
+  "hero.tag":"Corrigido pela IA",
+  "skills.title":"Cinco habilidades em uma palavra",
+  "skills.sub":"Cada letra de Wrealispec é uma habilidade, e a última é a mais importante.",
+  "skills.w":"Você escreve a sua história à mão, no caderno.",
+  "skills.r":"Você lê o texto corrigido até entender cada palavra.",
+  "skills.l":"Você escuta como a sua história soa em inglês natural.",
+  "skills.s":"Você lê em voz alta e a IA escuta.",
+  "skills.c":"Speaking é falar para o ar. Conversation é trocar ideias com o seu professor.",
+  "phases.title":"Quatro fases toda semana",
+  "phases.sub":"A IA prepara você entre as aulas. O professor faz você conversar.",
+  "p1.t":"Escreva e eu corrijo","p1.d":"Você envia a foto do caderno. A IA devolve o texto corrigido e explica os seus erros principais no seu idioma.",
+  "p2.t":"Escute e repita","p2.d":"Você escuta a sua história inteira ou no modo eco, frase por frase, e repete com o mesmo ritmo.",
+  "p3.t":"Grave-se e eu dito","p3.d":"A IA escuta a sua leitura e mostra quais palavras praticar. Depois você responde exercícios de escuta sobre a sua história.",
+  "p4.t":"Vamos conversar","p4.d":"Videochamada com o seu professor: você explica a sua história, responde perguntas e recebe o novo tema.",
+  "lv.title":"Sem notas que desanimam",
+  "lv.sub":"Em vez de números, níveis que motivam você a continuar:",
+  "lv.1":"Ainda falta","lv.2":"Um pouco mais","lv.3":"Quase lá","lv.4":"Muito bem","lv.5":"Excelente!",
+  "lv.note":"E se em três tentativas você não chegar lá, o seu professor escuta e reconhece o seu esforço.",
+  "t.title":"Para professores e escolas",
+  "t.sub":"Wrealispec transforma uma aula de uma hora em um método completo de uma semana.",
+  "t.1":"A IA faz o trabalho pesado entre as aulas: corrige, gera o áudio e acompanha o progresso.",
+  "t.2":"Os seus alunos chegam preparados, e a aula fica para conversar.",
+  "t.3":"Você oferece uma semana completa de prática, não só uma hora: isso aumenta o valor do que você ensina.",
+  "t.4":"Você recebe um resumo de cada aluno, pronto para a sua videochamada.",
+  "pilot.t":"Programa piloto",
+  "pilot.d":"Procuramos professores e escolas de inglês que queiram testar o método com os seus alunos.",
+  "pilot.cta":"Falar com Héctor",
+  "status":"Wrealispec está em fase piloto. A demo mostra o método completo; as funções com IA serão ativadas na próxima versão.",
+  "footer":"Criado por <a href=\"https://hpopoca.com\" target=\"_blank\" rel=\"noopener\">Héctor Popoca</a>",
+},
+en: {
+  "nav.demo":"Try the demo",
+  "hero.eyebrow":"An English method with AI and a teacher",
+  "hero.title":"Learn English through your own story.",
+  "hero.lead":"You write by hand, AI corrects it, you listen to your story, read it aloud and finish with a real conversation with your teacher. A new topic every week.",
+  "hero.cta1":"Try the demo",
+  "hero.cta2":"Are you a teacher or a school?",
+  "hero.say":"Spelled <strong>Wrealispec</strong>, pronounced <strong>“realispec”</strong>: the W is silent, like in <em>write</em>.",
+  "hero.tag":"Corrected by AI",
+  "skills.title":"Five skills in one word",
+  "skills.sub":"Every letter in Wrealispec is a skill, and the last one matters most.",
+  "skills.w":"You handwrite your story in your notebook.",
+  "skills.r":"You read your corrected text until you understand every word.",
+  "skills.l":"You hear how your story sounds in natural English.",
+  "skills.s":"You read it aloud and the AI listens.",
+  "skills.c":"Speaking is talking to the air. Conversation is sharing ideas with your teacher.",
+  "phases.title":"Four phases every week",
+  "phases.sub":"AI prepares you between classes. Your teacher gets you talking.",
+  "p1.t":"Write & I correct","p1.d":"Upload a photo of your notebook. AI returns the corrected text and explains your key mistakes in your own language.",
+  "p2.t":"Listen & repeat","p2.d":"Listen to your story straight through or in echo mode, sentence by sentence, and repeat it with the same rhythm.",
+  "p3.t":"Record & dictation","p3.d":"AI listens to your reading and shows which words to practice. Then you answer listening exercises about your story.",
+  "p4.t":"Let's talk","p4.d":"A video call with your teacher: you explain your story, answer questions and get your next topic.",
+  "lv.title":"No grades that discourage you",
+  "lv.sub":"Instead of numbers, levels that keep you going:",
+  "lv.1":"Not yet","lv.2":"A bit more","lv.3":"Almost there","lv.4":"Very good","lv.5":"Excellent!",
+  "lv.note":"And if you don't get there in three tries, your teacher listens and recognizes your effort.",
+  "t.title":"For teachers and schools",
+  "t.sub":"Wrealispec turns a one-hour class into a complete weekly method.",
+  "t.1":"AI does the heavy lifting between classes: correcting, generating audio and tracking progress.",
+  "t.2":"Your students arrive prepared, so class time is for real conversation.",
+  "t.3":"You offer a full week of practice, not just one hour, which raises the value of what you teach.",
+  "t.4":"You get a summary of each student, ready for your video call.",
+  "pilot.t":"Pilot program",
+  "pilot.d":"We're looking for English teachers and schools who want to try the method with their students.",
+  "pilot.cta":"Contact Héctor",
+  "status":"Wrealispec is in its pilot phase. The demo shows the full method; AI features will be switched on in the next version.",
+  "footer":"Created by <a href=\"https://hpopoca.com\" target=\"_blank\" rel=\"noopener\">Héctor Popoca</a>",
+}};
+const KEY = "wrealispec.lang";
+function pick(){
+  try { const s = localStorage.getItem(KEY); if (T[s]) return s; } catch(e){}
+  const n = (navigator.languages && navigator.languages[0]) || navigator.language || "es";
+  if (/^pt/i.test(n)) return "pt";
+  if (/^es/i.test(n)) return "es";
+  if (/^en/i.test(n)) return "en";
+  return "es";
 }
-function normalize(s){
-  s.errChecked = Array.isArray(s.errChecked) ? s.errChecked : [];
-  s.reading = s.reading || { text:"", pct:null, res:null };
-  s.reading.attempts = Array.isArray(s.reading.attempts) ? s.reading.attempts : (s.reading.pct != null ? [s.reading.pct] : []);
-  s.qa = s.qa || { items:[], answers:[], res:null };
-  s.retell = s.retell || { text:"", res:null };
-  s.checks = Array.isArray(s.checks) ? s.checks : [false,false,false,false];
-  s.teacher = s.teacher || null;
-  return s;
+function apply(lang){
+  const d = T[lang];
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach(el => { const v = d[el.dataset.i18n]; if (v != null) el.textContent = v; });
+  document.querySelectorAll("[data-i18n-html]").forEach(el => { const v = d[el.dataset.i18nHtml]; if (v != null) el.innerHTML = v; });
+  document.querySelectorAll("[data-lang]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+  document.title = "Wrealispec";
 }
-
-/* ---------- Storage (per-viewer convenience only) ---------- */
-function load(){ try { const v = JSON.parse(localStorage.getItem(KEY) || "null"); if (v && v.current) return v; } catch(e){} return null; }
-function save(){ try { localStorage.setItem(KEY, JSON.stringify(store)); } catch(e){} }
-let store = load() || { current: structuredClone(SAMPLE), history: [] };
-store.current = normalize(store.current); store.history = (store.history || []).map(normalize);
-let S = store.current;
-
-/* ---------- Fixed AI instructions ---------- */
-function correctionPrompt({ topic, level, text }){
-  return `You are the writing corrector of Wrealispec, an English method for Spanish-speaking adults. The student handwrote a short story in a notebook.
-Student level (CEFR): ${level}. Topic given by the teacher: "${topic}".
-${text ? `Here is the student's text, already transcribed and confirmed by the student:\n"""\n${text}\n"""` : `The attached image is a photo of the student's notebook page.`}
-
-Rules:
-1. transcription: ${text ? "copy the text above exactly." : "copy exactly what the student wrote, including every mistake. Do NOT correct anything here. If a word is unreadable, write [?]."}
-2. corrected: rewrite the text so it is correct, natural English. Keep the student's ideas, order and voice. Change only what is needed. Do not add new ideas. Use vocabulary at most one level above ${level}.
-3. errors: the most important mistakes (maximum 8). Prioritize repeated mistakes and mistakes that change the meaning. For each one: "original" (exact words from the transcription), "correction", "type" (grammar | vocabulary | spelling | word_order | punctuation), "rule_es" (short explanation in simple Spanish, maximum 20 words).
-4. strengths_es: 2 specific things the student did well, in Spanish.
-5. feedback_es: 2 sentences in Spanish, in a warm, encouraging tone like a friendly teacher. First what was good, then the one thing to focus on next week. Never use numbers or grades.
-6. word_count: number of words in the transcription.
-7. teacher_questions: 3 simple follow-up questions in English, at level ${level}, that a teacher can ask in a video call about this story to start a conversation.
-8. useful_phrases: 4 short English sentences the student can use to explain this story, each with "en" and "es".
-
-Reply with only JSON in this shape:
-{"transcription":"","corrected":"","errors":[{"original":"","correction":"","type":"","rule_es":""}],"strengths_es":["",""],"feedback_es":"","word_count":0,"teacher_questions":["","",""],"useful_phrases":[{"en":"","es":""}]}`;
-}
-function retellPrompt(level, story, retell){
-  return `You are an English tutor for Wrealispec. The student (CEFR ${level}) studied this story many times:
-"""
-${story}
-"""
-Now, without looking, the student explained the story in their own words:
-"""
-${retell}
-"""
-Evaluate the retelling. It does not need to match word for word. Reply with only JSON:
-{"coverage_pct":0,"ideas_missing_es":[""],"errors":[{"original":"","correction":"","rule_es":""}],"feedback_es":""}
-coverage_pct: percentage (0-100) of the story's main ideas the student included.
-ideas_missing_es: main ideas missing, in Spanish, maximum 4 (empty list if none).
-errors: maximum 5 important grammar or vocabulary mistakes in the retelling; rule_es in simple Spanish, maximum 20 words.
-feedback_es: 2 sentences in Spanish, in a warm, encouraging tone, first what was good, then one tip. Never use numbers or percentages.`;
-}
-function readingPrompt(level, story, heard){
-  return `You are a pronunciation coach for Wrealispec. A Spanish-speaking student (CEFR ${level}) read this story aloud into a phone's speech-to-text keyboard:
-"""
-${story}
-"""
-This is what the speech recognizer wrote:
-"""
-${heard}
-"""
-Words the recognizer wrote differently were probably mispronounced or skipped. Ignore differences in punctuation, capital letters and numbers written as digits. Reply with only JSON:
-{"feedback_es":"","words_to_practice":[{"word":"","heard_as":"","tip_es":""}]}
-feedback_es: 2 sentences in Spanish, in a warm, encouraging tone, first what went well, then the main thing to practice. Never use numbers or percentages.
-words_to_practice: maximum 5 words from the story that were not understood; heard_as is what the recognizer wrote (or "" if skipped); tip_es explains how to pronounce it in simple Spanish, maximum 15 words, you may use Spanish-like spelling (for example "zinc" → "dzink").`;
-}
-function qaPrompt(level, story){
-  return `Create 5 short listening exercises about this story for a Spanish-speaking student of English (CEFR ${level}):
-"""
-${story}
-"""
-The student will HEAR each exercise read aloud (not read it) and answer in writing in English. Use exactly this order of types so the rhythm changes:
-1. "comprehension": a simple question about a fact in the story.
-2. "true_false": a statement about the story; the student writes true or false, and if false, the correct version.
-3. "why_how": a why or how question about the story.
-4. "complete": a sentence from the story with one short part replaced by the word "blank"; the student writes the complete sentence.
-5. "opinion": a personal question connected to the story's topic.
-Each prompt under 20 words, at level ${level}. Reply with only JSON:
-{"items":[{"type":"","prompt":"","label_es":""}]}
-label_es: a short instruction in Spanish, for example "Responde la pregunta" or "Escribe true o false".`;
-}
-function qaEvalPrompt(level, story, items, answers){
-  const pairs = items.map((it, i) => `${i+1}. [${it.type}] ${it.prompt}\nStudent answer: ${answers[i] || "(no answer)"}`).join("\n\n");
-  return `You are an English tutor for Wrealispec. The student (CEFR ${level}) listened to these exercises about this story and answered in writing.
-Story:
-"""
-${story}
-"""
-Exercises and answers:
-${pairs}
-
-Evaluate each answer. "ok" is true when the content is right (for "opinion": when it answers the question and is understandable), even with small grammar mistakes. Reply with only JSON:
-{"results":[{"ok":true,"better_en":"","feedback_es":""}],"summary_es":""}
-better_en: a correct, natural model answer in English at the student's level.
-feedback_es: maximum 20 words in Spanish; mention one grammar mistake if there is one.
-summary_es: 1 sentence in Spanish, warm and encouraging, about how the student did overall. Never use numbers or scores.`;
-}
-$("promptView").textContent = correctionPrompt({ topic:"{tema}", level:"{nivel}" });
-
-/* ---------- Claude (sample capability) ---------- */
-const sampleP = (window.claude && window.claude.use) ? window.claude.use("sample") : Promise.resolve(null);
-let canImages = false;
-sampleP.then(async (s) => {
-  if (!s) { $("imgNote").textContent = "Demostración: la corrección con IA se activa en la siguiente versión."; return; }
-  try { const lim = await s.limits(); canImages = !!lim.images; } catch(e){ canImages = false; }
-  $("imgNote").textContent = canImages ? "JPG, PNG o WebP. Que la foto se vea derecha y con buena luz." : "Este visor no puede enviar fotos. Usa la opción de escribir o pegar tu texto.";
-  if (!canImages) $("typeBox").open = true;
-});
-const ERR = {
-  not_granted:"No diste permiso para usar Claude en esta página.", sampling_disabled:"Claude no está disponible en esta cuenta.",
-  rate_limited:"Demasiadas solicitudes seguidas. Espera un momento e inténtalo de nuevo.", session_expired:"Tu sesión expiró. Vuelve a iniciar sesión.",
-  image_rejected:"No pude abrir esa foto. Prueba con otra en JPG o PNG.", images_unavailable:"Este visor no puede enviar fotos. Escribe o pega tu texto.",
-  invalid_json:"La respuesta llegó incompleta. Inténtalo de nuevo.", refused:"La IA no pudo procesar ese texto.",
-  empty_completion:"La IA no respondió. Inténtalo de nuevo.",
-};
-const errMsg = (e) => ERR[e && e.code] || "Algo falló en la conexión. Inténtalo de nuevo.";
-function busy(el, msg){ el.classList.remove("bad"); el.innerHTML = msg ? `<span class="spinner" aria-hidden="true"></span> ${msg}` : ""; }
-function fail(el, msg){ el.classList.add("bad"); el.textContent = msg; }
-
-/* ---------- Rail / steps ---------- */
-function renderRail(){
-  const rail = $("rail"); rail.innerHTML = "";
-  STEPS.forEach((st, i) => {
-    const li = document.createElement("li"); const b = document.createElement("button");
-    b.innerHTML = `<span class="n">${i+1}</span><span class="t"></span>`; b.querySelector(".t").textContent = st.t;
-    if (i === S.step) b.setAttribute("aria-current","step");
-    if (i < maxReached()) b.classList.add("done");
-    b.disabled = i > 0 && !S.corrected;
-    b.onclick = () => go(i);
-    li.append(b); rail.append(li);
-  });
-  document.querySelectorAll(".skill").forEach(el => el.classList.toggle("on", STEPS[S.step].sk.includes(el.dataset.sk)));
-}
-function maxReached(){ return S.corrected ? Math.max(S.step, 1) : 0; }
-function go(i, scrollTo){
-  stopSpeech(); S.step = Math.max(0, Math.min(STEPS.length - 1, i)); i = S.step; save();
-  const show = STEPS[i].panels.filter(p => p !== 1 || S.corrected);
-  document.querySelectorAll(".panel").forEach(p => p.hidden = !show.includes(Number(p.dataset.step)));
-  renderRail(); show.forEach(renderStep);
-  const target = scrollTo != null ? document.querySelector(`.panel[data-step="${scrollTo}"]`) : null;
-  if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-  else window.scrollTo({ top: 0, behavior: "smooth" });
-}
-document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(Number(b.dataset.go)));
-
-/* ---------- Step 1 ---------- */
-function renderGoal(){ const [a,b] = LEVELS[$("level").value]; $("wordGoal").textContent = `Meta para ${$("level").value}: ${a} a ${b} palabras.`; }
-$("level").onchange = () => { S.level = $("level").value; renderGoal(); save(); };
-$("topic").oninput = () => { S.topic = $("topic").value; save(); };
-let photoFile = null;
-function setPhoto(f){
-  if (!f || !/^image\//.test(f.type)) return;
-  photoFile = f; const url = URL.createObjectURL(f); const img = $("preview"); img.src = url; img.hidden = false;
-}
-$("photo").onchange = (e) => setPhoto(e.target.files[0]);
-const drop = $("drop");
-drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
-drop.addEventListener("dragleave", () => drop.classList.remove("over"));
-drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); setPhoto(e.dataTransfer.files[0]); });
-
-async function runCorrection(textOverride, statusEl, btn){
-  const sample = await sampleP;
-  if (!sample) return fail(statusEl, "Demostración: la corrección con IA se activa en la siguiente versión.");
-  const text = textOverride ?? $("typed").value.trim();
-  const useImage = !textOverride && photoFile && canImages;
-  if (!useImage && !text) return fail(statusEl, "Sube la foto de tu cuaderno o escribe tu texto.");
-  btn.disabled = true; busy(statusEl, useImage ? "Leyendo tu cuaderno y corrigiendo… (puede tardar un minuto)" : "Corrigiendo tu texto…");
-  try {
-    const opts = useImage ? { images:[photoFile] } : {};
-    const r = await sample.json(correctionPrompt({ topic: S.topic, level: S.level, text: useImage ? "" : text }), opts);
-    if (!r || typeof r.corrected !== "string" || !r.corrected.trim()) throw { code:"invalid_json" };
-    const fresh = blank(S.topic, S.level);
-    Object.assign(S, fresh, {
-      id: S.example ? fresh.id : S.id,
-      transcription: String(r.transcription || text || ""), corrected: r.corrected.trim(),
-      errors: Array.isArray(r.errors) ? r.errors.slice(0,8) : [], strengths_es: Array.isArray(r.strengths_es) ? r.strengths_es : [],
-      feedback_es: String(r.feedback_es || ""), word_count: Number(r.word_count) || countWords(r.transcription || text),
-      teacher_questions: Array.isArray(r.teacher_questions) ? r.teacher_questions : [],
-      useful_phrases: Array.isArray(r.useful_phrases) ? r.useful_phrases : [],
-    });
-    S.example = false; busy(statusEl, ""); save(); renderAll(); go(0, 1);
-  } catch(e){ if (e && e.code === "cancelled") busy(statusEl,""); else fail(statusEl, errMsg(e)); }
-  finally { btn.disabled = false; }
-}
-$("btnCorrect").onclick = () => runCorrection(null, $("st1"), $("btnCorrect"));
-$("btnRecorrect").onclick = () => { const t = $("fixTrans").value.trim(); if (t) runCorrection(t, $("st2"), $("btnRecorrect")); };
-
-/* ---------- Step 2 ---------- */
-/* ---------- Encouraging levels instead of numbers ---------- */
-const LV = [
-  { min:0,  label:"Te falta",     msg:"Como que no hiciste la tarea… ¡Repásala y vuelve a intentarlo, tú puedes!" },
-  { min:40, label:"Un poco más",  msg:"Te faltó un poco. Vas por buen camino." },
-  { min:60, label:"Ya casi",      msg:"¡Casi lo tienes! Un intento más." },
-  { min:75, label:"Muy bien",     msg:"¡Muy bien, eh! Te felicito." },
-  { min:90, label:"¡Excelente!",  msg:"¡Excelente! Estás de otro nivel." },
-];
-const PASS = 75;
-function lvIdx(p){ let k = 0; LV.forEach((l, i) => { if (p >= l.min) k = i; }); return k; }
-function lvLabel(p){ return LV[lvIdx(p)].label; }
-function lvRender(host, pct){
-  const i = lvIdx(pct); host.className = `lvl l${i}`; host.innerHTML = "";
-  const top = document.createElement("div"); top.className = "lv-top";
-  const lab = document.createElement("span"); lab.className = "lv-label"; lab.textContent = LV[i].label;
-  const msg = document.createElement("span"); msg.className = "lv-msg"; msg.textContent = LV[i].msg;
-  top.append(lab, msg);
-  const bar = document.createElement("div"); bar.className = "lv-bar"; bar.setAttribute("aria-hidden","true");
-  const names = document.createElement("div"); names.className = "lv-names"; names.setAttribute("aria-hidden","true");
-  LV.forEach((l, k) => { const s = document.createElement("span"); s.className = "lv-seg" + (k <= i ? " on" : ""); bar.append(s);
-    const n = document.createElement("span"); n.textContent = l.label.replace(/[¡!]/g,""); names.append(n); });
-  host.append(top, bar, names);
-}
-const countWords = (t) => (String(t||"").match(/[A-Za-z0-9'’]+/g) || []).length;
-function renderErrors(host, list, checkable){
-  host.innerHTML = "";
-  if (!list.length){ host.innerHTML = `<div class="err"><span class="r">Sin errores importantes. ¡Bien!</span></div>`; return; }
-  list.forEach((er, i) => {
-    const d = document.createElement("div"); d.className = "err";
-    d.innerHTML = `<span class="o"></span><span class="c"></span><span class="r"><span class="ty"></span><span class="rt"></span></span>`;
-    d.querySelector(".o").textContent = er.original || er.word || ""; d.querySelector(".c").textContent = er.correction || er.heard_as_label || "";
-    d.querySelector(".ty").textContent = (er.type || "").replace("_"," "); d.querySelector(".rt").textContent = er.rule_es || er.tip_es || "";
-    if (checkable){
-      const lab = document.createElement("label"); lab.className = "chk";
-      const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!S.errChecked[i];
-      d.classList.toggle("seen", cb.checked);
-      cb.onchange = () => { S.errChecked[i] = cb.checked; d.classList.toggle("seen", cb.checked); save(); errCount(); };
-      lab.append(cb, document.createTextNode(" Ya revisé esta corrección")); d.append(lab);
-    }
-    host.append(d);
-  });
-}
-function errCount(){
-  const n = S.errors.length, k = S.errors.filter((_, i) => S.errChecked[i]).length;
-  const [a,b] = LEVELS[S.level] || [0,999];
-  $("wc").textContent = `· ${k} de ${n} revisados · ${S.word_count} palabras (meta ${S.level}: ${a}–${b})`;
-}
-function renderCorrect(){
-  $("fbLine").textContent = S.feedback_es;
-  const st = $("strengths"); st.innerHTML = "<strong>Lo que hiciste bien</strong>";
-  const ul = document.createElement("ul"); ul.className = "clean";
-  S.strengths_es.forEach(s => { const li = document.createElement("li"); li.textContent = s; ul.append(li); });
-  st.append(ul); st.hidden = !S.strengths_es.length;
-  $("origText").textContent = S.transcription; $("fixTrans").value = S.transcription; $("corrText").textContent = S.corrected;
-  renderErrors($("errList"), S.errors, true); errCount();
-}
-
-/* ---------- Speech ---------- */
-const synth = window.speechSynthesis;
-let voices = [];
-function splitSentences(t){ return (String(t).match(/[^.!?]+[.!?]+["')\]]*|[^.!?]+$/g) || []).map(s => s.trim()).filter(Boolean); }
-function loadVoices(){
-  if (!synth) return;
-  voices = synth.getVoices().filter(v => /^en(-|_|$)/i.test(v.lang));
-  const sel = $("voice"); const prev = sel.value; sel.innerHTML = "";
-  voices.forEach((v, i) => { const o = document.createElement("option"); o.value = i; o.textContent = `${v.name} (${v.lang})`; sel.append(o); });
-  let best = voices.findIndex(v => /en-IE/i.test(v.lang));
-  if (best < 0) best = voices.findIndex(v => /en-US/i.test(v.lang) && /natural|google|samantha|aria|jenny/i.test(v.name));
-  if (best < 0) best = voices.findIndex(v => /en-US/i.test(v.lang));
-  sel.value = prev && voices[prev] ? prev : String(Math.max(best, 0));
-  $("voiceNote").textContent = voices.length ? "Voz del navegador. Si suena robótica, prueba otra de la lista o abre la página en Chrome o Edge." : "Tu navegador no tiene voces en inglés. Prueba con Chrome o Edge.";
-}
-if (synth){ loadVoices(); synth.onvoiceschanged = loadVoices; }
-const rateVal = () => Number($("rate").value);
-$("rate").oninput = () => { $("rateVal").textContent = `×${rateVal().toFixed(2)}`; };
-$("rate").oninput();
-let runId = 0;
-function stopSpeech(){ runId++; try { synth && synth.cancel(); } catch(e){} document.querySelectorAll(".s.now").forEach(n => n.classList.remove("now")); $("turn").textContent = ""; }
-function speak(text, rate){
-  return new Promise((res) => {
-    if (!synth) return res();
-    const u = new SpeechSynthesisUtterance(text); const v = voices[Number($("voice").value)];
-    if (v){ u.voice = v; u.lang = v.lang; } else u.lang = "en-US";
-    u.rate = rate || rateVal(); u.onend = res; u.onerror = res; synth.speak(u);
-  });
-}
-const wait = (ms) => new Promise(r => setTimeout(r, ms));
-function sentenceSpans(host, onClick){
-  host.innerHTML = ""; const parts = splitSentences(S.corrected);
-  parts.forEach((p, i) => { const s = document.createElement("span"); s.className = "s"; s.textContent = p; s.dataset.i = i;
-    if (onClick){ s.tabIndex = 0; s.onclick = () => onClick(i); s.onkeydown = (e) => { if (e.key === "Enter") onClick(i); }; }
-    host.append(s, document.createTextNode(" ")); });
-  return parts;
-}
-async function playFrom(host, parts, start, onlyOne){
-  stopSpeech(); const my = runId;
-  for (let i = start; i < parts.length; i++){
-    if (my !== runId) return;
-    host.querySelectorAll(".s").forEach(n => n.classList.toggle("now", Number(n.dataset.i) === i));
-    await speak(parts[i]);
-    if (onlyOne) break;
-  }
-  if (my === runId) host.querySelectorAll(".s.now").forEach(n => n.classList.remove("now"));
-}
-let listenParts = [];
-let mode = "cont";
-try { mode = localStorage.getItem("wrelispek.mode") || "cont"; } catch(e){}
-const MODE_HELP = {
-  cont: "Continuo: escuchas la historia completa de corrido. Úsalo para captar el ritmo y la entonación; luego léela tú en voz alta.",
-  eco: "Modo eco: la voz dice una oración y te deja unos segundos para repetirla igual, con el mismo ritmo.",
-};
-function setMode(m){
-  mode = m; try { localStorage.setItem("wrelispek.mode", m); } catch(e){}
-  stopSpeech();
-  document.querySelectorAll(".seg [data-mode]").forEach(b => b.setAttribute("aria-checked", String(b.dataset.mode === m)));
-  $("modeHelp").textContent = MODE_HELP[m];
-  $("btnPlay").textContent = m === "eco" ? "Empezar modo eco" : "Escuchar todo";
-}
-document.querySelectorAll(".seg [data-mode]").forEach(b => b.onclick = () => setMode(b.dataset.mode));
-function renderListen(){ listenParts = sentenceSpans($("listenText"), (i) => playFrom($("listenText"), listenParts, i, true)); setMode(mode); bindChecks(); }
-async function echo(){
-  stopSpeech(); const my = runId; const host = $("listenText");
-  for (let i = 0; i < listenParts.length; i++){
-    if (my !== runId) return;
-    host.querySelectorAll(".s").forEach(n => n.classList.toggle("now", Number(n.dataset.i) === i));
-    $("turn").textContent = "Escucha…"; await speak(listenParts[i]);
-    if (my !== runId) return;
-    const secs = Math.max(2, Math.round(countWords(listenParts[i]) * 0.55 / rateVal() + 1));
-    for (let s = secs; s > 0; s--){ if (my !== runId) return; $("turn").textContent = `Tu turno · ${s}`; await wait(1000); }
-  }
-  if (my === runId){ $("turn").textContent = "¡Completo!"; host.querySelectorAll(".s.now").forEach(n => n.classList.remove("now")); }
-}
-$("btnPlay").onclick = () => mode === "eco" ? echo() : playFrom($("listenText"), listenParts, 0, false);
-$("btnStop").onclick = stopSpeech;
-async function copy(text, statusEl){
-  try { await navigator.clipboard.writeText(text); statusEl.classList.remove("bad"); statusEl.textContent = "Copiado."; }
-  catch(e){ statusEl.classList.add("bad"); statusEl.textContent = "No se pudo copiar. Selecciona el texto y cópialo a mano."; }
-  setTimeout(() => { statusEl.textContent = ""; }, 3000);
-}
-function bindChecks(){
-  document.querySelectorAll("[data-ck]").forEach(c => { c.checked = !!S.checks[Number(c.dataset.ck)]; c.onchange = () => { S.checks[Number(c.dataset.ck)] = c.checked; save(); }; });
-}
-/* ---------- Fase 3: read aloud via keyboard dictation, send to teacher, listen & answer, retell ---------- */
-function renderPhase3(){
-  bindChecks();
-  $("readIn").value = S.reading.text || "";
-  if (S.reading.pct != null) showReading(); else $("readRes").hidden = true;
-  renderQa();
-  $("retell").value = S.retell.text || "";
-  if (S.retell.res) showRetell(S.retell.res); else $("retellRes").hidden = true;
-}
-$("readIn").oninput = () => { S.reading.text = $("readIn").value; save(); };
-const norm = (w) => w.toLowerCase().replace(/[’]/g,"'").replace(/[^a-z0-9':]/g,"");
-function diffWords(ref, got){
-  const A = ref.map(norm), B = got.map(norm); const n = A.length, m = B.length;
-  const L = Array.from({length:n+1}, () => new Uint16Array(m+1));
-  for (let i = n-1; i >= 0; i--) for (let j = m-1; j >= 0; j--) L[i][j] = A[i] && A[i] === B[j] ? L[i+1][j+1] + 1 : Math.max(L[i+1][j], L[i][j+1]);
-  const out = []; let i = 0, j = 0;
-  while (i < n && j < m){
-    if (A[i] && A[i] === B[j]){ out.push(["ok", ref[i]]); i++; j++; }
-    else if (L[i+1][j] >= L[i][j+1]){ out.push(["miss", ref[i]]); i++; }
-    else { out.push(["extra", got[j]]); j++; }
-  }
-  while (i < n) out.push(["miss", ref[i++]]); while (j < m) out.push(["extra", got[j++]]);
-  return out;
-}
-function readingOps(){
-  // Only grade up to the last word the student actually reached, so reading part of the story is fair.
-  const ops = diffWords(S.corrected.split(/\s+/).filter(Boolean), (S.reading.text || "").split(/\s+/).filter(Boolean));
-  let last = -1; ops.forEach((o, i) => { if (o[0] === "ok") last = i; });
-  return last < 0 ? ops : ops.slice(0, last + 1);
-}
-function showReading(){
-  const ops = readingOps();
-  lvRender($("readLv"), S.reading.pct);
-  const tries = S.reading.attempts.length, best = bestReading();
-  const box = $("sendBox");
-  if (best >= PASS){
-    $("readTries").textContent = "¡Lo lograste! Ya puedes pasar a Escucha y responde.";
-    $("sendTitle").textContent = "Comparte tu avance con tu profesor (opcional)";
-    $("sendText").textContent = "Si quieres, grábate leyendo tu historia (WhatsApp o Audacity) y mándale el audio a tu profesor para que escuche tu avance.";
-    box.hidden = false;
-  } else if (tries >= 3){
-    $("readTries").textContent = "Ya lo intentaste 3 veces. ¡Eso es esfuerzo! Ahora deja que tu profesor te escuche.";
-    $("sendTitle").textContent = "Envía tu grabación a tu profesor";
-    $("sendText").textContent = "Grábate leyendo tu historia (WhatsApp o Audacity) y mándale el audio. Tu profesor lo escucha y te da el visto bueno de tu esfuerzo. Después puedes seguir con Escucha y responde.";
-    box.hidden = false;
-  } else {
-    $("readTries").textContent = `Intento ${tries} de 3. La meta es llegar a "Muy bien". Si en 3 intentos no llegas, se lo mandas a tu profesor.`;
-    box.hidden = true;
-  }
-  const host = $("readDiff"); host.innerHTML = "";
-  ops.forEach(([k, w]) => { const s = document.createElement("span"); s.className = k; s.textContent = w; host.append(s, document.createTextNode(" ")); });
-  const r = S.reading.res;
-  $("readFb").textContent = r ? (r.feedback_es || "") : "";
-  const words = r && Array.isArray(r.words_to_practice) ? r.words_to_practice.slice(0,5) : [];
-  if (words.length) renderErrors($("readWords"), words.map(w => ({ original: w.word, correction: w.heard_as ? `se escuchó “${w.heard_as}”` : "no se escuchó", type: "pronunciación", rule_es: w.tip_es })));
-  else $("readWords").innerHTML = "";
-  $("readWords").hidden = !words.length;
-  $("readRes").hidden = false;
-}
-$("btnRead").onclick = async () => {
-  const st = $("st4"); const txt = $("readIn").value.trim();
-  if (countWords(txt) < 10) return fail(st, "Lee al menos unas oraciones con el micrófono del teclado.");
-  S.reading = { text: txt, pct: null, res: null, attempts: S.reading.attempts || [] };
-  const ops = readingOps(); const ok = ops.filter(o => o[0] === "ok").length; const total = ops.filter(o => o[0] !== "extra").length || 1;
-  S.reading.pct = Math.round(ok / total * 100); S.reading.attempts.push(S.reading.pct); save(); showReading();
-  const sample = await sampleP; if (!sample) return busy(st, "");
-  $("btnRead").disabled = true; busy(st, "La IA está revisando tu pronunciación…");
-  try { S.reading.res = await sample.json(readingPrompt(S.level, S.corrected, txt)); save(); showReading(); busy(st, ""); }
-  catch(e){ fail(st, errMsg(e)); } finally { $("btnRead").disabled = false; }
-};
-function bestReading(){ const a = S.reading.attempts || []; return a.length ? Math.max(...a) : (S.reading.pct ?? 0); }
-$("btnSendMsg").onclick = () => copy(bestReading() >= PASS
-  ? `Hola profe, le mando la grabación de mi historia "${S.topic}" para que escuche mi avance. ¡Gracias!`
-  : `Hola profe, le mando la grabación de mi historia "${S.topic}". Lo intenté 3 veces y todavía me cuesta trabajo. ¿Me puede escuchar y darme su visto bueno? ¡Gracias!`, $("st4b"));
-
-function renderQa(){
-  const list = $("qaList"); list.innerHTML = "";
-  const res = S.qa.res && Array.isArray(S.qa.res.results) ? S.qa.res.results : [];
-  S.qa.items.forEach((it, i) => {
-    const li = document.createElement("li");
-    const head = document.createElement("div"); head.className = "qh";
-    const lab = document.createElement("span"); lab.className = "lab"; lab.textContent = it.label_es || "Responde";
-    const play = document.createElement("button"); play.className = "btn quiet"; play.textContent = "▶ Escuchar";
-    play.onclick = () => { stopSpeech(); speak(it.prompt, Math.max(0.6, rateVal() - 0.05)); };
-    const show = document.createElement("button"); show.className = "btn quiet"; show.textContent = "Ver texto";
-    const ptxt = document.createElement("p"); ptxt.className = "ptxt"; ptxt.textContent = it.prompt; ptxt.hidden = true;
-    show.onclick = () => { ptxt.hidden = !ptxt.hidden; show.textContent = ptxt.hidden ? "Ver texto" : "Ocultar texto"; };
-    head.append(lab, play, show);
-    const ta = document.createElement("textarea"); ta.id = `qaA${i}`; ta.setAttribute("aria-label", `Respuesta ${i+1}`);
-    ta.value = S.qa.answers[i] || ""; ta.oninput = () => { S.qa.answers[i] = ta.value; save(); };
-    li.append(head, ptxt, ta);
-    if (res[i]){
-      const r = document.createElement("div"); r.className = "res" + (res[i].ok ? "" : " no");
-      const v = document.createElement("strong"); v.textContent = res[i].ok ? "✓ ¡Bien! " : "↻ Casi. ";
-      const fb = document.createElement("span"); fb.textContent = res[i].feedback_es || "";
-      const be = document.createElement("div"); be.className = "muted"; be.textContent = res[i].better_en ? `Modelo: ${res[i].better_en}` : "";
-      r.append(v, fb, be); li.append(r);
-    }
-    list.append(li);
-  });
-  $("qaCheckRow").hidden = !S.qa.items.length;
-  $("btnQa").textContent = S.qa.items.length ? "Crear ejercicios nuevos" : "Crear ejercicios";
-  if (res.length){
-    const ok = res.filter(r => r && r.ok).length;
-    lvRender($("qaLv"), Math.round(ok / (S.qa.items.length || 1) * 100)); $("qaSum").textContent = S.qa.res.summary_es || "";
-    $("qaRes").hidden = false;
-  } else $("qaRes").hidden = true;
-}
-$("btnQa").onclick = async () => {
-  const st = $("stQa"); const sample = await sampleP;
-  if (!sample) return fail(st, "Demostración: los ejercicios con IA se activan en la siguiente versión.");
-  $("btnQa").disabled = true; busy(st, "Preparando tus ejercicios…");
-  try {
-    const r = await sample.json(qaPrompt(S.level, S.corrected), { cache:false });
-    const items = (r && Array.isArray(r.items) ? r.items : []).filter(x => x && x.prompt).slice(0,5);
-    if (!items.length) throw { code:"invalid_json" };
-    S.qa = { items, answers: [], res: null }; save(); renderQa(); busy(st, "");
-  } catch(e){ fail(st, errMsg(e)); } finally { $("btnQa").disabled = false; }
-};
-$("btnQaCheck").onclick = async () => {
-  const st = $("stQa2"); const answers = S.qa.items.map((_, i) => ($(`qaA${i}`) || {}).value || "");
-  if (!answers.some(a => a.trim())) return fail(st, "Responde al menos un ejercicio.");
-  const sample = await sampleP; if (!sample) return fail(st, "Demostración: la revisión con IA se activa en la siguiente versión.");
-  $("btnQaCheck").disabled = true; busy(st, "Revisando tus respuestas…");
-  try { S.qa.answers = answers; S.qa.res = await sample.json(qaEvalPrompt(S.level, S.corrected, S.qa.items, answers), { cache:false }); save(); renderQa(); busy(st, ""); }
-  catch(e){ fail(st, errMsg(e)); } finally { $("btnQaCheck").disabled = false; }
-};
-$("retell").oninput = () => { S.retell.text = $("retell").value; save(); };
-function showRetell(r){
-  lvRender($("covLv"), Math.round(Number(r.coverage_pct) || 0));
-  $("retellFb").textContent = r.feedback_es || "";
-  const m = $("missing"); m.innerHTML = "";
-  if (Array.isArray(r.ideas_missing_es) && r.ideas_missing_es.filter(Boolean).length){
-    const p = document.createElement("p"); p.innerHTML = "<strong>Ideas que te faltaron</strong>"; m.append(p);
-    const ul = document.createElement("ul"); ul.className = "clean"; r.ideas_missing_es.filter(Boolean).forEach(x => { const li = document.createElement("li"); li.textContent = x; ul.append(li); }); m.append(ul);
-  }
-  renderErrors($("retellErrs"), Array.isArray(r.errors) ? r.errors : []);
-  $("retellRes").hidden = false;
-}
-$("btnRetell").onclick = async () => {
-  const txt = $("retell").value.trim(); const st = $("st5");
-  if (countWords(txt) < 15) return fail(st, "Escribe al menos 15 palabras para poder revisarla.");
-  const sample = await sampleP; if (!sample) return fail(st, "Demostración: la revisión con IA se activa en la siguiente versión.");
-  $("btnRetell").disabled = true; busy(st, "Revisando tu versión…");
-  try { const r = await sample.json(retellPrompt(S.level, S.corrected, txt)); S.retell = { text: txt, res: r }; save(); showRetell(r); busy(st, ""); }
-  catch(e){ fail(st, errMsg(e)); } finally { $("btnRetell").disabled = false; }
-};
-
-/* ---------- Step 6: class ---------- */
-function summaryText(){
-  const lines = [`WREALISPEC · Resumen para el profesor`, `Tema: ${S.topic}`, `Nivel: ${S.level} · Fecha: ${S.date}`, `Palabras escritas: ${S.word_count}`, ``,
-    `Errores clave:`, ...S.errors.map(e => `- ${e.original} → ${e.correction}`), ``,
-    `Correcciones revisadas: ${S.errors.filter((_, i) => S.errChecked[i]).length} de ${S.errors.length}`,
-    `Lectura en voz alta: ${S.reading.attempts.length ? `${lvLabel(bestReading())} (${S.reading.attempts.length} intento${S.reading.attempts.length > 1 ? "s" : ""})` : "pendiente"}`,
-    `Escucha y responde: ${qaScore() ?? "pendiente"}`,
-    `Retell (ideas principales): ${S.retell.res ? lvLabel(Math.round(Number(S.retell.res.coverage_pct)||0)) : "pendiente"}`,
-    `Grabación enviada al profesor: ${S.checks[3] ? "sí" : "no"}`, ``, `Preguntas sugeridas:`, ...S.teacher_questions.map((q,i) => `${i+1}. ${q}`)];
-  if (S.teacher){ const t = S.teacher; lines.push(``, `Retroalimentación del profesor (${t.date}):`,
-    TF.filter(([k]) => Number(t[k])).map(([k,,name]) => `${name}: ${LV[t[k]-1].label}`).join(" · "), t.text || ""); }
-  return lines.join("\n");
-}
-function qaScore(){ const r = S.qa.res && Array.isArray(S.qa.res.results) ? S.qa.res.results : null; return r ? lvLabel(Math.round(r.filter(x => x && x.ok).length / (S.qa.items.length || 1) * 100)) : null; }
-
-/* ---------- Teacher feedback ---------- */
-const TF = [["pron","tfPron","Pronunciación"],["flu","tfFlu","Fluidez"],["gram","tfGram","Gramática"],["voc","tfVoc","Vocabulario"]];
-TF.forEach(([, id]) => { const sel = $(id); ["Sin calificar", ...LV.map(l => l.label)].forEach((t, v) => { const o = document.createElement("option"); o.value = v; o.textContent = t; sel.append(o); }); });
-function renderTeacher(){
-  const v = $("tfView"); v.innerHTML = ""; const t = S.teacher;
-  $("btnTf").textContent = t ? "Editar retroalimentación del profesor" : "Dejar retroalimentación del profesor";
-  if (!t){ v.innerHTML = `<p class="small muted">Después de escuchar tu grabación o al terminar la videollamada, tu profesor deja aquí sus comentarios.</p>`; return; }
-  const card = document.createElement("div"); card.className = "tfcard";
-  const stars = document.createElement("div"); stars.className = "stars";
-  TF.forEach(([k,,name]) => { if (Number(t[k])){ const s = document.createElement("span"); s.className = "tag"; s.textContent = `${name}: ${LV[t[k]-1].label}`; stars.append(s); } });
-  const p = document.createElement("p"); p.textContent = t.text || "";
-  const d = document.createElement("span"); d.className = "small muted"; d.textContent = `Guardado el ${t.date}`;
-  card.append(stars, p, d); v.append(card);
-}
-$("btnTf").onclick = () => {
-  const t = S.teacher || {}; TF.forEach(([k, id]) => { $(id).value = String(Number(t[k]) || 0); });
-  $("tfText").value = t.text || ""; $("tfForm").hidden = false; $("btnTf").hidden = true; $("tfText").focus();
-};
-$("btnTfCancel").onclick = () => { $("tfForm").hidden = true; $("btnTf").hidden = false; };
-$("btnTfSave").onclick = () => {
-  const t = { text: $("tfText").value.trim(), date: new Date().toISOString().slice(0,10) };
-  TF.forEach(([k, id]) => { t[k] = Number($(id).value) || 0; });
-  S.teacher = (t.text || TF.some(([k]) => t[k])) ? t : null; save();
-  $("tfForm").hidden = true; $("btnTf").hidden = false; renderTeacher(); $("summary").textContent = summaryText();
-};
-function renderClass(){
-  const qs = $("qs"); qs.innerHTML = ""; S.teacher_questions.forEach(q => { const li = document.createElement("li"); const sp = document.createElement("span"); sp.textContent = q; li.append(sp); qs.append(li); });
-  const ph = $("phr"); ph.innerHTML = ""; S.useful_phrases.forEach(p => { const a = document.createElement("span"); a.className = "en"; a.textContent = p.en; const b = document.createElement("span"); b.className = "es"; b.textContent = p.es; ph.append(a, b); });
-  $("summary").textContent = summaryText();
-  renderTeacher();
-}
-$("btnCopySum").onclick = () => copy(summaryText(), $("st6"));
-$("btnNew").onclick = () => {
-  if (!S.example && S.corrected) { store.history = [S, ...store.history.filter(h => h.id !== S.id)].slice(0, 50); }
-  const t = $("newTopic").value.trim();
-  store.current = blank(t || "Who is your favorite character?", S.level); S = store.current; photoFile = null;
-  $("preview").hidden = true; $("photo").value = ""; $("typed").value = ""; $("newTopic").value = ""; save(); renderAll(); go(0);
-};
-
-/* ---------- History ---------- */
-function renderHist(){
-  const h = $("hist"); h.innerHTML = "";
-  $("histCount").textContent = store.history.length ? `(${store.history.length})` : "";
-  if (!store.history.length){ h.innerHTML = `<p class="small muted" style="padding:10px 0 0">Aquí aparecerán tus historias terminadas.</p>`; return; }
-  store.history.forEach(item => {
-    const b = document.createElement("button");
-    b.innerHTML = `<span class="d"></span><span class="tp"></span><span class="tag"></span>`;
-    b.querySelector(".d").textContent = item.date; b.querySelector(".tp").textContent = item.topic;
-    b.querySelector(".tag").textContent = item.reading && item.reading.pct != null ? `lectura: ${lvLabel(item.reading.pct)}` : item.level;
-    b.onclick = () => {
-      if (!S.example && S.corrected && S.id !== item.id) store.history = [S, ...store.history.filter(x => x.id !== S.id && x.id !== item.id)];
-      else store.history = store.history.filter(x => x.id !== item.id);
-      store.current = item; S = item; save(); renderAll(); go(0, 1);
-    };
-    h.append(b);
-  });
-}
-
-/* ---------- Render ---------- */
-function renderStep(i){
-  if (i === 0){ $("topic").value = S.topic; $("level").value = S.level; renderGoal(); }
-  if (i === 1) renderCorrect();
-  if (i === 2) renderListen();
-  if (i === 4) renderPhase3();
-  if (i === 5) renderClass();
-}
-function renderAll(){
-  $("topic").value = S.topic; $("level").value = S.level; renderGoal(); renderHist();
-  const sampleTag = document.querySelector(".example-tag");
-  if (sampleTag) sampleTag.remove();
-  if (S.example){
-    const t = document.createElement("span"); t.className = "example example-tag"; t.textContent = "Ejemplo: tu página del cuaderno del 3 de nov.";
-    document.querySelector(".brand").append(t);
-  }
-}
-renderAll();
-go(S.corrected ? S.step : 0);
+document.querySelectorAll("[data-lang]").forEach(b => b.addEventListener("click", () => {
+  try { localStorage.setItem(KEY, b.dataset.lang); } catch(e){}
+  apply(b.dataset.lang);
+}));
+apply(pick());
 })();
 </script>
-
 </body>
 </html>

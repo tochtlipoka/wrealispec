@@ -11,6 +11,6 @@ Prototipo del método Wrealispec en 4 fases:
 3. **Grábate y te dicto**: lees en voz alta, escuchas y respondes ejercicios sobre tu historia.
 4. **Conversemos**: conversas con tu profesor.
 
-Página en línea: https://wrealispec.com
+Página en línea: https://wrealispec.com (antesala en ES · PT · EN) · Demo: https://wrealispec.com/app/
 
 Versión de demostración: las funciones con IA se activan en la siguiente versión.
