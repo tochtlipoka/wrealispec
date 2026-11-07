@@ -174,6 +174,11 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
 .lvl.l3 .lv-seg.on, .lvl.l4 .lv-seg.on{background:var(--ok)} .lvl.l3 .lv-label, .lvl.l4 .lv-label{color:var(--ok)}
 .tries{font-weight:700}
 .pick-label{font-weight:700;font-size:.9rem}
+.clarify{border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:14px}
+.cl-greet{font-size:1.05rem}
+.cl-quote{font-family:var(--f-hand);font-size:1.35rem;line-height:1.3}
+.cl-q{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1}
+.cl-yes[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:var(--sheet)}
 .seg button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
 .steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:4px}
 .steps li::marker{font-family:var(--f-mono);color:var(--margin)}
@@ -209,6 +214,7 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
       <h2>Tu historia</h2>
       <p class="muted">Escribe tu historia aquí o sube una foto de tu cuaderno. Yo la corrijo y te doy mis observaciones.</p>
     </div>
+    <div class="field"><label for="sname">Tu nombre</label><input type="text" id="sname" autocomplete="given-name" placeholder="Ej. Héctor" style="max-width:320px"></div>
     <div class="grid2">
       <div class="field"><label for="topic">Tema que te dio el profesor</label><input type="text" id="topic"></div>
       <div class="field"><label for="level">Tu nivel</label>
@@ -244,6 +250,16 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
     <div class="row">
       <button class="btn" id="btnCorrect">Corregir mi historia</button>
       <span class="status" id="st1" role="status"></span>
+    </div>
+    <div id="clarify" class="clarify" hidden>
+      <p class="cl-greet" id="clGreet"></p>
+      <div id="clTransWrap" class="field" hidden>
+        <label for="clTrans">Esto es lo que leí en tu cuaderno. Si leí mal alguna palabra, corrígela aquí.</label>
+        <textarea id="clTrans" spellcheck="false"></textarea>
+      </div>
+      <p class="note warn" id="clNote" hidden></p>
+      <ol class="qs" id="clQs"></ol>
+      <div class="row"><button class="btn" id="btnClDone">Listo, corrige mi historia</button><span class="status" id="stC" role="status"></span></div>
     </div>
   </section>
 
@@ -484,10 +500,31 @@ store.current = normalize(store.current); store.history = (store.history || []).
 let S = store.current;
 
 /* ---------- Fixed AI instructions ---------- */
-function correctionPrompt({ topic, level, text }){
+function clarBlock(clar){
+  if (!clar || !clar.length) return "";
+  return "\n\nBefore this correction, the student explained what they meant in some parts (they may answer in Spanish or Portuguese). Use these meanings when you correct, keep the student's words where possible, and explain each confusion in the errors list:\n" +
+    clar.map((c, i) => `${i+1}. "${c.quote}" → the student meant: ${c.meaning}`).join("\n");
+}
+function clarifyPrompt({ topic, level, text, name }){
+  return `You are the writing corrector of Wrealispec, an English method for Spanish- and Portuguese-speaking adults. Before correcting, you read the student's text to make sure you understand what they meant.
+Student name: ${name || "(unknown)"}. Student level (CEFR): ${level}. Topic given by the teacher: "${topic}".
+${text ? `Here is the student's text:\n"""\n${text}\n"""` : `The attached image is a photo of the student's notebook page.`}
+
+Tasks:
+1. transcription: ${text ? "copy the text above exactly." : "copy exactly what the student wrote, including every mistake. Do NOT correct anything here. If a word is unreadable, write [?]."}
+2. not_english: true only if the text is mostly not in English or is not a real attempt (random letters, almost empty).
+3. off_topic: true only if the text clearly does not talk about the topic.
+4. questions: sentences whose MEANING is unclear, not simple grammar mistakes. For example a word that looks confused with a similar word (sky / skill), a sentence that can mean two different things, or an idea that does not make sense. Maximum 3, only when really needed; use an empty list if everything is understandable. For each one: "quote" (the exact words from the transcription), "guess_en" (your best guess of what they meant, written as a correct English sentence, or "" if you cannot guess), "question_es" (a short, friendly question in Spanish, for example: "¿Quisiste decir «my skills» (mis habilidades)? «The sky» significa «el cielo»." or "¿Exactamente qué quisiste decir aquí?").
+5. greeting_es: 1 or 2 warm sentences in Spanish. Greet the student by name if you know it, say something specific and positive about their idea, and if there are questions, say you want to ask a few things before giving your feedback. Never use numbers or grades.
+6. note_es: if not_english or off_topic is true, one kind sentence in Spanish explaining it; otherwise "".
+
+Reply with only JSON in this shape:
+{"transcription":"","not_english":false,"off_topic":false,"questions":[{"quote":"","guess_en":"","question_es":""}],"greeting_es":"","note_es":""}`;
+}
+function correctionPrompt({ topic, level, text, clar }){
   return `You are the writing corrector of Wrealispec, an English method for Spanish-speaking adults. The student handwrote a short story in a notebook.
 Student level (CEFR): ${level}. Topic given by the teacher: "${topic}".
-${text ? `Here is the student's text, already transcribed and confirmed by the student:\n"""\n${text}\n"""` : `The attached image is a photo of the student's notebook page.`}
+${text ? `Here is the student's text, already transcribed and confirmed by the student:\n"""\n${text}\n"""` : `The attached image is a photo of the student's notebook page.`}${clarBlock(clar)}
 
 Rules:
 1. transcription: ${text ? "copy the text above exactly." : "copy exactly what the student wrote, including every mistake. Do NOT correct anything here. If a word is unreadable, write [?]."}
@@ -613,6 +650,8 @@ function setInput(m){
 }
 document.querySelectorAll("[data-in]").forEach(b => b.addEventListener("click", () => setInput(b.dataset.in)));
 setInput(inputMode);
+$("sname").value = store.name || "";
+$("sname").addEventListener("input", () => { store.name = $("sname").value.trim(); save(); });
 sampleP.then(async (s) => {
   if (!s) { $("imgNote").textContent = "Demostración: la corrección con IA se activa en la siguiente versión."; return; }
   try { const lim = await s.limits(); canImages = !!lim.images; } catch(e){ canImages = false; }
@@ -683,7 +722,7 @@ drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.ad
 drop.addEventListener("dragleave", () => drop.classList.remove("over"));
 drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); setPhoto(e.dataTransfer.files[0]); });
 
-async function runCorrection(textOverride, statusEl, btn){
+async function runCorrection(textOverride, statusEl, btn, clar){
   const sample = await sampleP;
   if (!sample) return fail(statusEl, "En esta versión en línea la IA todavía no está conectada, así que no puede corregir tu texto. La corrección automática llega en la siguiente versión.");
   const text = textOverride ?? $("typed").value.trim();
@@ -693,7 +732,7 @@ async function runCorrection(textOverride, statusEl, btn){
   btn.disabled = true; busy(statusEl, useImage ? "Leyendo tu cuaderno y corrigiendo… (puede tardar un minuto)" : "Corrigiendo tu texto…");
   try {
     const opts = useImage ? { images:[photoFile] } : {};
-    const r = await sample.json(correctionPrompt({ topic: S.topic, level: S.level, text: useImage ? "" : text }), opts);
+    const r = await sample.json(correctionPrompt({ topic: S.topic, level: S.level, text: useImage ? "" : text, clar }), opts);
     if (!r || typeof r.corrected !== "string" || !r.corrected.trim()) throw { code:"invalid_json" };
     const fresh = blank(S.topic, S.level);
     Object.assign(S, fresh, {
@@ -704,11 +743,68 @@ async function runCorrection(textOverride, statusEl, btn){
       teacher_questions: Array.isArray(r.teacher_questions) ? r.teacher_questions : [],
       useful_phrases: Array.isArray(r.useful_phrases) ? r.useful_phrases : [],
     });
-    S.example = false; busy(statusEl, ""); save(); renderAll(); go(0, 1);
+    S.example = false; busy(statusEl, ""); $("clarify").hidden = true; save(); renderAll(); go(0, 1);
   } catch(e){ if (e && e.code === "cancelled") busy(statusEl,""); else fail(statusEl, errMsg(e)); }
   finally { btn.disabled = false; }
 }
-$("btnCorrect").onclick = () => runCorrection(null, $("st1"), $("btnCorrect"));
+let pending = null;
+async function startAnalysis(){
+  const st = $("st1"), btn = $("btnCorrect");
+  const sample = await sampleP;
+  if (!sample) return runCorrection(null, st, btn);
+  if (inputMode === "photo" && !photoFile) return fail(st, "Primero elige la foto de tu cuaderno.");
+  const useImage = inputMode === "photo" && photoFile && canImages;
+  const text = $("typed").value.trim();
+  if (!useImage && !text) return fail(st, "Escribe tu historia antes de corregirla.");
+  btn.disabled = true; $("clarify").hidden = true;
+  busy(st, useImage ? "Leyendo tu cuaderno… (puede tardar un minuto)" : "Leyendo tu historia…");
+  try {
+    const r = await sample.json(clarifyPrompt({ topic: S.topic, level: S.level, name: store.name || "", text: useImage ? "" : text }), useImage ? { images:[photoFile] } : {});
+    const transcription = String((r && r.transcription) || text || "").trim();
+    if (!transcription) throw { code:"invalid_json" };
+    const qs = Array.isArray(r.questions) ? r.questions.filter(q => q && q.quote && q.question_es).slice(0, 3) : [];
+    pending = { transcription, fromPhoto: !!useImage, questions: qs, answers: qs.map(() => "") };
+    busy(st, "");
+    if (!r.not_english && !r.off_topic && !qs.length && !useImage){ btn.disabled = false; return runCorrection(transcription, st, btn, []); }
+    renderClarify(r);
+  } catch(e){ fail(st, errMsg(e)); }
+  finally { btn.disabled = false; }
+}
+function renderClarify(r){
+  const name = store.name ? `Hola ${store.name}. ` : "Hola. ";
+  $("clGreet").textContent = r.greeting_es || (name + (pending.questions.length ? "Antes de darte mi retroalimentación, quiero hacerte unas preguntas para entender bien lo que quisiste decir." : "Ya leí tu historia."));
+  $("clTransWrap").hidden = !pending.fromPhoto; $("clTrans").value = pending.transcription;
+  const note = $("clNote"); note.hidden = !(r.not_english || r.off_topic); note.textContent = r.note_es || (r.not_english ? "Tu texto debe estar en inglés. Escríbelo en inglés, como te salga, y vuelve a intentarlo." : "Tu historia no parece hablar del tema que te dio tu profesor.");
+  const list = $("clQs"); list.innerHTML = "";
+  pending.questions.forEach((q, i) => {
+    const li = document.createElement("li"); const box = document.createElement("div"); box.className = "cl-q";
+    const quote = document.createElement("p"); quote.className = "cl-quote"; quote.textContent = `“${q.quote}”`;
+    const ask = document.createElement("p"); ask.textContent = q.question_es;
+    const row = document.createElement("div"); row.className = "row";
+    const input = document.createElement("input"); input.type = "text"; input.id = `clA${i}`; input.placeholder = "O escribe lo que quisiste decir (en inglés o en español)"; input.setAttribute("aria-label", `Respuesta a la pregunta ${i+1}`);
+    let yes = null;
+    if (q.guess_en){
+      yes = document.createElement("button"); yes.type = "button"; yes.className = "btn quiet cl-yes"; yes.setAttribute("aria-pressed","false");
+      yes.textContent = `Sí, quise decir: ${q.guess_en}`;
+      yes.onclick = () => { const on = yes.getAttribute("aria-pressed") !== "true"; yes.setAttribute("aria-pressed", String(on)); pending.answers[i] = on ? q.guess_en : ""; if (on) input.value = ""; };
+      row.append(yes);
+    }
+    input.oninput = () => { pending.answers[i] = input.value; if (yes) yes.setAttribute("aria-pressed","false"); };
+    box.append(quote, ask, row, input); li.append(box); list.append(li);
+  });
+  $("btnClDone").hidden = !!r.not_english;
+  $("btnClDone").textContent = r.off_topic ? "Corregir de todos modos" : pending.questions.length ? "Listo, corrige mi historia" : "Sí, está bien. Corrige mi historia";
+  $("clarify").hidden = false;
+  $("clarify").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+$("btnClDone").onclick = () => {
+  if (!pending) return;
+  const text = pending.fromPhoto ? $("clTrans").value.trim() : pending.transcription;
+  if (!text) return fail($("stC"), "El texto está vacío.");
+  const clar = pending.questions.map((q, i) => ({ quote: q.quote, meaning: String(pending.answers[i] || "").trim() })).filter(c => c.meaning);
+  runCorrection(text, $("stC"), $("btnClDone"), clar);
+};
+$("btnCorrect").onclick = () => startAnalysis();
 $("btnRecorrect").onclick = () => { const t = $("fixTrans").value.trim(); if (t) runCorrection(t, $("st2"), $("btnRecorrect")); };
 
 /* ---------- Step 2 ---------- */
@@ -1004,7 +1100,7 @@ $("btnRetell").onclick = async () => {
 
 /* ---------- Step 6: class ---------- */
 function summaryText(){
-  const lines = [`WREALISPEC · Resumen para el profesor`, `Tema: ${S.topic}`, `Nivel: ${S.level} · Fecha: ${S.date}`, `Palabras escritas: ${S.word_count}`, ``,
+  const lines = [`WREALISPEC · Resumen para el profesor`, `Alumno: ${store.name || "—"}`, `Tema: ${S.topic}`, `Nivel: ${S.level} · Fecha: ${S.date}`, `Palabras escritas: ${S.word_count}`, ``,
     `Errores clave:`, ...S.errors.map(e => `- ${e.original} → ${e.correction}`), ``,
     `Correcciones revisadas: ${S.errors.filter((_, i) => S.errChecked[i]).length} de ${S.errors.length}`,
     `Lectura en voz alta: ${S.reading.attempts.length ? `${lvLabel(bestReading())} (${S.reading.attempts.length} intento${S.reading.attempts.length > 1 ? "s" : ""})` : "pendiente"}`,
