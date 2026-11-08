@@ -184,7 +184,7 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
 .rates3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 @media (max-width:700px){.rates3{grid-template-columns:minmax(0,1fr)}}
 .rates3 .lvl .lv-label{font-size:1.4rem}
-.modal{position:fixed;inset:0;background:rgba(14,19,34,.55);display:grid;place-items:center;z-index:50;
+.modal{position:fixed;inset:0;background:rgba(14,19,34,.6);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);display:grid;place-items:center;z-index:50;
   padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 .modal-card{background:var(--sheet);color:var(--ink);border-radius:16px;padding:24px;max-width:440px;width:100%;display:flex;flex-direction:column;gap:14px;box-shadow:0 30px 60px -20px rgba(0,0,0,.45)}
 .hello{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;font-weight:700;font-size:1.05rem}
@@ -244,6 +244,16 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
         <select id="wLevel"><option value="A1">A1 · Principiante</option><option value="A2">A2 · Básico</option><option value="B1">B1 · Intermedio</option><option value="B2">B2 · Intermedio alto</option><option value="C1">C1 · Avanzado</option></select>
         <span class="small muted">Si no lo sabes, elige A2. Lo puedes cambiar después.</span></div>
       <div class="row"><button class="btn" id="wGo">Empezar</button><span class="status" id="wSt" role="status"></span></div>
+    </div>
+  </div>
+
+  <div class="modal" id="fbModal" hidden role="dialog" aria-modal="true" aria-labelledby="fbmTitle">
+    <div class="modal-card" style="max-width:540px">
+      <span class="eyebrow">Antes de ver tu corrección</span>
+      <h2 id="fbmTitle">Esto es lo que vi en tu historia</h2>
+      <p id="fbmText" style="font-size:1.05rem"></p>
+      <div class="note" id="fbmWell"><strong>Lo que hiciste bien</strong><ul class="clean" id="fbmList"></ul></div>
+      <div class="row"><button class="btn" id="fbmGo">Ver mi corrección</button></div>
     </div>
   </div>
 
@@ -913,7 +923,7 @@ async function runCorrection(textOverride, statusEl, btn, clar){
       assignment: S.assignment || null,
       assignment_check: Array.isArray(r.assignment_check) ? r.assignment_check.filter(x => x && x.item) : [],
     });
-    S.example = false; busy(statusEl, ""); $("clarify").hidden = true; save(); renderAll(); go(0, 1);
+    S.example = false; busy(statusEl, ""); $("clarify").hidden = true; save(); renderAll(); go(0, 1); showFeedbackModal();
   } catch(e){ if (e && e.code === "cancelled") busy(statusEl,""); else fail(statusEl, errMsg(e)); }
   finally { btn.disabled = false; }
 }
@@ -1084,6 +1094,22 @@ function renderCorrDiff(){
     else host.append(document.createTextNode(w + " "));
   });
 }
+/* ---------- Ventana de retroalimentación: se lee antes de ver la corrección ---------- */
+function showFeedbackModal(){
+  if (!S.feedback_es && !(S.strengths_es || []).length) return;
+  $("fbmTitle").textContent = store.name ? `${store.name}, esto es lo que vi en tu historia` : "Esto es lo que vi en tu historia";
+  $("fbmText").textContent = S.feedback_es || "";
+  const ul = $("fbmList"); ul.innerHTML = "";
+  (S.strengths_es || []).forEach(t => { const li = document.createElement("li"); li.textContent = t; ul.append(li); });
+  $("fbmWell").hidden = !(S.strengths_es || []).length;
+  $("fbModal").hidden = false; setTimeout(() => $("fbmGo").focus(), 50);
+}
+function closeFeedbackModal(){
+  $("fbModal").hidden = true;
+  const panel = document.querySelector('.panel[data-step="1"]'); if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+$("fbmGo").addEventListener("click", closeFeedbackModal);
+$("fbModal").addEventListener("keydown", (e) => { if (e.key === "Escape") closeFeedbackModal(); });
 function renderCorrect(){
   const ai = S.source === "ai";
   $("corrTitle").textContent = ai ? (S.title || "Tu historia de hoy") : "Lo que escribiste y cómo queda corregido";
