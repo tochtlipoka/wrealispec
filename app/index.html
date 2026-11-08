@@ -647,7 +647,7 @@ Reply with only JSON in this shape:
 }
 function clarBlock(clar){
   if (!clar || !clar.length) return "";
-  return "\n\nBefore this correction, the student explained what they meant in some parts (they may answer in Spanish or Portuguese). Use these meanings when you correct and keep the student's words where possible. Never replace the student's idea with a different or more generic one. If the student explains an idea with a metaphor or a personal expression (for example \"que mi inglés llegue hasta el cielo\"), keep that meaning and use the closest NATURAL English expression a native speaker would say (for example \"take my English to the next level\" or \"the sky's the limit\"), not a literal translation. In the errors list, explain each confusion and, for metaphors, say in Spanish how that idea is naturally expressed in English:\n" +
+  return "\n\nBefore this correction, the student explained what they meant in some parts (they may answer in Spanish or Portuguese). The student's explanation ALWAYS wins over your own guess, even if you thought they meant something else. Use these meanings when you correct and keep the student's words where possible. Never replace the student's idea with a different or more generic one. If the student explains an idea with a metaphor or a personal expression (for example \"que mi inglés llegue hasta el cielo\"), keep that meaning and use the closest NATURAL English expression a native speaker would say (for example \"take my English to the next level\" or \"the sky's the limit\"), not a literal translation. In the errors list, explain each confusion and, for metaphors, say in Spanish how that idea is naturally expressed in English:\n" +
     clar.map((c, i) => `${i+1}. "${c.quote}" → the student meant: ${c.meaning}`).join("\n");
 }
 function clarifyPrompt({ topic, level, text, name }){
@@ -659,7 +659,7 @@ Tasks:
 1. transcription: ${text ? "copy the text above exactly." : "copy exactly what the student wrote, including every mistake. Do NOT correct anything here. If a word is unreadable, write [?]."}
 2. not_english: true only if the text is mostly not in English or is not a real attempt (random letters, almost empty).
 3. off_topic: true only if the text clearly does not talk about the topic.
-4. questions: sentences whose MEANING is unclear, not simple grammar mistakes. For example a word that looks confused with a similar word (sky / skill), a sentence that can mean two different things, or an idea that does not make sense. Ask about every sentence that really needs it (usually 0 to 5, never more than 10); use an empty list if everything is understandable. For each one: "quote" (the exact words from the transcription), "guess_en" (your best guess of what they meant, written as a correct English sentence, or "" if you cannot guess), "question_es" (a short, friendly question in Spanish, for example: "¿Quisiste decir «my skills» (mis habilidades)? «The sky» significa «el cielo»." or "¿Exactamente qué quisiste decir aquí?").
+4. questions: sentences whose MEANING is unclear, not simple grammar mistakes. For example a word that looks confused with a similar word (sky / skill), a sentence that can mean two different things, or an idea that does not make sense. Pay special attention to false friends that Spanish speakers often confuse, because the sentence can look correct but mean something else: actually (en realidad) vs. currently (actualmente), embarrassed vs. pregnant (embarazada), assist vs. attend (asistir), library vs. bookstore (librería), carpet vs. folder (carpeta), realize vs. carry out (realizar), lost my mind vs. got lost (perderse), sensible vs. sensitive (sensible), exit vs. success (éxito), career vs. degree (carrera). Ask about every sentence that really needs it (usually 0 to 5, never more than 10); use an empty list if everything is understandable. For each one: "quote" (the exact words from the transcription), "guess_en" (your best guess of what they meant, written as a correct English sentence, or "" if you cannot guess), "question_es" (a short, friendly question in Spanish, for example: "¿Quisiste decir «my skills» (mis habilidades)? «The sky» significa «el cielo»." or "¿Exactamente qué quisiste decir aquí?").
 5. greeting_es: 1 or 2 warm sentences in Spanish. Greet the student by name if you know it, say something specific and positive about their idea, and if there are questions, say you want to ask a few things before giving your feedback. Never use numbers or grades.
 6. note_es: if not_english or off_topic is true, one kind sentence in Spanish explaining it; otherwise "".
 
@@ -673,7 +673,7 @@ ${text ? `Here is the student's text, already transcribed and confirmed by the s
 
 Rules:
 1. transcription: ${text ? "return an empty string (the app already has the text)." : "copy exactly what the student wrote, including every mistake. Do NOT correct anything here. If a word is unreadable, write [?]."}
-2. corrected: rewrite the text so it is correct, natural English. Keep the student's ideas, order and voice. Change only what is needed. Do not add new ideas. Use vocabulary at most one level above ${level}. Write times like "6:30 am" (without periods).
+2. corrected: rewrite the text so it is correct, natural English. Keep the student's ideas, order and voice. Change only what is needed. Do not add new ideas. Use vocabulary at most one level above ${level}. Write times like "6:30 am" (without periods). Also fix capital letters (months, days, nationalities, languages, names and "I").
 3. errors: the most important mistakes (maximum 8). Prioritize repeated mistakes and mistakes that change the meaning. For each one: "original" (exact words from the transcription), "correction", "type" (grammar | vocabulary | spelling | word_order | punctuation), "rule_es" (short explanation in simple Spanish, maximum 20 words).
 4. strengths_es: 2 specific things the student did well, in Spanish.
 5. feedback_es: 2 sentences in Spanish, in a warm, encouraging tone like a friendly teacher. Write all Spanish in Mexican Spanish, the way people speak in Mexico (for example «papas», not «patatas»; «ustedes», not «vosotros»; «computadora», not «ordenador»; «celular», not «móvil»). First what was good, then the one thing to focus on before the next class. Never use numbers or grades.
@@ -1072,9 +1072,15 @@ function renderCorrDiff(){
   const orig = String(S.transcription || "").split(/\s+/).filter(Boolean);
   const corr = String(S.corrected || "").split(/\s+/).filter(Boolean);
   if (!orig.length){ host.textContent = S.corrected; return; }
-  diffWords(orig, corr).forEach(([k, w]) => {
-    if (k === "miss") return;
-    if (k === "extra"){ const s = document.createElement("span"); s.className = "chg"; s.textContent = w; host.append(s, document.createTextNode(" ")); }
+  let i = 0, j = 0;
+  const letters = (x) => String(x).replace(/[^\p{L}\p{N}']/gu, "");
+  diffWords(orig, corr).forEach(([k]) => {
+    if (k === "miss"){ i++; return; }
+    const w = corr[j++]; if (w === undefined) return;
+    // Cambió si es palabra nueva, o si es la misma palabra con otra mayúscula (september → September). La puntuación sola no cuenta.
+    const changed = k === "extra" || letters(orig[i]) !== letters(w);
+    if (k === "ok") i++;
+    if (changed){ const s = document.createElement("span"); s.className = "chg"; s.textContent = w; host.append(s, document.createTextNode(" ")); }
     else host.append(document.createTextNode(w + " "));
   });
 }
