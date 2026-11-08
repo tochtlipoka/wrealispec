@@ -273,6 +273,16 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
     </div>
   </div>
 
+  <div class="modal" id="trModal" hidden role="dialog" aria-modal="true" aria-labelledby="trTitle">
+    <div class="modal-card" style="max-width:660px">
+      <span class="eyebrow">Antes de corregir · revisa tu texto</span>
+      <h2 id="trTitle">Esto es lo que leí en tu cuaderno</h2>
+      <p class="muted">Compáralo con tu cuaderno. Si leí mal alguna palabra, corrígela aquí. <strong>No corrijas tus errores de inglés</strong>: esos los revisamos después.</p>
+      <textarea id="trText" spellcheck="false" aria-label="Texto leído de tu cuaderno" style="min-height:220px"></textarea>
+      <div class="row"><button class="btn" id="trGo">Está bien, continuar</button><button type="button" class="btn quiet" id="trBack">Cancelar</button><span class="status" id="stTr" role="status"></span></div>
+    </div>
+  </div>
+
   <!-- 1 ESCRIBE -->
   <section class="panel" data-step="0">
     <div class="panel-head">
@@ -363,8 +373,8 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
     <div class="note" id="strengths"></div>
     <div class="grid2" id="corrGrid">
       <div class="field" id="origCol">
-        <div class="notebook hand" id="origBox"><span class="lbl">Lo que leí en tu cuaderno</span><span id="origText"></span></div>
-        <details>
+        <div class="notebook hand" id="origBox"><span class="lbl" id="origLbl">Lo que leí en tu cuaderno</span><span id="origText"></span></div>
+        <details id="fixBox">
           <summary>¿Leí mal alguna palabra? Corrígela</summary>
           <div class="field" style="margin-top:12px">
             <textarea id="fixTrans" aria-label="Transcripción editable"></textarea>
@@ -566,7 +576,7 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.6 · actualizado el 8 nov 2026, 13:55 · prototipo para pruebas</footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.7 · actualizado el 8 nov 2026, 14:05 · prototipo para pruebas</footer>
 </div>
 
 <script>
@@ -941,6 +951,7 @@ async function runCorrection(textOverride, statusEl, btn, clar){
       useful_phrases: Array.isArray(r.useful_phrases) ? r.useful_phrases : [],
       assignment: S.assignment || null,
       assignment_check: Array.isArray(r.assignment_check) ? r.assignment_check.filter(x => x && x.item) : [],
+      fromPhoto: !!(pending && pending.photo),
     });
     S.example = false; busy(statusEl, ""); $("clarify").hidden = true; save(); renderAll(); go(0, 1); showFeedbackModal();
   } catch(e){ if (e && e.code === "cancelled") busy(statusEl,""); else fail(statusEl, errMsg(e)); }
@@ -972,14 +983,43 @@ async function startAnalysis(){
     const r = await sample.json(clarifyPrompt({ topic: S.topic, level: S.level, name: store.name || "", text: useImage ? "" : text }), useImage ? { images:[photoFile] } : {});
     const transcription = String((r && r.transcription) || text || "").trim();
     if (!transcription) throw { code:"invalid_json" };
-    const qs = Array.isArray(r.questions) ? r.questions.filter(q => q && q.quote && q.question_es).slice(0, 10) : [];
-    pending = { transcription, fromPhoto: !!useImage, questions: qs, answers: qs.map(() => "") };
     busy(st, "");
-    if (!r.not_english && !r.off_topic && !qs.length && !useImage){ btn.disabled = false; return runCorrection(transcription, st, btn, []); }
-    renderClarify(r);
+    if (useImage){
+      // Con foto: primero el alumno revisa lo que la IA leyó en su cuaderno.
+      lastAnalysis = { r, transcription };
+      pending = { transcription, fromPhoto: false, photo: true, questions: [], answers: [] };
+      $("trText").value = transcription; $("stTr").textContent = ""; $("trModal").hidden = false;
+      setTimeout(() => $("trText").focus(), 50);
+      return;
+    }
+    btn.disabled = false;
+    return afterAnalysis(r, transcription, false);
   } catch(e){ fail(st, errMsg(e)); }
   finally { btn.disabled = false; }
 }
+let lastAnalysis = null;
+function afterAnalysis(r, transcription, photo){
+  const qs = Array.isArray(r.questions) ? r.questions.filter(q => q && q.quote && q.question_es).slice(0, 10) : [];
+  pending = { transcription, fromPhoto: false, photo, questions: qs, answers: qs.map(() => "") };
+  if (!r.not_english && !r.off_topic && !qs.length) return runCorrection(transcription, $("st1"), $("btnCorrect"), []);
+  renderClarify(r);
+}
+$("trBack").onclick = () => { $("trModal").hidden = true; };
+$("trModal").addEventListener("keydown", (e) => { if (e.key === "Escape") $("trBack").click(); });
+$("trGo").onclick = async () => {
+  const edited = $("trText").value.trim(), st = $("stTr"), btn = $("trGo");
+  if (!edited) return fail(st, "El texto está vacío.");
+  if (!lastAnalysis) return;
+  if (edited === lastAnalysis.transcription){ $("trModal").hidden = true; return afterAnalysis(lastAnalysis.r, edited, true); }
+  // El alumno corrigió palabras mal leídas: la IA vuelve a leer el texto ya corregido.
+  const sample = await sampleP; if (!sample) return;
+  btn.disabled = true; busy(st, "Volviendo a leer tu texto…");
+  try {
+    const r2 = await sample.json(clarifyPrompt({ topic: S.topic, level: S.level, name: store.name || "", text: edited }));
+    busy(st, ""); $("trModal").hidden = true; afterAnalysis(r2, edited, true);
+  } catch(e){ fail(st, errMsg(e)); }
+  finally { btn.disabled = false; }
+};
 function renderClarify(r){
   const name = store.name ? `Hola ${store.name}. ` : "Hola. ";
   $("clGreet").textContent = r.greeting_es || (name + (pending.questions.length ? "Antes de darte mi retroalimentación, quiero hacerte unas preguntas para entender bien lo que quisiste decir." : "Ya leí tu historia."));
@@ -1175,6 +1215,7 @@ function renderCorrect(){
   const ul = document.createElement("ul"); ul.className = "clean";
   S.strengths_es.forEach(s => { const li = document.createElement("li"); li.textContent = s; ul.append(li); });
   st.append(ul); st.hidden = !S.strengths_es.length;
+  const photo = !!(S.fromPhoto || S.example); $("fixBox").hidden = !photo; $("origLbl").textContent = photo ? "Lo que leí en tu cuaderno" : "Lo que escribiste";
   $("origText").textContent = S.transcription; $("fixTrans").value = S.transcription; renderCorrDiff();
   renderErrors($("errList"), S.errors, true); errCount(); renderAsgRes();
 }
