@@ -393,7 +393,8 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
       <div class="errors" id="errList"></div>
     </div>
     <p class="note warn small" id="copyNote">Ahora copia el texto corregido en tu cuaderno, otra vez a mano. Así fijas las correcciones.</p>
-    <div class="row" id="dlRow"><button class="btn ghost" id="btnDl">Descargar mi texto</button><span class="small muted">Se guarda en tu celular o computadora para estudiarlo sin internet.</span></div>
+    <div class="row" id="dlRow"><button class="btn ghost" id="btnPdf">Descargar PDF</button><button class="btn quiet" id="btnDl">Texto (.txt)</button><span class="status" id="stPdf" role="status"></span></div>
+    <p class="small muted">Se guarda en tu celular o computadora para estudiarlo sin internet.</p>
     <div class="row"><button class="btn" data-go="1">Siguiente fase: Escucha y repite</button></div>
   </section>
 
@@ -420,6 +421,17 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
     </div>
     <div class="notebook" id="listenBox"><span class="lbl">Tu historia</span><span id="listenText"></span></div>
     <p class="small muted" id="voiceNote"></p>
+    <div class="gtts" id="gttsBox" hidden>
+      <h3>Voz natural (MP3)</h3>
+      <p class="small muted">Una voz mucho más humana para escuchar tu historia completa. Descárgala y escúchala sin internet, en el coche o en el camión.</p>
+      <div class="row">
+        <select id="gVoice" aria-label="Voz natural"><option value="us-f">Estados Unidos · mujer</option><option value="us-m">Estados Unidos · hombre</option><option value="uk-f">Reino Unido · mujer</option><option value="uk-m">Reino Unido · hombre</option></select>
+        <button class="btn ghost" id="btnG">Escuchar voz natural</button>
+        <button class="btn quiet" id="btnMp3">Descargar MP3</button>
+        <span class="status" id="stG" role="status"></span>
+      </div>
+      <audio id="gAudio" controls hidden style="width:100%;margin-top:8px"></audio>
+    </div>
     <div class="field">
       <h3>Antes de pasar a la siguiente fase</h3>
       <div class="checks">
@@ -577,7 +589,7 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.8 · actualizado el 8 nov 2026, 14:20 · prototipo para pruebas</footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9 · actualizado el 8 nov 2026, 15:30 · prototipo para pruebas</footer>
 </div>
 
 <script>
@@ -636,6 +648,7 @@ function blank(topic, level){
     word_count:0, teacher_questions:[], useful_phrases:[], step:0 });
 }
 function normalize(s){
+  s.emojis = typeof s.emojis === "string" ? s.emojis : "";
   s.chat = s.chat && Array.isArray(s.chat.turns) ? s.chat : { turns:[], done:false, feedback:null };
   s.source = s.source === "ai" ? "ai" : "own";
   s.glossary = Array.isArray(s.glossary) ? s.glossary : [];
@@ -681,9 +694,10 @@ Rules:
 4. intro_es: 1 warm sentence in Spanish presenting the story to the student. Never use numbers or grades.
 5. teacher_questions: 3 simple follow-up questions in English a teacher can ask about this story.
 6. useful_phrases: 4 short English sentences to explain the story, each with "en" and "es".
+7. emojis: exactly 3 emojis that illustrate the main moments of the story (places, objects or actions), in story order, as one string with no spaces. Do not use faces.
 
 Reply with only JSON in this shape:
-{"title":"","story":"","glossary":[{"en":"","es":""}],"intro_es":"","teacher_questions":["","",""],"useful_phrases":[{"en":"","es":""}]}`;
+{"title":"","story":"","glossary":[{"en":"","es":""}],"intro_es":"","teacher_questions":["","",""],"useful_phrases":[{"en":"","es":""}],"emojis":""}`;
 }
 function clarBlock(clar){
   if (!clar || !clar.length) return "";
@@ -720,10 +734,11 @@ Rules:
 6. word_count: number of words in the transcription.
 7. teacher_questions: 3 simple follow-up questions in English, at level ${level}, that a teacher can ask in a video call about this story to start a conversation.
 8. useful_phrases: 4 short English sentences the student can use to explain this story, each with "en" and "es".
+10. emojis: exactly 3 emojis that illustrate the main moments of the story (places, objects or actions), in story order, as one string with no spaces. Do not use faces.
 9. assignment_check: only if the teacher gave requirements above; one entry per requirement (the structure, each word to use, the question): "item" (the requirement, short), "ok" (true if the student used it correctly), "note_es" (warm, maximum 15 words, in Spanish). If there are no requirements, use an empty list.
 
 Reply with only JSON in this shape:
-{"transcription":"","corrected":"","errors":[{"original":"","correction":"","type":"","rule_es":""}],"strengths_es":["",""],"feedback_es":"","word_count":0,"teacher_questions":["","",""],"useful_phrases":[{"en":"","es":""}],"assignment_check":[{"item":"","ok":true,"note_es":""}]}`;
+{"transcription":"","corrected":"","errors":[{"original":"","correction":"","type":"","rule_es":""}],"strengths_es":["",""],"feedback_es":"","word_count":0,"teacher_questions":["","",""],"useful_phrases":[{"en":"","es":""}],"assignment_check":[{"item":"","ok":true,"note_es":""}],"emojis":""}`;
 }
 function retellPrompt(level, story, retell){
   return `You are an English tutor for Wrealispec. The student (CEFR ${level}) studied this story many times:
@@ -952,7 +967,7 @@ async function runCorrection(textOverride, statusEl, btn, clar){
       useful_phrases: Array.isArray(r.useful_phrases) ? r.useful_phrases : [],
       assignment: S.assignment || null,
       assignment_check: Array.isArray(r.assignment_check) ? r.assignment_check.filter(x => x && x.item) : [],
-      fromPhoto: !!(pending && pending.photo),
+      fromPhoto: !!(pending && pending.photo), emojis: String(r.emojis || ""),
     });
     S.example = false; busy(statusEl, ""); $("clarify").hidden = true; save(); renderAll(); go(0, 1); showFeedbackModal();
   } catch(e){ if (e && e.code === "cancelled") busy(statusEl,""); else fail(statusEl, errMsg(e)); }
@@ -1083,7 +1098,7 @@ $("btnAiStory").onclick = async () => {
       feedback_es: String(r.intro_es || ""), word_count: countWords(r.story),
       teacher_questions: Array.isArray(r.teacher_questions) ? r.teacher_questions : [],
       useful_phrases: Array.isArray(r.useful_phrases) ? r.useful_phrases : [],
-      assignment: S.assignment || null, assignment_check: [],
+      assignment: S.assignment || null, assignment_check: [], emojis: String(r.emojis || ""),
     });
     S.example = false; busy(st, ""); save(); renderAll(); go(0, 1);
   } catch(e){ fail(st, errMsg(e)); } finally { btn.disabled = false; }
@@ -1223,6 +1238,54 @@ function downloadStory(){
   document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 $("btnDl").addEventListener("click", downloadStory);
+/* ---------- PDF con diseño de Wrealispec (se arma en el navegador, sin costo) ---------- */
+function loadScript(src){ return new Promise((res, rej) => { if (document.querySelector(`script[src="${src}"]`)) return res(); const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = rej; document.head.append(s); }); }
+function pdfSheet(){
+  const ai = S.source === "ai", esc = (t) => String(t || "").replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+  const emojis = [...String(S.emojis || "")].filter(c => c.trim()).join("") || "📝✏️📚";
+  const corrHtml = ai ? esc(S.corrected) : (() => { renderCorrDiff(); return $("corrText").innerHTML; })();
+  const box = document.createElement("div");
+  box.innerHTML = `
+  <div style="font-family:Atkinson Hyperlegible,Segoe UI,Arial,sans-serif;color:#1B2559;width:720px;padding:8px 6px;font-size:13.5px;line-height:1.55;background:#fff">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #D3455A;padding-bottom:10px">
+      <div><div style="font-family:Caveat,Segoe Print,cursive;font-size:34px;font-weight:700;line-height:1">W<span style="color:#D3455A">real</span>ispec</div>
+      <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#56618A">Writing · Reading · Listening · Speaking · Conversation</div></div>
+      <div style="text-align:right;font-size:11.5px;color:#56618A">${store.name ? `<b style="color:#1B2559">${esc(store.name)}</b><br>` : ""}Nivel ${esc(S.level)} · ${esc(S.date)}</div>
+    </div>
+    <div style="display:flex;gap:18px;align-items:center;margin:18px 0 6px">
+      <div style="font-size:54px;letter-spacing:6px;line-height:1">${esc(emojis)}</div>
+      <div><div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#D3455A">${ai ? "Historia de la IA" : "Mi historia corregida"}</div>
+      <div style="font-size:22px;font-weight:800;line-height:1.2">${esc(S.title || S.topic)}</div></div>
+    </div>
+    <div style="border:1px solid #D9E1F0;border-left:3px solid #D3455A;border-radius:8px;padding:12px 16px;margin:12px 0;font-size:15px;line-height:1.75;background:repeating-linear-gradient(#fff 0 26px,#E8EDFA 26px 27px)">${corrHtml}</div>
+    ${ai ? "" : `<div style="font-size:11px;color:#56618A;margin-top:-4px">En verde: lo que cambió respecto a tu texto.</div>`}
+    ${S.feedback_es ? `<p style="margin:14px 0 4px"><b>Comentario:</b> ${esc(S.feedback_es)}</p>` : ""}
+    ${!ai && (S.errors || []).length ? `<h3 style="font-size:15px;margin:16px 0 6px">Errores clave</h3><table style="width:100%;border-collapse:collapse;font-size:12.5px">${S.errors.map(e => `<tr style="page-break-inside:avoid"><td style="border-top:1px solid #D9E1F0;padding:6px 8px 6px 0;width:34%;color:#56618A;text-decoration:line-through">${esc(e.original)}</td><td style="border-top:1px solid #D9E1F0;padding:6px 8px;width:30%;color:#1C7A4E;font-weight:700">${esc(e.correction)}</td><td style="border-top:1px solid #D9E1F0;padding:6px 0;color:#1B2559">${esc(e.rule_es)}</td></tr>`).join("")}</table>` : ""}
+    ${ai && (S.glossary || []).length ? `<h3 style="font-size:15px;margin:16px 0 6px">Palabras útiles</h3><div>${S.glossary.map(g => `<b>${esc(g.en)}</b>: ${esc(g.es)}`).join(" · ")}</div>` : ""}
+    ${(S.useful_phrases || []).length ? `<h3 style="font-size:15px;margin:16px 0 6px">Frases útiles</h3><ul style="margin:0;padding-left:18px">${S.useful_phrases.map(p => `<li><b>${esc(p.en)}</b> <span style="color:#56618A">(${esc(p.es)})</span></li>`).join("")}</ul>` : ""}
+    ${(S.teacher_questions || []).length ? `<h3 style="font-size:15px;margin:16px 0 6px">Preguntas para practicar</h3><ol style="margin:0;padding-left:18px">${S.teacher_questions.map(q => `<li>${esc(q)}</li>`).join("")}</ol>` : ""}
+    ${!ai && S.transcription ? `<h3 style="font-size:15px;margin:18px 0 6px">Lo que escribí</h3><div style="font-family:Caveat,Segoe Print,cursive;font-size:19px;line-height:1.4;color:#56618A">${esc(S.transcription)}</div>` : ""}
+    <div style="margin-top:22px;padding-top:8px;border-top:1px solid #D9E1F0;font-size:10.5px;color:#56618A;display:flex;justify-content:space-between"><span>wrealispec.com</span><span>Aprende inglés con tu propia historia</span></div>
+  </div>`;
+  return box.firstElementChild;
+}
+$("btnPdf").addEventListener("click", async () => {
+  const st = $("stPdf"); $("btnPdf").disabled = true; busy(st, "Preparando tu PDF…");
+  try {
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js");
+    const el = pdfSheet();
+    const name = `Wrealispec - ${String(S.title || S.topic || "mi historia").replace(/[\\/:*?"<>|]+/g, "").slice(0, 60)}.pdf`;
+    const opt = { margin: [10, 10, 12, 10], filename: name, image: { type: "jpeg", quality: 0.95 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" }, jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }, pagebreak: { mode: ["css", "legacy"] } };
+    if (typeof dlCap !== "undefined" && dlCap){
+      const blob = await window.html2pdf().set(opt).from(el).outputPdf("blob");
+      await dlCap.save({ filename: name, data: blob });
+    } else {
+      await window.html2pdf().set(opt).from(el).save();
+    }
+    busy(st, "");
+  } catch(e){ fail(st, "No se pudo crear el PDF. Inténtalo de nuevo o usa la opción de texto."); }
+  finally { $("btnPdf").disabled = false; }
+});
 // Dentro de Claude no se pueden descargar archivos: el botón solo aparece en wrealispec.com.
 if (window.claude) $("dlRow").hidden = true;
 function renderCorrect(){
@@ -1343,7 +1406,38 @@ async function echo(){
   if (my === runId){ $("turn").textContent = "¡Completo!"; host.querySelectorAll(".s.now").forEach(n => n.classList.remove("now")); }
 }
 $("btnPlay").onclick = () => mode === "eco" ? echo() : playFrom($("listenText"), listenParts, 0, false);
-$("btnStop").onclick = stopSpeech;
+$("btnStop").onclick = () => { stopSpeech(); $("gAudio").pause(); };
+/* ---------- Voz natural de Google (MP3). Se pide una sola vez por voz y se reutiliza. ---------- */
+const gCache = {};
+const ttsOn = typeof AI_URL !== "undefined" && !!AI_URL && !window.claude;
+$("gttsBox").hidden = !ttsOn;
+async function googleAudio(){
+  const voice = $("gVoice").value, key = voice + "|" + S.corrected;
+  if (gCache[key]) return gCache[key];
+  const r = await fetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ tts: { text: speakFix(S.corrected), voice, rate: 0.95 } }) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || !d.audio) throw new Error(d.error || "tts_error");
+  const bin = atob(d.audio), bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return (gCache[key] = new Blob([bytes], { type: "audio/mpeg" }));
+}
+async function withAudio(btn, then){
+  const st = $("stG"); btn.disabled = true; busy(st, "Preparando la voz…");
+  try { const blob = await googleAudio(); busy(st, ""); then(blob); }
+  catch(e){ fail(st, e.message === "tts_not_configured" ? "La voz natural todavía no está activada. Mientras, usa la voz del navegador." : "No se pudo crear el audio. Inténtalo de nuevo."); }
+  finally { btn.disabled = false; }
+}
+$("btnG").onclick = () => withAudio($("btnG"), (blob) => {
+  stopSpeech(); const a = $("gAudio");
+  if (a.dataset.src) URL.revokeObjectURL(a.dataset.src);
+  a.src = a.dataset.src = URL.createObjectURL(blob); a.hidden = false; a.playbackRate = rateVal(); a.play().catch(() => {});
+});
+$("gAudio").onplay = () => { $("gAudio").playbackRate = rateVal(); };
+$("btnMp3").onclick = () => withAudio($("btnMp3"), (blob) => {
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = `Wrealispec - ${String(S.title || S.topic || "mi historia").replace(/[\\/:*?"<>|]+/g, "").slice(0, 60)}.mp3`;
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+});
 async function copy(text, statusEl){
   try { await navigator.clipboard.writeText(text); statusEl.classList.remove("bad"); statusEl.textContent = "Copiado."; }
   catch(e){ statusEl.classList.add("bad"); statusEl.textContent = "No se pudo copiar. Selecciona el texto y cópialo a mano."; }

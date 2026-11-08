@@ -1,6 +1,6 @@
 // Wrealispec · servidor intermedio para la IA (Cloudflare Worker)
-// Guarda la llave de la API de Claude en secreto (ANTHROPIC_API_KEY) y solo acepta
-// las tareas de Wrealispec que vienen de wrealispec.com.
+// Guarda en secreto la llave de Claude (ANTHROPIC_API_KEY) y la de Google para la voz (GOOGLE_TTS_KEY),
+// y solo acepta las tareas de Wrealispec que vienen de wrealispec.com.
 
 const ALLOWED_ORIGINS = [
   "https://wrealispec.com",
@@ -25,6 +25,15 @@ const MAX_PROMPT_CHARS = 15000;
 const MAX_IMAGE_BASE64 = 7000000; // ~5 MB
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
+// Voz natural de Google (Text-to-Speech). La llave va en el secreto GOOGLE_TTS_KEY.
+const TTS_VOICES = {
+  "us-f": { languageCode: "en-US", name: "en-US-Neural2-F" },
+  "us-m": { languageCode: "en-US", name: "en-US-Neural2-D" },
+  "uk-f": { languageCode: "en-GB", name: "en-GB-Neural2-A" },
+  "uk-m": { languageCode: "en-GB", name: "en-GB-Neural2-B" },
+};
+const TTS_MAX_CHARS = 3000;
+
 export default {
   async fetch(request, env) {
     const origin = request.headers.get("Origin") || "";
@@ -38,10 +47,11 @@ export default {
 
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
     if (request.method !== "POST" || !allowed) return reply({ error: "forbidden" }, 403, cors);
-    if (!env.ANTHROPIC_API_KEY) return reply({ error: "not_configured" }, 500, cors);
-
     let body;
     try { body = await request.json(); } catch (e) { return reply({ error: "bad_request" }, 400, cors); }
+
+    if (body.tts) return tts(body.tts, env, cors);
+    if (!env.ANTHROPIC_API_KEY) return reply({ error: "not_configured" }, 500, cors);
 
     const prompt = typeof body.prompt === "string" ? body.prompt : "";
     if (!prompt || prompt.length > MAX_PROMPT_CHARS || !ALLOWED_PROMPT_STARTS.some((s) => prompt.startsWith(s))) {
@@ -98,6 +108,29 @@ export default {
     return reply({ text, stop: data.stop_reason || "" }, 200, cors);
   },
 };
+
+// Convierte la historia en MP3 con una voz natural de Google. Devuelve el audio en base64.
+async function tts(req, env, cors) {
+  if (!env.GOOGLE_TTS_KEY) return reply({ error: "tts_not_configured" }, 500, cors);
+  const text = typeof req.text === "string" ? req.text.trim() : "";
+  const voice = TTS_VOICES[req.voice] || TTS_VOICES["us-f"];
+  const rate = Math.min(1.2, Math.max(0.6, Number(req.rate) || 0.9));
+  if (!text || text.length > TTS_MAX_CHARS) return reply({ error: "bad_request" }, 400, cors);
+  let r;
+  try {
+    r = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${env.GOOGLE_TTS_KEY}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ input: { text }, voice, audioConfig: { audioEncoding: "MP3", speakingRate: rate } }),
+    });
+  } catch (e) {
+    return reply({ error: "upstream_error" }, 502, cors);
+  }
+  if (r.status === 429) return reply({ error: "rate_limited" }, 429, cors);
+  if (!r.ok) return reply({ error: "tts_error", status: r.status }, 502, cors);
+  const data = await r.json();
+  return reply({ audio: data.audioContent || "" }, 200, cors);
+}
 
 function reply(obj, status, headers) {
   return new Response(JSON.stringify(obj), { status, headers: { ...headers, "Content-Type": "application/json" } });
