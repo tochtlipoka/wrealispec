@@ -174,6 +174,17 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
 .lvl.l3 .lv-seg.on, .lvl.l4 .lv-seg.on{background:var(--ok)} .lvl.l3 .lv-label, .lvl.l4 .lv-label{color:var(--ok)}
 .tries{font-weight:700}
 .pick-label{font-weight:700;font-size:.9rem}
+.modal{position:fixed;inset:0;background:rgba(14,19,34,.55);display:grid;place-items:center;z-index:50;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.modal-card{background:var(--sheet);color:var(--ink);border-radius:16px;padding:24px;max-width:440px;width:100%;display:flex;flex-direction:column;gap:14px;box-shadow:0 30px 60px -20px rgba(0,0,0,.45)}
+.hello{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;font-weight:700;font-size:1.05rem}
+.linkbtn{background:none;border:0;padding:0;cursor:pointer;color:var(--accent);font:inherit;font-weight:400;font-size:.9rem;text-decoration:underline}
+.grid2.one{grid-template-columns:minmax(0,1fr)}
+.errors.gloss .o{text-decoration:none;color:var(--ink);font-weight:700}
+.errors.gloss .c{color:var(--ink-soft);font-weight:400}
+.opts{display:flex;flex-direction:column;gap:6px}
+.opts label{font-weight:400;display:flex;gap:10px;align-items:center;cursor:pointer}
+.opts input{width:18px;height:18px;accent-color:var(--accent)}
 .assign{border:1px solid var(--rule);border-left:4px solid var(--margin);border-radius:12px;background:var(--paper);padding:16px 18px;display:flex;flex-direction:column;gap:8px}
 .as-q{font-family:var(--f-display);font-weight:800;font-size:1.15rem}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
@@ -213,6 +224,19 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
 
   <ol class="rail" id="rail"></ol>
 
+  <div class="modal" id="welcome" hidden role="dialog" aria-modal="true" aria-labelledby="wTitle">
+    <div class="modal-card">
+      <span class="eyebrow">Bienvenido a Wrealispec</span>
+      <h2 id="wTitle">Antes de empezar</h2>
+      <p class="muted">Así te puedo saludar por tu nombre y ajustar todo a tu nivel.</p>
+      <div class="field"><label for="wName">¿Cómo te llamas?</label><input type="text" id="wName" autocomplete="given-name" placeholder="Ej. Héctor"></div>
+      <div class="field"><label for="wLevel">¿Cuál es tu nivel de inglés?</label>
+        <select id="wLevel"><option value="A1">A1 · Principiante</option><option value="A2">A2 · Básico</option><option value="B1">B1 · Intermedio</option><option value="B2">B2 · Intermedio alto</option><option value="C1">C1 · Avanzado</option></select>
+        <span class="small muted">Si no lo sabes, elige A2. Lo puedes cambiar después.</span></div>
+      <div class="row"><button class="btn" id="wGo">Empezar</button><span class="status" id="wSt" role="status"></span></div>
+    </div>
+  </div>
+
   <!-- 1 ESCRIBE -->
   <section class="panel" data-step="0">
     <div class="panel-head">
@@ -220,7 +244,7 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
       <h2>Tu historia</h2>
       <p class="muted">Escribe tu historia aquí o sube una foto de tu cuaderno. Yo la corrijo y te doy mis observaciones.</p>
     </div>
-    <div class="field"><label for="sname">Tu nombre</label><input type="text" id="sname" autocomplete="given-name" placeholder="Ej. Héctor" style="max-width:320px"></div>
+    <div class="hello"><span id="helloTxt"></span><button type="button" class="linkbtn" id="btnEditMe">Cambiar mis datos</button></div>
     <div class="grid2">
       <div class="field"><label for="topic">Tema que te dio el profesor</label><input type="text" id="topic"></div>
       <div class="field"><label for="level">Tu nivel</label>
@@ -235,6 +259,18 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
       <div class="chips" id="asChips"></div>
       <p class="small muted">Las palabras se marcan en verde cuando ya las usaste en tu historia.</p>
     </div>
+    <div class="field">
+      <span class="pick-label">¿Con qué historia vas a practicar hoy?</span>
+      <div class="seg" role="tablist" aria-label="Con qué historia vas a practicar">
+        <button role="tab" id="srcOwn" aria-selected="true" data-src="own">Escribo mi historia</button>
+        <button role="tab" id="srcAi" aria-selected="false" data-src="ai">La IA me da una historia</button>
+      </div>
+    </div>
+    <div id="aiWrap" class="field" hidden>
+      <p class="muted">La IA escribe una historia corta de tu nivel sobre el tema, usando lo que te pidió tu profesor. La estudias con las mismas fases: la escuchas, la lees en voz alta, respondes retos y la vuelves a contar. Sirve para cambiar la rutina de vez en cuando.</p>
+      <div class="row"><button class="btn" id="btnAiStory">Crear mi historia</button><span class="status" id="stAi" role="status"></span></div>
+    </div>
+    <div id="ownWrap" class="field">
     <div class="field">
       <span class="pick-label">¿Cómo quieres enviar tu historia?</span>
       <div class="seg" role="tablist" aria-label="Cómo quieres enviar tu historia">
@@ -271,8 +307,10 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
         <textarea id="clTrans" spellcheck="false"></textarea>
       </div>
       <p class="note warn" id="clNote" hidden></p>
+      <p class="small" id="clHow" hidden><strong>Cómo contestar:</strong> en cada frase, si mi propuesta es lo que quisiste decir, presiona el botón. Si no, escribe en español lo que quisiste decir.</p>
       <ol class="qs" id="clQs"></ol>
       <div class="row"><button class="btn" id="btnClDone">Listo, corrige mi historia</button><span class="status" id="stC" role="status"></span></div>
+    </div>
     </div>
   </section>
 
@@ -280,12 +318,12 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
   <section class="panel" data-step="1" hidden>
     <div class="panel-head">
       <span class="eyebrow">Fase 1 · Tu corrección</span>
-      <h2>Lo que escribiste y cómo queda corregido</h2>
+      <h2 id="corrTitle">Lo que escribiste y cómo queda corregido</h2>
       <p class="muted" id="fbLine"></p>
     </div>
     <div class="note" id="strengths"></div>
-    <div class="grid2">
-      <div class="field">
+    <div class="grid2" id="corrGrid">
+      <div class="field" id="origCol">
         <div class="notebook hand" id="origBox"><span class="lbl">Lo que leí en tu cuaderno</span><span id="origText"></span></div>
         <details>
           <summary>¿Leí mal alguna palabra? Corrígela</summary>
@@ -295,17 +333,17 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
           </div>
         </details>
       </div>
-      <div class="notebook" id="corrBox"><span class="lbl">Texto corregido</span><span id="corrText"></span></div>
+      <div class="notebook" id="corrBox"><span class="lbl" id="corrLbl">Texto corregido</span><span id="corrText"></span></div>
     </div>
     <div class="field" id="asgRes" hidden>
       <h3>Lo que te pidió tu profesor</h3>
       <div class="errors" id="asgList"></div>
     </div>
     <div class="field">
-      <h3>Errores clave <span class="muted small" id="wc"></span></h3>
+      <h3><span id="errTitle">Errores clave</span> <span class="muted small" id="wc"></span></h3>
       <div class="errors" id="errList"></div>
     </div>
-    <p class="note warn small">Ahora copia el texto corregido en tu cuaderno, otra vez a mano. Así fijas las correcciones.</p>
+    <p class="note warn small" id="copyNote">Ahora copia el texto corregido en tu cuaderno, otra vez a mano. Así fijas las correcciones.</p>
     <div class="row"><button class="btn" data-go="1">Siguiente fase: Escucha y repite</button></div>
   </section>
 
@@ -371,18 +409,18 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
     <hr style="border:0;border-top:1px solid var(--rule);width:100%;margin:6px 0">
     <div class="panel-head">
       <h2>Escucha y responde</h2>
-      <p class="muted">5 ejercicios cortos sobre tu historia. Escucha cada uno sin leerlo y responde por escrito en inglés.</p>
+      <p class="muted">5 retos cortos sobre tu historia: elige la respuesta correcta, escribe lo que escuchas o contesta la pregunta. Escucha cada uno sin leerlo.</p>
     </div>
-    <div class="row"><button class="btn" id="btnQa">Crear ejercicios</button><span class="status" id="stQa" role="status"></span></div>
+    <div class="row"><button class="btn" id="btnQa">Crear retos</button><span class="status" id="stQa" role="status"></span></div>
     <ol class="qa" id="qaList"></ol>
     <div class="row" id="qaCheckRow" hidden><button class="btn" id="btnQaCheck">Revisar respuestas</button><span class="status" id="stQa2" role="status"></span></div>
     <div id="qaRes" hidden class="field"><div class="lvl" id="qaLv"></div><p class="muted" id="qaSum"></p></div>
     <hr style="border:0;border-top:1px solid var(--rule);width:100%;margin:6px 0">
     <div class="panel-head">
-      <h2>Ahora cuéntala con tus palabras</h2>
-      <p class="muted">Sin mirar, explica tu historia como se la contarías a un amigo. No tiene que ser igual; lo importante es que digas las ideas principales.</p>
+      <h2>Vuelve a contar tu historia</h2>
+      <p class="muted">Escríbela otra vez con tus palabras, sin mirar, y te la reviso rápido. No tiene que ser igual: lo importante es que digas las ideas principales.</p>
     </div>
-    <div class="field"><label for="retell">Tu versión</label><textarea id="retell"></textarea></div>
+    <div class="field"><label for="retell">Tu historia, con tus palabras</label><textarea id="retell"></textarea></div>
     <div class="row"><button class="btn" id="btnRetell">Revisar mi versión</button><span class="status" id="st5" role="status"></span></div>
     <div id="retellRes" hidden class="field">
       <div class="lvl" id="covLv"></div>
@@ -508,6 +546,8 @@ function blank(topic, level){
     word_count:0, teacher_questions:[], useful_phrases:[], step:0 });
 }
 function normalize(s){
+  s.source = s.source === "ai" ? "ai" : "own";
+  s.glossary = Array.isArray(s.glossary) ? s.glossary : [];
   s.assignment = s.assignment || null;
   s.assignment_check = Array.isArray(s.assignment_check) ? s.assignment_check : [];
   s.errChecked = Array.isArray(s.errChecked) ? s.errChecked : [];
@@ -538,6 +578,22 @@ function asgBlock(a){
   if (a.needQuestion) parts.push("include at least one question");
   return parts.length ? "\n\nThe teacher asked the student to: " + parts.join("; ") + "." : "";
 }
+function aiStoryPrompt({ topic, level, asg, name }){
+  const [a, b] = LEVELS[level] || [100, 150];
+  return `You are the writing corrector of Wrealispec. This time, instead of correcting, you write a short original story for the student to study.
+Student name: ${name || "(unknown)"}. Student level (CEFR): ${level}. Topic: "${topic}".${asgBlock(asg)}
+
+Rules:
+1. story: an original, natural English story of ${a} to ${b} words about the topic, in first person, as if the student wrote it, at level ${level}.${asg ? " Use every requirement the teacher asked for." : ""} Write times like "6:30 am" (without periods).
+2. title: a short title in English.
+3. glossary: 5 to 8 useful words or phrases from the story with their meaning in Spanish ("en", "es").
+4. intro_es: 1 warm sentence in Spanish presenting the story to the student. Never use numbers or grades.
+5. teacher_questions: 3 simple follow-up questions in English a teacher can ask about this story.
+6. useful_phrases: 4 short English sentences to explain the story, each with "en" and "es".
+
+Reply with only JSON in this shape:
+{"title":"","story":"","glossary":[{"en":"","es":""}],"intro_es":"","teacher_questions":["","",""],"useful_phrases":[{"en":"","es":""}]}`;
+}
 function clarBlock(clar){
   if (!clar || !clar.length) return "";
   return "\n\nBefore this correction, the student explained what they meant in some parts (they may answer in Spanish or Portuguese). Use these meanings when you correct, keep the student's words where possible, and explain each confusion in the errors list:\n" +
@@ -552,7 +608,7 @@ Tasks:
 1. transcription: ${text ? "copy the text above exactly." : "copy exactly what the student wrote, including every mistake. Do NOT correct anything here. If a word is unreadable, write [?]."}
 2. not_english: true only if the text is mostly not in English or is not a real attempt (random letters, almost empty).
 3. off_topic: true only if the text clearly does not talk about the topic.
-4. questions: sentences whose MEANING is unclear, not simple grammar mistakes. For example a word that looks confused with a similar word (sky / skill), a sentence that can mean two different things, or an idea that does not make sense. Maximum 3, only when really needed; use an empty list if everything is understandable. For each one: "quote" (the exact words from the transcription), "guess_en" (your best guess of what they meant, written as a correct English sentence, or "" if you cannot guess), "question_es" (a short, friendly question in Spanish, for example: "¿Quisiste decir «my skills» (mis habilidades)? «The sky» significa «el cielo»." or "¿Exactamente qué quisiste decir aquí?").
+4. questions: sentences whose MEANING is unclear, not simple grammar mistakes. For example a word that looks confused with a similar word (sky / skill), a sentence that can mean two different things, or an idea that does not make sense. Ask about every sentence that really needs it (usually 0 to 5, never more than 10); use an empty list if everything is understandable. For each one: "quote" (the exact words from the transcription), "guess_en" (your best guess of what they meant, written as a correct English sentence, or "" if you cannot guess), "question_es" (a short, friendly question in Spanish, for example: "¿Quisiste decir «my skills» (mis habilidades)? «The sky» significa «el cielo»." or "¿Exactamente qué quisiste decir aquí?").
 5. greeting_es: 1 or 2 warm sentences in Spanish. Greet the student by name if you know it, say something specific and positive about their idea, and if there are questions, say you want to ask a few things before giving your feedback. Never use numbers or grades.
 6. note_es: if not_english or off_topic is true, one kind sentence in Spanish explaining it; otherwise "".
 
@@ -566,7 +622,7 @@ ${text ? `Here is the student's text, already transcribed and confirmed by the s
 
 Rules:
 1. transcription: ${text ? "copy the text above exactly." : "copy exactly what the student wrote, including every mistake. Do NOT correct anything here. If a word is unreadable, write [?]."}
-2. corrected: rewrite the text so it is correct, natural English. Keep the student's ideas, order and voice. Change only what is needed. Do not add new ideas. Use vocabulary at most one level above ${level}.
+2. corrected: rewrite the text so it is correct, natural English. Keep the student's ideas, order and voice. Change only what is needed. Do not add new ideas. Use vocabulary at most one level above ${level}. Write times like "6:30 am" (without periods).
 3. errors: the most important mistakes (maximum 8). Prioritize repeated mistakes and mistakes that change the meaning. For each one: "original" (exact words from the transcription), "correction", "type" (grammar | vocabulary | spelling | word_order | punctuation), "rule_es" (short explanation in simple Spanish, maximum 20 words).
 4. strengths_es: 2 specific things the student did well, in Spanish.
 5. feedback_es: 2 sentences in Spanish, in a warm, encouraging tone like a friendly teacher. First what was good, then the one thing to focus on before the next class. Never use numbers or grades.
@@ -613,15 +669,15 @@ function qaPrompt(level, story){
 """
 ${story}
 """
-The student will HEAR each exercise read aloud (not read it) and answer in writing in English. Use exactly this order of types so the rhythm changes:
-1. "comprehension": a simple question about a fact in the story.
-2. "true_false": a statement about the story; the student writes true or false, and if false, the correct version.
-3. "why_how": a why or how question about the story.
-4. "complete": a sentence from the story with one short part replaced by the word "blank"; the student writes the complete sentence.
+The student HEARS each prompt read aloud. Use exactly this order so the rhythm changes:
+1. "multiple_choice": a question about a fact in the story with 3 short options; "answer" is a list with the index (0 to 2) of the correct option.
+2. "dictation": one sentence copied exactly from the story (8 to 14 words) in "prompt"; the student writes exactly what they hear. No options.
+3. "multi_select": a question with 4 short options where exactly 2 are correct; "answer" lists the indexes of the correct options.
+4. "open": a why or how question about the story; the student answers with a short sentence.
 5. "opinion": a personal question connected to the story's topic.
-Each prompt under 20 words, at level ${level}. Reply with only JSON:
-{"items":[{"type":"","prompt":"","label_es":""}]}
-label_es: a short instruction in Spanish, for example "Responde la pregunta" or "Escribe true o false".`;
+Each prompt under 20 words, at level ${level}. Options in English. Never call it a test or exam. Reply with only JSON:
+{"items":[{"type":"","prompt":"","label_es":"","options":[],"answer":[]}]}
+label_es: a short instruction in Spanish, for example "Elige la respuesta correcta", "Escribe exactamente lo que escuchas", "Elige todas las correctas", "Responde la pregunta".`;
 }
 function qaEvalPrompt(level, story, items, answers){
   const pairs = items.map((it, i) => `${i+1}. [${it.type}] ${it.prompt}\nStudent answer: ${answers[i] || "(no answer)"}`).join("\n\n");
@@ -689,8 +745,21 @@ function setInput(m){
 }
 document.querySelectorAll("[data-in]").forEach(b => b.addEventListener("click", () => setInput(b.dataset.in)));
 setInput(inputMode);
-$("sname").value = store.name || "";
-$("sname").addEventListener("input", () => { store.name = $("sname").value.trim(); save(); });
+/* ---------- Bienvenida: nombre y nivel al entrar ---------- */
+function renderHello(){ $("helloTxt").textContent = store.name ? `Hola, ${store.name}.` : "Hola."; }
+function openWelcome(){
+  $("wName").value = store.name || ""; $("wLevel").value = S.level || "A2"; $("wSt").textContent = "";
+  $("welcome").hidden = false; setTimeout(() => $("wName").focus(), 50);
+}
+$("wGo").onclick = () => {
+  const n = $("wName").value.trim();
+  if (!n) return fail($("wSt"), "Escribe tu nombre para continuar.");
+  store.name = n; S.level = $("wLevel").value; $("level").value = S.level; save();
+  $("welcome").hidden = true; renderHello(); renderGoal();
+};
+$("wName").addEventListener("keydown", (e) => { if (e.key === "Enter") $("wGo").click(); });
+$("btnEditMe").onclick = openWelcome;
+renderHello();
 sampleP.then(async (s) => {
   if (!s) { $("imgNote").textContent = "Demostración: la corrección con IA se activa en la siguiente versión."; return; }
   try { const lim = await s.limits(); canImages = !!lim.images; } catch(e){ canImages = false; }
@@ -803,7 +872,7 @@ async function startAnalysis(){
     const r = await sample.json(clarifyPrompt({ topic: S.topic, level: S.level, name: store.name || "", text: useImage ? "" : text }), useImage ? { images:[photoFile] } : {});
     const transcription = String((r && r.transcription) || text || "").trim();
     if (!transcription) throw { code:"invalid_json" };
-    const qs = Array.isArray(r.questions) ? r.questions.filter(q => q && q.quote && q.question_es).slice(0, 3) : [];
+    const qs = Array.isArray(r.questions) ? r.questions.filter(q => q && q.quote && q.question_es).slice(0, 10) : [];
     pending = { transcription, fromPhoto: !!useImage, questions: qs, answers: qs.map(() => "") };
     busy(st, "");
     if (!r.not_english && !r.off_topic && !qs.length && !useImage){ btn.disabled = false; return runCorrection(transcription, st, btn, []); }
@@ -816,13 +885,13 @@ function renderClarify(r){
   $("clGreet").textContent = r.greeting_es || (name + (pending.questions.length ? "Antes de darte mi retroalimentación, quiero hacerte unas preguntas para entender bien lo que quisiste decir." : "Ya leí tu historia."));
   $("clTransWrap").hidden = !pending.fromPhoto; $("clTrans").value = pending.transcription;
   const note = $("clNote"); note.hidden = !(r.not_english || r.off_topic); note.textContent = r.note_es || (r.not_english ? "Tu texto debe estar en inglés. Escríbelo en inglés, como te salga, y vuelve a intentarlo." : "Tu historia no parece hablar del tema que te dio tu profesor.");
-  const list = $("clQs"); list.innerHTML = "";
+  const list = $("clQs"); list.innerHTML = ""; $("clHow").hidden = !pending.questions.length;
   pending.questions.forEach((q, i) => {
     const li = document.createElement("li"); const box = document.createElement("div"); box.className = "cl-q";
     const quote = document.createElement("p"); quote.className = "cl-quote"; quote.textContent = `“${q.quote}”`;
     const ask = document.createElement("p"); ask.textContent = q.question_es;
     const row = document.createElement("div"); row.className = "row";
-    const input = document.createElement("input"); input.type = "text"; input.id = `clA${i}`; input.placeholder = "O escribe lo que quisiste decir (en inglés o en español)"; input.setAttribute("aria-label", `Respuesta a la pregunta ${i+1}`);
+    const input = document.createElement("input"); input.type = "text"; input.id = `clA${i}`; input.placeholder = "¿Qué quisiste decir? Escríbelo en español"; input.setAttribute("aria-label", `Respuesta a la pregunta ${i+1}`);
     let yes = null;
     if (q.guess_en){
       yes = document.createElement("button"); yes.type = "button"; yes.className = "btn quiet cl-yes"; yes.setAttribute("aria-pressed","false");
@@ -846,6 +915,36 @@ $("btnClDone").onclick = () => {
   runCorrection(text, $("stC"), $("btnClDone"), clar);
 };
 $("btnCorrect").onclick = () => startAnalysis();
+/* ---------- Historia propia o historia de la IA ---------- */
+let srcMode = "own";
+try { srcMode = localStorage.getItem("wrealispec.src") === "ai" ? "ai" : "own"; } catch(e){}
+function setSrc(m){
+  srcMode = m; try { localStorage.setItem("wrealispec.src", m); } catch(e){}
+  document.querySelectorAll("[data-src]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.src === m)));
+  $("ownWrap").hidden = m !== "own"; $("aiWrap").hidden = m !== "ai";
+}
+document.querySelectorAll("[data-src]").forEach(b => b.addEventListener("click", () => setSrc(b.dataset.src)));
+setSrc(srcMode);
+$("btnAiStory").onclick = async () => {
+  const st = $("stAi"), btn = $("btnAiStory"); const sample = await sampleP;
+  if (!sample) return fail(st, "La IA todavía no está conectada en esta versión en línea. Llega en la siguiente versión.");
+  btn.disabled = true; busy(st, "Escribiendo una historia para ti…");
+  try {
+    const r = await sample.json(aiStoryPrompt({ topic: S.topic, level: S.level, asg: S.assignment, name: store.name || "" }), { cache:false });
+    if (!r || typeof r.story !== "string" || !r.story.trim()) throw { code:"invalid_json" };
+    const fresh = blank(S.topic, S.level);
+    Object.assign(S, fresh, {
+      id: S.example ? fresh.id : S.id, source: "ai", title: String(r.title || ""),
+      transcription: "", corrected: r.story.trim(), errors: [], strengths_es: [],
+      glossary: Array.isArray(r.glossary) ? r.glossary.filter(g => g && g.en) : [],
+      feedback_es: String(r.intro_es || ""), word_count: countWords(r.story),
+      teacher_questions: Array.isArray(r.teacher_questions) ? r.teacher_questions : [],
+      useful_phrases: Array.isArray(r.useful_phrases) ? r.useful_phrases : [],
+      assignment: S.assignment || null, assignment_check: [],
+    });
+    S.example = false; busy(st, ""); save(); renderAll(); go(0, 1);
+  } catch(e){ fail(st, errMsg(e)); } finally { btn.disabled = false; }
+};
 $("btnRecorrect").onclick = () => { const t = $("fixTrans").value.trim(); if (t) runCorrection(t, $("st2"), $("btnRecorrect")); };
 
 /* ---------- Step 2 ---------- */
@@ -897,6 +996,18 @@ function errCount(){
   $("wc").textContent = `· ${k} de ${n} revisados · ${S.word_count} palabras (meta ${S.level}: ${a}–${b})`;
 }
 function renderCorrect(){
+  const ai = S.source === "ai";
+  $("corrTitle").textContent = ai ? (S.title || "Tu historia de hoy") : "Lo que escribiste y cómo queda corregido";
+  $("origCol").hidden = ai; $("corrGrid").classList.toggle("one", ai);
+  $("corrLbl").textContent = ai ? "Historia de la IA" : "Texto corregido";
+  $("errTitle").textContent = ai ? "Palabras útiles" : "Errores clave";
+  $("errList").classList.toggle("gloss", ai);
+  $("copyNote").textContent = ai ? "Ahora copia la historia en tu cuaderno, a mano. Así la empiezas a hacer tuya." : "Ahora copia el texto corregido en tu cuaderno, otra vez a mano. Así fijas las correcciones.";
+  if (ai){
+    $("fbLine").textContent = S.feedback_es; $("strengths").hidden = true; $("corrText").textContent = S.corrected;
+    renderErrors($("errList"), (S.glossary || []).map(g => ({ original: g.en, correction: g.es, type: "", rule_es: "" })));
+    $("wc").textContent = `· ${S.word_count} palabras`; renderAsgRes(); return;
+  }
   $("fbLine").textContent = S.feedback_es;
   const st = $("strengths"); st.innerHTML = "<strong>Lo que hiciste bien</strong>";
   const ul = document.createElement("ul"); ul.className = "clean";
@@ -909,7 +1020,20 @@ function renderCorrect(){
 /* ---------- Speech ---------- */
 const synth = window.speechSynthesis;
 let voices = [];
-function splitSentences(t){ return (String(t).match(/[^.!?]+[.!?]+["')\]]*|[^.!?]+$/g) || []).map(s => s.trim()).filter(Boolean); }
+// Lista de arreglos de lectura: cada error que encontremos en la voz se agrega aquí.
+const SPEAK_FIXES = [
+  [/\ba\.\s?m\./gi, "AM"], [/\bp\.\s?m\./gi, "PM"],
+  [/\be\.g\./gi, "for example"], [/\bi\.e\./gi, "that is"], [/\betc\./gi, "etcetera"],
+  [/\bMr\./g, "Mister"], [/\bMrs\./g, "Missus"], [/\bMs\./g, "Miz"], [/\bDr\./g, "Doctor"],
+];
+function speakFix(t){ return SPEAK_FIXES.reduce((s, [re, to]) => s.replace(re, to), String(t)); }
+const ABBR = /\b(a\.\s?m\.|p\.\s?m\.|e\.g\.|i\.e\.|etc\.|Mr\.|Mrs\.|Ms\.|Dr\.|St\.|vs\.)/gi;
+function splitSentences(t){
+  const P = "\u2063";
+  // Si después de la abreviatura empieza otra oración (mayúscula), su último punto sí cierra la oración.
+  const prot = String(t).replace(ABBR, (m, _g, off, str) => /^\s+[A-Z]/.test(str.slice(off + m.length)) ? m.slice(0, -1).replace(/\./g, P) + "." : m.replace(/\./g, P));
+  return (prot.match(/[^.!?]+[.!?]+["')\]]*|[^.!?]+$/g) || []).map(s => s.split(P).join(".").trim()).filter(Boolean);
+}
 function loadVoices(){
   if (!synth) return;
   voices = synth.getVoices().filter(v => /^en(-|_|$)/i.test(v.lang));
@@ -930,7 +1054,7 @@ function stopSpeech(){ runId++; try { synth && synth.cancel(); } catch(e){} docu
 function speak(text, rate){
   return new Promise((res) => {
     if (!synth) return res();
-    const u = new SpeechSynthesisUtterance(text); const v = voices[Number($("voice").value)];
+    const u = new SpeechSynthesisUtterance(speakFix(text)); const v = voices[Number($("voice").value)];
     if (v){ u.voice = v; u.lang = v.lang; } else u.lang = "en-US";
     u.rate = rate || rateVal(); u.onend = res; u.onerror = res; synth.speak(u);
   });
@@ -1066,6 +1190,24 @@ $("btnSendMsg").onclick = () => copy(bestReading() >= PASS
   ? `Hola profe, le mando la grabación de mi historia "${S.topic}" para que escuche mi avance. ¡Gracias!`
   : `Hola profe, le mando la grabación de mi historia "${S.topic}". Lo intenté 3 veces y todavía me cuesta trabajo. ¿Me puede escuchar y darme su visto bueno? ¡Gracias!`, $("st4b"));
 
+function gradeLocal(it, ans){
+  const opts = Array.isArray(it.options) ? it.options : [], key = (Array.isArray(it.answer) ? it.answer : []).map(Number);
+  if (it.type === "multiple_choice" && opts.length){
+    const ok = ans !== undefined && ans !== null && ans !== "" && Number(ans) === key[0];
+    return { ok, better_en: opts[key[0]] || "", feedback_es: ok ? "¡Bien escuchado!" : "Escúchala otra vez y compara con la respuesta correcta." };
+  }
+  if (it.type === "multi_select" && opts.length){
+    const a = (Array.isArray(ans) ? ans : []).map(Number).sort().join(","), c = [...key].sort().join(",");
+    const ok = a === c;
+    return { ok, better_en: key.map(i => opts[i]).filter(Boolean).join(" · "), feedback_es: ok ? "¡Las encontraste todas!" : "Revisa cuáles eran las correctas." };
+  }
+  if (it.type === "dictation"){
+    const ops = diffWords(String(it.prompt).split(/\s+/).filter(Boolean), String(ans || "").split(/\s+/).filter(Boolean));
+    const okN = ops.filter(o => o[0] === "ok").length, tot = ops.filter(o => o[0] !== "extra").length || 1, pct = Math.round(okN / tot * 100);
+    return { ok: pct >= 85, better_en: it.prompt, feedback_es: pct >= 85 ? "¡Muy bien escuchado!" : pct >= 60 ? "Ya casi. Compara con la oración correcta." : "Escúchala otra vez, despacio, y compara con la oración correcta." };
+  }
+  return null;
+}
 function renderQa(){
   const list = $("qaList"); list.innerHTML = "";
   const res = S.qa.res && Array.isArray(S.qa.res.results) ? S.qa.res.results : [];
@@ -1074,25 +1216,50 @@ function renderQa(){
     const head = document.createElement("div"); head.className = "qh";
     const lab = document.createElement("span"); lab.className = "lab"; lab.textContent = it.label_es || "Responde";
     const play = document.createElement("button"); play.className = "btn quiet"; play.textContent = "▶ Escuchar";
-    play.onclick = () => { stopSpeech(); speak(it.prompt, Math.max(0.6, rateVal() - 0.05)); };
-    const show = document.createElement("button"); show.className = "btn quiet"; show.textContent = "Ver texto";
+    play.onclick = () => { stopSpeech(); speak(it.prompt, Math.max(0.6, rateVal() - (it.type === "dictation" ? 0.15 : 0.05))); };
+    head.append(lab, play);
     const ptxt = document.createElement("p"); ptxt.className = "ptxt"; ptxt.textContent = it.prompt; ptxt.hidden = true;
-    show.onclick = () => { ptxt.hidden = !ptxt.hidden; show.textContent = ptxt.hidden ? "Ver texto" : "Ocultar texto"; };
-    head.append(lab, play, show);
-    const ta = document.createElement("textarea"); ta.id = `qaA${i}`; ta.setAttribute("aria-label", `Respuesta ${i+1}`);
-    ta.value = S.qa.answers[i] || ""; ta.oninput = () => { S.qa.answers[i] = ta.value; save(); };
-    li.append(head, ptxt, ta);
+    if (it.type !== "dictation"){
+      const show = document.createElement("button"); show.className = "btn quiet"; show.textContent = "Ver texto";
+      show.onclick = () => { ptxt.hidden = !ptxt.hidden; show.textContent = ptxt.hidden ? "Ver texto" : "Ocultar texto"; };
+      head.append(show);
+    }
+    li.append(head, ptxt);
+    const opts = Array.isArray(it.options) ? it.options : [];
+    if ((it.type === "multiple_choice" || it.type === "multi_select") && opts.length){
+      const box = document.createElement("div"); box.className = "opts"; box.setAttribute("role", it.type === "multiple_choice" ? "radiogroup" : "group");
+      opts.forEach((o, k) => {
+        const l = document.createElement("label"); const inp = document.createElement("input");
+        inp.type = it.type === "multiple_choice" ? "radio" : "checkbox"; inp.name = `qaO${i}`; inp.id = `qaO${i}_${k}`;
+        const cur = S.qa.answers[i];
+        inp.checked = it.type === "multiple_choice" ? (cur !== undefined && cur !== null && cur !== "" && Number(cur) === k) : (Array.isArray(cur) && cur.map(Number).includes(k));
+        inp.onchange = () => {
+          if (it.type === "multiple_choice") S.qa.answers[i] = k;
+          else { const s = new Set((Array.isArray(S.qa.answers[i]) ? S.qa.answers[i] : []).map(Number)); inp.checked ? s.add(k) : s.delete(k); S.qa.answers[i] = [...s]; }
+          save();
+        };
+        const t = document.createElement("span"); t.textContent = o;
+        l.append(inp, t); box.append(l);
+      });
+      li.append(box);
+    } else {
+      const ta = document.createElement("textarea"); ta.id = `qaA${i}`; ta.setAttribute("aria-label", `Respuesta ${i+1}`);
+      if (it.type === "dictation"){ ta.spellcheck = false; ta.placeholder = "Escribe exactamente lo que escuchas…"; }
+      ta.value = typeof S.qa.answers[i] === "string" ? S.qa.answers[i] : ""; ta.oninput = () => { S.qa.answers[i] = ta.value; save(); };
+      li.append(ta);
+    }
     if (res[i]){
       const r = document.createElement("div"); r.className = "res" + (res[i].ok ? "" : " no");
       const v = document.createElement("strong"); v.textContent = res[i].ok ? "✓ ¡Bien! " : "↻ Casi. ";
       const fb = document.createElement("span"); fb.textContent = res[i].feedback_es || "";
-      const be = document.createElement("div"); be.className = "muted"; be.textContent = res[i].better_en ? `Modelo: ${res[i].better_en}` : "";
+      const be = document.createElement("div"); be.className = "muted";
+      be.textContent = res[i].better_en ? `${it.type === "dictation" ? "Oración" : it.type === "multiple_choice" || it.type === "multi_select" ? "Correcta" : "Modelo"}: ${res[i].better_en}` : "";
       r.append(v, fb, be); li.append(r);
     }
     list.append(li);
   });
   $("qaCheckRow").hidden = !S.qa.items.length;
-  $("btnQa").textContent = S.qa.items.length ? "Crear ejercicios nuevos" : "Crear ejercicios";
+  $("btnQa").textContent = S.qa.items.length ? "Crear retos nuevos" : "Crear retos";
   if (res.length){
     const ok = res.filter(r => r && r.ok).length;
     lvRender($("qaLv"), Math.round(ok / (S.qa.items.length || 1) * 100)); $("qaSum").textContent = S.qa.res.summary_es || "";
@@ -1102,7 +1269,7 @@ function renderQa(){
 $("btnQa").onclick = async () => {
   const st = $("stQa"); const sample = await sampleP;
   if (!sample) return fail(st, "Demostración: los ejercicios con IA se activan en la siguiente versión.");
-  $("btnQa").disabled = true; busy(st, "Preparando tus ejercicios…");
+  $("btnQa").disabled = true; busy(st, "Preparando tus retos…");
   try {
     const r = await sample.json(qaPrompt(S.level, S.corrected), { cache:false });
     const items = (r && Array.isArray(r.items) ? r.items : []).filter(x => x && x.prompt).slice(0,5);
@@ -1111,12 +1278,29 @@ $("btnQa").onclick = async () => {
   } catch(e){ fail(st, errMsg(e)); } finally { $("btnQa").disabled = false; }
 };
 $("btnQaCheck").onclick = async () => {
-  const st = $("stQa2"); const answers = S.qa.items.map((_, i) => ($(`qaA${i}`) || {}).value || "");
-  if (!answers.some(a => a.trim())) return fail(st, "Responde al menos un ejercicio.");
-  const sample = await sampleP; if (!sample) return fail(st, "Demostración: la revisión con IA se activa en la siguiente versión.");
-  $("btnQaCheck").disabled = true; busy(st, "Revisando tus respuestas…");
-  try { S.qa.answers = answers; S.qa.res = await sample.json(qaEvalPrompt(S.level, S.corrected, S.qa.items, answers), { cache:false }); save(); renderQa(); busy(st, ""); }
-  catch(e){ fail(st, errMsg(e)); } finally { $("btnQaCheck").disabled = false; }
+  const st = $("stQa2"); const items = S.qa.items; const answers = items.map((_, i) => S.qa.answers[i]);
+  const filled = (a) => Array.isArray(a) ? a.length > 0 : a !== undefined && a !== null && String(a).trim() !== "";
+  if (!answers.some(filled)) return fail(st, "Responde al menos un reto.");
+  const results = items.map((it, i) => gradeLocal(it, answers[i]));
+  const openIdx = items.map((_, i) => results[i] ? -1 : i).filter(i => i >= 0);
+  const toAsk = openIdx.filter(i => filled(answers[i]));
+  openIdx.filter(i => !filled(answers[i])).forEach(i => { results[i] = { ok:false, better_en:"", feedback_es:"No contestaste este reto." }; });
+  let summary = "";
+  $("btnQaCheck").disabled = true;
+  try {
+    if (toAsk.length){
+      const sample = await sampleP;
+      if (!sample){ toAsk.forEach(i => { results[i] = { ok:false, better_en:"", feedback_es:"Esta respuesta la revisa la IA, que todavía no está conectada en esta versión." }; }); }
+      else {
+        busy(st, "Revisando tus respuestas…");
+        const r = await sample.json(qaEvalPrompt(S.level, S.corrected, toAsk.map(i => items[i]), toAsk.map(i => answers[i])), { cache:false });
+        const rr = Array.isArray(r && r.results) ? r.results : [];
+        toAsk.forEach((i, k) => { results[i] = rr[k] || { ok:false, better_en:"", feedback_es:"" }; });
+        summary = (r && r.summary_es) || "";
+      }
+    }
+    S.qa.res = { results, summary_es: summary }; save(); renderQa(); busy(st, "");
+  } catch(e){ fail(st, errMsg(e)); } finally { $("btnQaCheck").disabled = false; }
 };
 $("retell").oninput = () => { S.retell.text = $("retell").value; save(); };
 function showRetell(r){
@@ -1264,6 +1448,7 @@ function renderAll(){
 }
 renderAll();
 go(S.corrected ? S.step : 0);
+if (!store.name) openWelcome();
 })();
 </script>
 
