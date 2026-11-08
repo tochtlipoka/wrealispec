@@ -647,7 +647,7 @@ Reply with only JSON in this shape:
 }
 function clarBlock(clar){
   if (!clar || !clar.length) return "";
-  return "\n\nBefore this correction, the student explained what they meant in some parts (they may answer in Spanish or Portuguese). Use these meanings when you correct, keep the student's words where possible, and explain each confusion in the errors list:\n" +
+  return "\n\nBefore this correction, the student explained what they meant in some parts (they may answer in Spanish or Portuguese). Use these meanings when you correct and keep the student's words where possible. Never replace the student's idea with a different or more generic one. If the student explains an idea with a metaphor or a personal expression (for example \"que mi inglés llegue hasta el cielo\"), keep that meaning and use the closest NATURAL English expression a native speaker would say (for example \"take my English to the next level\" or \"the sky's the limit\"), not a literal translation. In the errors list, explain each confusion and, for metaphors, say in Spanish how that idea is naturally expressed in English:\n" +
     clar.map((c, i) => `${i+1}. "${c.quote}" → the student meant: ${c.meaning}`).join("\n");
 }
 function clarifyPrompt({ topic, level, text, name }){
