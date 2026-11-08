@@ -749,7 +749,7 @@ $("promptView").textContent = correctionPrompt({ topic:"{tema}", level:"{nivel}"
 
 /* ---------- Claude (sample capability) ---------- */
 /* ---------- IA en línea: servidor intermedio (Cloudflare Worker) con la API de Claude ---------- */
-const AI_URL = ""; // Dirección del Worker, p. ej. https://wrealispec-ai.TU-USUARIO.workers.dev — vacío = modo demostración
+const AI_URL = "https://wrealispec-ai.hcpopoca.workers.dev/"; // Dirección del Worker, p. ej. https://wrealispec-ai.TU-USUARIO.workers.dev — vacío = modo demostración
 async function toImagePayload(file){
   // Reduce la foto (máx. 1600 px) para que suba rápido y cueste menos.
   let blob = file;

@@ -6,6 +6,9 @@ const ALLOWED_ORIGINS = [
   "https://wrealispec.com",
   "https://www.wrealispec.com",
   "https://tochtlipoka.github.io",
+  // Mientras se activa HTTPS en GitHub Pages:
+  "http://wrealispec.com",
+  "http://www.wrealispec.com",
 ];
 
 // Solo se aceptan las instrucciones fijas de Wrealispec (corrección, lectura, ejercicios, retell).

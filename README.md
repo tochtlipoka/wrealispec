@@ -13,4 +13,4 @@ Prototipo del método Wrealispec en 4 fases:
 
 Página en línea: https://wrealispec.com (antesala en ES · PT · EN) · Demo: https://wrealispec.com/app/
 
-Versión de demostración: las funciones con IA se activan en la siguiente versión.
+La IA (Claude Haiku 5.5) funciona a través del Worker de Cloudflare en `worker/`.
