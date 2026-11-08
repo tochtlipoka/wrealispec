@@ -174,6 +174,15 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
 .lvl.l3 .lv-seg.on, .lvl.l4 .lv-seg.on{background:var(--ok)} .lvl.l3 .lv-label, .lvl.l4 .lv-label{color:var(--ok)}
 .tries{font-weight:700}
 .pick-label{font-weight:700;font-size:.9rem}
+.modal-card{max-height:calc(100vh - 32px);overflow-y:auto}
+.err-big{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;font-size:1.3rem;line-height:1.35}
+.err-big .o{text-decoration:line-through;text-decoration-color:var(--margin);color:var(--ink-soft)}
+.err-big .arrow{color:var(--ink-soft)}
+.err-big .c{color:var(--ok);font-weight:700}
+#fbmErr .ty{font-family:var(--f-mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--margin)}
+.dots{display:flex;gap:6px;flex-wrap:wrap}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--chip)}
+.dot.on{background:var(--accent)}
 .chg{color:var(--ok);font-weight:700;text-decoration:underline;text-decoration-color:var(--ok);text-decoration-thickness:2px;text-underline-offset:4px}
 .chat{display:flex;flex-direction:column;gap:10px;max-height:480px;overflow-y:auto;padding:2px}
 .bubble{max-width:85%;padding:10px 14px;border-radius:14px;line-height:1.45;overflow-wrap:anywhere}
@@ -249,11 +258,18 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
 
   <div class="modal" id="fbModal" hidden role="dialog" aria-modal="true" aria-labelledby="fbmTitle">
     <div class="modal-card" style="max-width:540px">
-      <span class="eyebrow">Antes de ver tu corrección</span>
+      <span class="eyebrow" id="fbmEyebrow">Antes de ver tu corrección</span>
       <h2 id="fbmTitle">Esto es lo que vi en tu historia</h2>
-      <p id="fbmText" style="font-size:1.05rem"></p>
-      <div class="note" id="fbmWell"><strong>Lo que hiciste bien</strong><ul class="clean" id="fbmList"></ul></div>
-      <div class="row"><button class="btn" id="fbmGo">Ver mi corrección</button></div>
+      <div id="fbmIntro" class="field">
+        <p id="fbmText" style="font-size:1.05rem"></p>
+        <div class="note" id="fbmWell"><strong>Lo que hiciste bien</strong><ul class="clean" id="fbmList"></ul></div>
+      </div>
+      <div id="fbmErr" class="field" hidden>
+        <div class="err-big"><span class="o" id="feO"></span><span class="arrow" aria-hidden="true">→</span><span class="c" id="feC"></span></div>
+        <p><span class="ty" id="feT"></span> <span id="feR"></span></p>
+        <div class="dots" id="feDots" aria-hidden="true"></div>
+      </div>
+      <div class="row"><button class="btn" id="fbmGo">Ver mi corrección</button><button type="button" class="linkbtn" id="fbmSkip" hidden>Ir directo a mi corrección</button></div>
     </div>
   </div>
 
@@ -320,7 +336,9 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
       <button class="btn" id="btnCorrect">Corregir mi historia</button>
       <span class="status" id="st1" role="status"></span>
     </div>
-    <div id="clarify" class="clarify" hidden>
+    <div class="modal" id="clarify" hidden role="dialog" aria-modal="true" aria-labelledby="clGreet">
+      <div class="modal-card" style="max-width:660px">
+      <span class="eyebrow">Antes de corregir</span>
       <p class="cl-greet" id="clGreet"></p>
       <div id="clTransWrap" class="field" hidden>
         <label for="clTrans">Esto es lo que leí en tu cuaderno. Si leí mal alguna palabra, corrígela aquí.</label>
@@ -329,7 +347,8 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
       <p class="note warn" id="clNote" hidden></p>
       <p class="small" id="clHow" hidden><strong>Cómo contestar:</strong> en cada frase, si mi propuesta es lo que quisiste decir, presiona el botón. Si no, escribe en español lo que quisiste decir.</p>
       <ol class="qs" id="clQs"></ol>
-      <div class="row"><button class="btn" id="btnClDone">Listo, corrige mi historia</button><span class="status" id="stC" role="status"></span></div>
+      <div class="row"><button class="btn" id="btnClDone">Listo, corrige mi historia</button><button type="button" class="btn quiet" id="btnClBack">Volver a mi texto</button><span class="status" id="stC" role="status"></span></div>
+      </div>
     </div>
     </div>
   </section>
@@ -547,7 +566,7 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.5 · actualizado el 8 nov 2026, 13:40 · prototipo para pruebas</footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.6 · actualizado el 8 nov 2026, 13:55 · prototipo para pruebas</footer>
 </div>
 
 <script>
@@ -986,8 +1005,10 @@ function renderClarify(r){
   $("btnClDone").hidden = !!r.not_english;
   $("btnClDone").textContent = r.off_topic ? "Corregir de todos modos" : pending.questions.length ? "Listo, corrige mi historia" : "Sí, está bien. Corrige mi historia";
   $("clarify").hidden = false;
-  $("clarify").scrollIntoView({ behavior: "smooth", block: "start" });
+  setTimeout(() => { const f = $("clarify").querySelector("button, input, textarea"); if (f) f.focus(); }, 50);
 }
+$("btnClBack").onclick = () => { $("clarify").hidden = true; $("typed").focus(); };
+$("clarify").addEventListener("keydown", (e) => { if (e.key === "Escape") $("btnClBack").click(); });
 $("btnClDone").onclick = () => {
   if (!pending) return;
   const text = pending.fromPhoto ? $("clTrans").value.trim() : pending.transcription;
@@ -1094,21 +1115,47 @@ function renderCorrDiff(){
     else host.append(document.createTextNode(w + " "));
   });
 }
-/* ---------- Ventana de retroalimentación: se lee antes de ver la corrección ---------- */
+/* ---------- Ventana de retroalimentación: comentario + errores clave, uno por pantalla ---------- */
+let fbStep = -1;
 function showFeedbackModal(){
-  if (!S.feedback_es && !(S.strengths_es || []).length) return;
-  $("fbmTitle").textContent = store.name ? `${store.name}, esto es lo que vi en tu historia` : "Esto es lo que vi en tu historia";
-  $("fbmText").textContent = S.feedback_es || "";
-  const ul = $("fbmList"); ul.innerHTML = "";
-  (S.strengths_es || []).forEach(t => { const li = document.createElement("li"); li.textContent = t; ul.append(li); });
-  $("fbmWell").hidden = !(S.strengths_es || []).length;
+  if (!S.feedback_es && !(S.strengths_es || []).length && !(S.errors || []).length) return;
+  fbStep = -1; renderFbStep();
   $("fbModal").hidden = false; setTimeout(() => $("fbmGo").focus(), 50);
 }
+function renderFbStep(){
+  const errs = S.errors || [], n = errs.length;
+  $("fbmIntro").hidden = fbStep >= 0; $("fbmErr").hidden = fbStep < 0;
+  if (fbStep < 0){
+    $("fbmEyebrow").textContent = "Antes de ver tu corrección";
+    $("fbmTitle").textContent = store.name ? `${store.name}, esto es lo que vi en tu historia` : "Esto es lo que vi en tu historia";
+    $("fbmText").textContent = S.feedback_es || "";
+    const ul = $("fbmList"); ul.innerHTML = "";
+    (S.strengths_es || []).forEach(t => { const li = document.createElement("li"); li.textContent = t; ul.append(li); });
+    $("fbmWell").hidden = !(S.strengths_es || []).length;
+    $("fbmGo").textContent = n ? `Ver mis errores clave (${n})` : "Ver mi corrección";
+    $("fbmSkip").hidden = !n;
+  } else {
+    const e = errs[fbStep];
+    $("fbmEyebrow").textContent = "Errores clave";
+    $("fbmTitle").textContent = `Error ${fbStep + 1} de ${n}`;
+    $("feO").textContent = e.original || ""; $("feC").textContent = e.correction || "";
+    $("feT").textContent = (e.type || "").replace("_", " "); $("feR").textContent = e.rule_es || "";
+    const dots = $("feDots"); dots.innerHTML = "";
+    errs.forEach((_, k) => { const d = document.createElement("span"); d.className = "dot" + (k <= fbStep ? " on" : ""); dots.append(d); });
+    S.errChecked[fbStep] = true; save();
+    $("fbmGo").textContent = fbStep < n - 1 ? "Entendido, siguiente" : "Ver mi corrección completa";
+    $("fbmSkip").hidden = fbStep >= n - 1;
+  }
+}
 function closeFeedbackModal(){
-  $("fbModal").hidden = true;
+  $("fbModal").hidden = true; renderCorrect();
   const panel = document.querySelector('.panel[data-step="1"]'); if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
-$("fbmGo").addEventListener("click", closeFeedbackModal);
+$("fbmGo").addEventListener("click", () => {
+  const n = (S.errors || []).length;
+  if (fbStep < n - 1){ fbStep++; renderFbStep(); $("fbmGo").focus(); } else closeFeedbackModal();
+});
+$("fbmSkip").addEventListener("click", closeFeedbackModal);
 $("fbModal").addEventListener("keydown", (e) => { if (e.key === "Escape") closeFeedbackModal(); });
 function renderCorrect(){
   const ai = S.source === "ai";
