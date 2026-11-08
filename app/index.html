@@ -671,7 +671,7 @@ Student level (CEFR): ${level}. Topic given by the teacher: "${topic}".
 ${text ? `Here is the student's text, already transcribed and confirmed by the student:\n"""\n${text}\n"""` : `The attached image is a photo of the student's notebook page.`}${clarBlock(clar)}${asgBlock(asg)}
 
 Rules:
-1. transcription: ${text ? "copy the text above exactly." : "copy exactly what the student wrote, including every mistake. Do NOT correct anything here. If a word is unreadable, write [?]."}
+1. transcription: ${text ? "return an empty string (the app already has the text)." : "copy exactly what the student wrote, including every mistake. Do NOT correct anything here. If a word is unreadable, write [?]."}
 2. corrected: rewrite the text so it is correct, natural English. Keep the student's ideas, order and voice. Change only what is needed. Do not add new ideas. Use vocabulary at most one level above ${level}. Write times like "6:30 am" (without periods).
 3. errors: the most important mistakes (maximum 8). Prioritize repeated mistakes and mistakes that change the meaning. For each one: "original" (exact words from the transcription), "correction", "type" (grammar | vocabulary | spelling | word_order | punctuation), "rule_es" (short explanation in simple Spanish, maximum 20 words).
 4. strengths_es: 2 specific things the student did well, in Spanish.
@@ -776,10 +776,15 @@ function workerSample(){
     return d.text || "";
   };
   const s = async (prompt, opts) => ({ text: await call(prompt, opts), truncated: false });
+  const parse = (t) => { const m = String(t).match(/\{[\s\S]*\}/); if (!m) return null; try { return JSON.parse(m[0]); } catch(e){ return null; } };
+  const JSON_RULE = "\n\nIMPORTANT: reply with valid JSON only. Inside text values never use double quotes; use «» or single quotes instead.";
   s.json = async (prompt, opts) => {
-    const t = await call(prompt, opts); const m = t.match(/\{[\s\S]*\}/);
-    if (!m) throw { code:"invalid_json" };
-    try { return JSON.parse(m[0]); } catch(e){ throw { code:"invalid_json" }; }
+    // Si la respuesta llega cortada o mal formada, se intenta una vez más automáticamente.
+    for (let attempt = 0; attempt < 2; attempt++){
+      const v = parse(await call(prompt + JSON_RULE, opts));
+      if (v) return v;
+    }
+    throw { code:"invalid_json" };
   };
   s.limits = async () => ({ images: true });
   return s;
@@ -908,8 +913,17 @@ async function runCorrection(textOverride, statusEl, btn, clar){
   finally { btn.disabled = false; }
 }
 let pending = null;
+function clearExample(){
+  if (!S.example) return;
+  const fresh = blank(S.topic, S.level); fresh.assignment = S.assignment || null;
+  store.current = fresh; S = fresh; save();
+  document.querySelector('.panel[data-step="1"]').hidden = true;
+  const tag = document.querySelector(".example-tag"); if (tag) tag.remove();
+  renderRail();
+}
 async function startAnalysis(){
   const st = $("st1"), btn = $("btnCorrect");
+  clearExample();
   const sample = await sampleP;
   if (!sample) return runCorrection(null, st, btn);
   if (inputMode === "photo" && !photoFile) return fail(st, "Primero elige la foto de tu cuaderno.");
@@ -976,7 +990,7 @@ function setSrc(m){
 document.querySelectorAll("[data-src]").forEach(b => b.addEventListener("click", () => setSrc(b.dataset.src)));
 setSrc(srcMode);
 $("btnAiStory").onclick = async () => {
-  const st = $("stAi"), btn = $("btnAiStory"); const sample = await sampleP;
+  const st = $("stAi"), btn = $("btnAiStory"); clearExample(); const sample = await sampleP;
   if (!sample) return fail(st, "La IA todavía no está conectada en esta versión en línea. Llega en la siguiente versión.");
   btn.disabled = true; busy(st, "Escribiendo una historia para ti…");
   try {

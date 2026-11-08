@@ -20,7 +20,7 @@ const ALLOWED_PROMPT_STARTS = [
 ];
 
 const MODEL = "claude-haiku-5-5";
-const MAX_TOKENS = 2000;
+const MAX_TOKENS = 4000;
 const MAX_PROMPT_CHARS = 15000;
 const MAX_IMAGE_BASE64 = 7000000; // ~5 MB
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -78,7 +78,7 @@ export default {
 
     const data = await upstream.json();
     const text = (data.content || []).filter((c) => c.type === "text").map((c) => c.text).join("");
-    return reply({ text }, 200, cors);
+    return reply({ text, stop: data.stop_reason || "" }, 200, cors);
   },
 };
 
