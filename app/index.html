@@ -766,24 +766,28 @@ async function toImagePayload(file){
 }
 function workerSample(){
   if (!AI_URL) return null;
-  const call = async (prompt, opts = {}) => {
+  const call = async (prompt, opts = {}, asJson = false) => {
     const body = { prompt };
+    if (asJson) body.json = true;
     if (opts.images && opts.images[0]) body.image = await toImagePayload(opts.images[0]);
     let r;
     try { r = await fetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body) }); }
     catch(e){ throw { code:"network" }; }
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw { code: d.error || "upstream_error" };
-    return d.text || "";
+    return d;
   };
-  const s = async (prompt, opts) => ({ text: await call(prompt, opts), truncated: false });
+  const s = async (prompt, opts) => ({ text: (await call(prompt, opts)).text || "", truncated: false });
   const parse = (t) => { const m = String(t).match(/\{[\s\S]*\}/); if (!m) return null; try { return JSON.parse(m[0]); } catch(e){ return null; } };
   const JSON_RULE = "\n\nIMPORTANT: reply with valid JSON only. Inside text values never use double quotes; use «» or single quotes instead. Write all Spanish in Mexican Spanish, the way people speak in Mexico (for example «papas», not «patatas»; «ustedes», not «vosotros»; «computadora», not «ordenador»; «celular», not «móvil»).";
   s.json = async (prompt, opts) => {
     // Si la respuesta llega cortada o mal formada, se intenta una vez más automáticamente.
     for (let attempt = 0; attempt < 2; attempt++){
-      const v = parse(await call(prompt + JSON_RULE, opts));
+      const d = await call(prompt + JSON_RULE, opts, true);
+      if (d.json && typeof d.json === "object") return d.json;
+      const v = parse(d.text || "");
       if (v) return v;
+      try { window.__wrealispecLast = d; console.warn("Wrealispec: respuesta de la IA que no se pudo leer", d); } catch(e){}
     }
     throw { code:"invalid_json" };
   };
@@ -925,6 +929,8 @@ function clearExample(){
 async function startAnalysis(){
   const st = $("st1"), btn = $("btnCorrect");
   clearExample();
+  // Mientras se procesa la nueva historia, se oculta la corrección anterior para no confundir.
+  document.querySelector('.panel[data-step="1"]').hidden = true;
   const sample = await sampleP;
   if (!sample) return runCorrection(null, st, btn);
   if (inputMode === "photo" && !photoFile) return fail(st, "Primero elige la foto de tu cuaderno.");

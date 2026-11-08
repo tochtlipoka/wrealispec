@@ -20,7 +20,7 @@ const ALLOWED_PROMPT_STARTS = [
 ];
 
 const MODEL = "claude-haiku-5-5";
-const MAX_TOKENS = 4000;
+const MAX_TOKENS = 6000;
 const MAX_PROMPT_CHARS = 15000;
 const MAX_IMAGE_BASE64 = 7000000; // ~5 MB
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -58,6 +58,19 @@ export default {
     }
     content.push({ type: "text", text: prompt });
 
+    // Con json: true, la respuesta llega como un objeto ya estructurado (herramienta "respond"),
+    // así no depende de que la IA escriba bien las comillas.
+    const wantJson = body.json === true;
+    const payload = { model: MODEL, max_tokens: MAX_TOKENS, messages: [{ role: "user", content }] };
+    if (wantJson) {
+      payload.tools = [{
+        name: "respond",
+        description: "Send your answer as a JSON object with exactly the fields requested in the instructions.",
+        input_schema: { type: "object", additionalProperties: true },
+      }];
+      payload.tool_choice = { type: "tool", name: "respond" };
+    }
+
     let upstream;
     try {
       upstream = await fetch("https://api.anthropic.com/v1/messages", {
@@ -67,7 +80,7 @@ export default {
           "anthropic-version": "2023-06-01",
           "content-type": "application/json",
         },
-        body: JSON.stringify({ model: MODEL, max_tokens: MAX_TOKENS, messages: [{ role: "user", content }] }),
+        body: JSON.stringify(payload),
       });
     } catch (e) {
       return reply({ error: "upstream_error" }, 502, cors);
@@ -77,6 +90,10 @@ export default {
     if (!upstream.ok) return reply({ error: "upstream_error" }, 502, cors);
 
     const data = await upstream.json();
+    const tool = (data.content || []).find((c) => c.type === "tool_use");
+    if (wantJson && tool && tool.input && typeof tool.input === "object") {
+      return reply({ json: tool.input, stop: data.stop_reason || "" }, 200, cors);
+    }
     const text = (data.content || []).filter((c) => c.type === "text").map((c) => c.text).join("");
     return reply({ text, stop: data.stop_reason || "" }, 200, cors);
   },
