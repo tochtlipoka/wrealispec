@@ -458,7 +458,7 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
     </div>
     <div id="upsell" class="assign" hidden>
       <span class="eyebrow">La Fase 4 está en los planes IA y Pro</span>
-      <p>Con el plan <strong>IA ($30 USD al mes)</strong> conversas con la IA sobre tu historia: te pide que la expliques, te hace preguntas y te da retroalimentación. Con el plan <strong>Pro ($1,800 MXN al mes)</strong> además tienes 6 clases con tu profesor.</p>
+      <p>Con el plan <strong>IA ($30 USD al mes)</strong> conversas con la IA sobre tu historia: te pide que la expliques, te hace preguntas y te da retroalimentación. Con el plan <strong>Pro ($99 USD al mes)</strong> además tienes 6 clases con tu profesor.</p>
       <p class="small muted">Puedes cambiar de plan cada mes: si un mes quieres practicar por tu cuenta, está bien, y regresas cuando quieras.</p>
     </div>
     <div id="prepBox" class="field">
@@ -1436,7 +1436,7 @@ $("btnCopySum").onclick = () => copy(summaryText(), $("st6"));
 const PLANS = {
   auto: { name:"Autodidacta", desc:"Autodidacta · $10 USD al mes: Fases 1 a 3 con la IA (corrección, audio, lectura y retos)." },
   ia:   { name:"IA", desc:"IA · $30 USD al mes: todo lo de Autodidacta, más la Fase 4 con la IA." },
-  pro:  { name:"Pro", desc:"Pro · $1,800 MXN al mes: todo lo anterior, más 6 clases con tu profesor ($300 MXN por clase; semanas 1 y 3, una clase; semanas 2 y 4, dos clases), su retroalimentación, tu tarea, la agenda y el proyecto del mes." },
+  pro:  { name:"Pro", desc:"Pro · $99 USD al mes: todo lo anterior, más 6 clases con tu profesor (semanas 1 y 3, una clase; semanas 2 y 4, dos clases), su retroalimentación, tu tarea, la agenda y el proyecto del mes." },
 };
 function plan(){ return PLANS[store.plan] ? store.plan : "pro"; }
 function setPlan(m){
