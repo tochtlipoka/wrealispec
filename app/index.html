@@ -174,6 +174,15 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
 .lvl.l3 .lv-seg.on, .lvl.l4 .lv-seg.on{background:var(--ok)} .lvl.l3 .lv-label, .lvl.l4 .lv-label{color:var(--ok)}
 .tries{font-weight:700}
 .pick-label{font-weight:700;font-size:.9rem}
+.chat{display:flex;flex-direction:column;gap:10px;max-height:480px;overflow-y:auto;padding:2px}
+.bubble{max-width:85%;padding:10px 14px;border-radius:14px;line-height:1.45;overflow-wrap:anywhere}
+.bubble.ai{align-self:flex-start;background:var(--chip);border-bottom-left-radius:4px}
+.bubble.me{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:4px}
+.bubble .hint{display:block;font-size:.88rem;color:var(--ink-soft);margin-top:6px}
+.bubble .bt{display:flex;gap:12px;margin-top:6px}
+.rates3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:700px){.rates3{grid-template-columns:minmax(0,1fr)}}
+.rates3 .lvl .lv-label{font-size:1.4rem}
 .modal{position:fixed;inset:0;background:rgba(14,19,34,.55);display:grid;place-items:center;z-index:50;
   padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 .modal-card{background:var(--sheet);color:var(--ink);border-radius:16px;padding:24px;max-width:440px;width:100%;display:flex;flex-direction:column;gap:14px;box-shadow:0 30px 60px -20px rgba(0,0,0,.45)}
@@ -435,11 +444,45 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
   <section class="panel" data-step="5" hidden>
     <div class="panel-head">
       <span class="eyebrow">Fase 4 · Conversemos</span>
-      <h2>Listo para la videollamada con tu profesor</h2>
-      <p class="muted">Tu profesor te pedirá que expliques tu historia y te hará preguntas. Practica estas respuestas en voz alta.</p>
+      <h2 id="p4Title">Conversemos</h2>
+      <p class="muted" id="p4Lead"></p>
     </div>
-    <div class="field"><h3>Preguntas que te pueden hacer</h3><ol class="qs" id="qs"></ol></div>
-    <div class="field"><h3>Frases útiles para tu explicación</h3><div class="phr" id="phr"></div></div>
+    <div class="field">
+      <span class="pick-label">Tu plan <span class="small muted">(en la demo puedes cambiarlo para ver qué incluye cada uno)</span></span>
+      <div class="seg" role="tablist" aria-label="Tu plan">
+        <button role="tab" data-plan="auto" aria-selected="false">Autodidacta</button>
+        <button role="tab" data-plan="ia" aria-selected="false">IA</button>
+        <button role="tab" data-plan="pro" aria-selected="true">Pro</button>
+      </div>
+      <p class="small muted" id="planDesc"></p>
+    </div>
+    <div id="upsell" class="assign" hidden>
+      <span class="eyebrow">La Fase 4 está en los planes IA y Pro</span>
+      <p>Con el plan <strong>IA ($30 USD al mes)</strong> conversas con la IA sobre tu historia: te pide que la expliques, te hace preguntas y te da retroalimentación. Con el plan <strong>Pro ($1,800 MXN al mes)</strong> además tienes 6 clases con tu profesor.</p>
+      <p class="small muted">Puedes cambiar de plan cada mes: si un mes quieres practicar por tu cuenta, está bien, y regresas cuando quieras.</p>
+    </div>
+    <div id="prepBox" class="field">
+      <div class="field"><h3>Preguntas que te pueden hacer</h3><ol class="qs" id="qs"></ol></div>
+      <div class="field"><h3>Frases útiles para tu explicación</h3><div class="phr" id="phr"></div></div>
+    </div>
+    <div id="aiChatBox" class="field">
+      <h3>Conversa con la IA</h3>
+      <p class="small muted">La IA te pide que expliques tu historia y te hace preguntas, una por una, como lo haría tu profesor. Contesta escribiendo o con el micrófono del teclado.</p>
+      <div class="chat" id="chatLog" aria-live="polite"></div>
+      <div class="row" id="chatStartRow"><button class="btn" id="btnChatStart">Empezar conversación</button><span class="status" id="stChat" role="status"></span></div>
+      <div id="chatInputRow" class="field" hidden>
+        <label for="chatIn" class="small">Tu respuesta en inglés</label>
+        <textarea id="chatIn" placeholder="Write your answer…"></textarea>
+        <div class="row"><button class="btn" id="btnChatSend">Enviar</button><button class="btn quiet" id="btnChatEnd">Terminar y recibir retroalimentación</button><span class="status" id="stChat2" role="status"></span></div>
+      </div>
+      <div id="chatFb" class="field" hidden>
+        <h3>Tu retroalimentación de la conversación</h3>
+        <div class="rates3" id="chatRates"></div>
+        <p id="chatComment"></p>
+        <div class="errors" id="chatCorr"></div>
+      </div>
+    </div>
+    <div id="proBox" class="field">
     <div class="field">
       <h3>Resumen para tu profesor</h3>
       <div class="summary" id="summary"></div>
@@ -460,10 +503,16 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
         <div class="row"><button class="btn" id="btnTfSave">Guardar retroalimentación</button><button class="btn quiet" id="btnTfCancel">Cancelar</button></div>
       </div>
     </div>
+    <div class="field">
+      <h3>Proyecto del mes</h3>
+      <p class="muted">Al cerrar tus 6 clases del mes, preparas un proyecto propio: una historia o presentación sobre algo que te importe. Lo expones en tu clase y respondes 4 o 5 preguntas de tu profesor.</p>
+      <div class="row"><input type="text" id="projTopic" placeholder="Ej. My dream business" aria-label="Tema de tu proyecto" style="flex:1;min-width:200px"><button class="btn ghost" id="btnProj">Empezar mi proyecto</button></div>
+    </div>
+    </div>
     <hr style="border:0;border-top:1px solid var(--rule);width:100%;margin:6px 0">
     <div class="field">
-      <h3>Tarea para la próxima clase</h3>
-      <p class="small muted">El profesor la deja al final de la clase. Solo la pregunta detonadora es obligatoria.</p>
+      <h3 id="hwTitle">Tarea para la próxima clase</h3>
+      <p class="small muted" id="hwNote">El profesor la deja al final de la clase. Solo la pregunta detonadora es obligatoria.</p>
       <div class="field"><label for="newTopic">Pregunta detonadora</label><input type="text" id="newTopic" placeholder="Ej. What did you do last weekend?"></div>
       <div class="field"><label for="hwStruct">Estructura a practicar</label><input type="text" id="hwStruct" placeholder="Ej. Pasado simple"></div>
       <div class="grid2">
@@ -546,6 +595,7 @@ function blank(topic, level){
     word_count:0, teacher_questions:[], useful_phrases:[], step:0 });
 }
 function normalize(s){
+  s.chat = s.chat && Array.isArray(s.chat.turns) ? s.chat : { turns:[], done:false, feedback:null };
   s.source = s.source === "ai" ? "ai" : "own";
   s.glossary = Array.isArray(s.glossary) ? s.glossary : [];
   s.assignment = s.assignment || null;
@@ -1036,14 +1086,20 @@ function splitSentences(t){
 }
 function loadVoices(){
   if (!synth) return;
-  voices = synth.getVoices().filter(v => /^en(-|_|$)/i.test(v.lang));
+  const all = synth.getVoices();
+  const rank = (v) => /natural|online|neural|premium|enhanced|google/i.test(v.name) ? 0 : 1;
+  const pick = (re) => all.filter(v => re.test(String(v.lang).replace("_", "-"))).sort((a, b) => rank(a) - rank(b)).slice(0, 4);
+  const us = pick(/^en-US$/i), uk = pick(/^en-GB$/i);
+  voices = [...us, ...uk];
+  if (!voices.length) voices = all.filter(v => /^en(-|_|$)/i.test(v.lang)).slice(0, 8);
+  const label = (v) => (v.name.replace(/^(Microsoft|Google|Apple)\s+/i, "").replace(/\s*\(.*?\)\s*/g, " ").replace(/\s+Online\b/i, "").replace(/\s*-\s*English.*$/i, "").trim() || v.name);
   const sel = $("voice"); const prev = sel.value; sel.innerHTML = "";
-  voices.forEach((v, i) => { const o = document.createElement("option"); o.value = i; o.textContent = `${v.name} (${v.lang})`; sel.append(o); });
-  let best = voices.findIndex(v => /en-IE/i.test(v.lang));
-  if (best < 0) best = voices.findIndex(v => /en-US/i.test(v.lang) && /natural|google|samantha|aria|jenny/i.test(v.name));
-  if (best < 0) best = voices.findIndex(v => /en-US/i.test(v.lang));
-  sel.value = prev && voices[prev] ? prev : String(Math.max(best, 0));
-  $("voiceNote").textContent = voices.length ? "Voz del navegador. Si suena robótica, prueba otra de la lista o abre la página en Chrome o Edge." : "Tu navegador no tiene voces en inglés. Prueba con Chrome o Edge.";
+  const group = (name, list, offset) => { if (!list.length) return; const g = document.createElement("optgroup"); g.label = name;
+    list.forEach((v, k) => { const o = document.createElement("option"); o.value = offset + k; o.textContent = label(v); g.append(o); }); sel.append(g); };
+  if (us.length || uk.length){ group("Estados Unidos", us, 0); group("Reino Unido", uk, us.length); }
+  else voices.forEach((v, i) => { const o = document.createElement("option"); o.value = i; o.textContent = `${label(v)} (${v.lang})`; sel.append(o); });
+  sel.value = prev && voices[prev] ? prev : "0";
+  $("voiceNote").textContent = voices.length ? "Voz del navegador: 4 de Estados Unidos y 4 de Reino Unido (según tu dispositivo). Si suena robótica, prueba otra o abre la página en Chrome o Edge." : "Tu navegador no tiene voces en inglés. Prueba con Chrome o Edge.";
 }
 if (synth){ loadVoices(); synth.onvoiceschanged = loadVoices; }
 const rateVal = () => Number($("rate").value);
@@ -1148,6 +1204,7 @@ function readingOps(){
 function showReading(){
   const ops = readingOps();
   lvRender($("readLv"), S.reading.pct);
+  if (S.reading.pct < 25){ const n = document.createElement("p"); n.className = "small"; n.textContent = "Casi nada coincidió. Revisa que no haya ruido, que el micrófono esté cerca y que el teclado esté en inglés (ENG)."; $("readLv").append(n); }
   const tries = S.reading.attempts.length, best = bestReading();
   const box = $("sendBox");
   if (best >= PASS){
@@ -1155,6 +1212,9 @@ function showReading(){
     $("sendTitle").textContent = "Comparte tu avance con tu profesor (opcional)";
     $("sendText").textContent = "Si quieres, grábate leyendo tu historia (WhatsApp o Audacity) y mándale el audio a tu profesor para que escuche tu avance.";
     box.hidden = false;
+  } else if (tries >= 3 && plan() !== "pro"){
+    $("readTries").textContent = "Ya lo intentaste 3 veces. ¡Eso es esfuerzo! Repasa con el modo eco las palabras en rojo y vuelve a intentarlo más tarde. Con el plan Pro, tu profesor te escucha y te da su visto bueno.";
+    box.hidden = true;
   } else if (tries >= 3){
     $("readTries").textContent = "Ya lo intentaste 3 veces. ¡Eso es esfuerzo! Ahora deja que tu profesor te escuche.";
     $("sendTitle").textContent = "Envía tu grabación a tu profesor";
@@ -1325,14 +1385,15 @@ $("btnRetell").onclick = async () => {
 
 /* ---------- Step 6: class ---------- */
 function summaryText(){
-  const lines = [`WREALISPEC · Resumen para el profesor`, `Alumno: ${store.name || "—"}`, `Tema: ${S.topic}`, `Nivel: ${S.level} · Fecha: ${S.date}`, `Palabras escritas: ${S.word_count}`, ``,
+  const lines = [`WREALISPEC · Resumen para el profesor`, `Alumno: ${store.name || "—"}`, `Plan: ${PLANS[plan()].name}`, `Tema: ${S.topic}`, `Nivel: ${S.level} · Fecha: ${S.date}`, `Palabras escritas: ${S.word_count}`, ``,
     `Errores clave:`, ...S.errors.map(e => `- ${e.original} → ${e.correction}`), ``,
     `Correcciones revisadas: ${S.errors.filter((_, i) => S.errChecked[i]).length} de ${S.errors.length}`,
     ...(S.assignment_check.length ? [`Tarea: ${S.assignment_check.filter(x => x.ok).length} de ${S.assignment_check.length} puntos logrados`, ...S.assignment_check.map(x => `  ${x.ok ? "✓" : "↻"} ${x.item}`)] : []),
     `Lectura en voz alta: ${S.reading.attempts.length ? `${lvLabel(bestReading())} (${S.reading.attempts.length} intento${S.reading.attempts.length > 1 ? "s" : ""})` : "pendiente"}`,
     `Escucha y responde: ${qaScore() ?? "pendiente"}`,
     `Retell (ideas principales): ${S.retell.res ? lvLabel(Math.round(Number(S.retell.res.coverage_pct)||0)) : "pendiente"}`,
-    `Grabación enviada al profesor: ${S.checks[3] ? "sí" : "no"}`, ``, `Preguntas sugeridas:`, ...S.teacher_questions.map((q,i) => `${i+1}. ${q}`)];
+    `Grabación enviada al profesor: ${S.checks[3] ? "sí" : "no"}`,
+    ...(S.chat.feedback ? [`Conversación con la IA: Fluidez ${lvLabel(Number(S.chat.feedback.fluency)||0)} · Gramática ${lvLabel(Number(S.chat.feedback.grammar)||0)} · Vocabulario ${lvLabel(Number(S.chat.feedback.vocabulary)||0)}`] : []), ``, `Preguntas sugeridas:`, ...S.teacher_questions.map((q,i) => `${i+1}. ${q}`)];
   if (S.teacher){ const t = S.teacher; lines.push(``, `Retroalimentación del profesor (${t.date}):`,
     TF.filter(([k]) => Number(t[k])).map(([k,,name]) => `${name}: ${LV[t[k]-1].label}`).join(" · "), t.text || ""); }
   return lines.join("\n");
@@ -1368,9 +1429,117 @@ function renderClass(){
   const qs = $("qs"); qs.innerHTML = ""; S.teacher_questions.forEach(q => { const li = document.createElement("li"); const sp = document.createElement("span"); sp.textContent = q; li.append(sp); qs.append(li); });
   const ph = $("phr"); ph.innerHTML = ""; S.useful_phrases.forEach(p => { const a = document.createElement("span"); a.className = "en"; a.textContent = p.en; const b = document.createElement("span"); b.className = "es"; b.textContent = p.es; ph.append(a, b); });
   $("summary").textContent = summaryText();
-  renderTeacher();
+  renderTeacher(); renderChat(); setPlan(plan());
 }
 $("btnCopySum").onclick = () => copy(summaryText(), $("st6"));
+/* ---------- Planes ---------- */
+const PLANS = {
+  auto: { name:"Autodidacta", desc:"Autodidacta · $10 USD al mes: Fases 1 a 3 con la IA (corrección, audio, lectura y retos)." },
+  ia:   { name:"IA", desc:"IA · $30 USD al mes: todo lo de Autodidacta, más la Fase 4 con la IA." },
+  pro:  { name:"Pro", desc:"Pro · $1,800 MXN al mes: todo lo anterior, más 6 clases con tu profesor ($300 MXN por clase; semanas 1 y 3, una clase; semanas 2 y 4, dos clases), su retroalimentación, tu tarea, la agenda y el proyecto del mes." },
+};
+function plan(){ return PLANS[store.plan] ? store.plan : "pro"; }
+function setPlan(m){
+  store.plan = m; save();
+  document.querySelectorAll("[data-plan]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.plan === m)));
+  $("planDesc").textContent = PLANS[m].desc;
+  $("upsell").hidden = m !== "auto"; $("prepBox").hidden = m === "auto"; $("aiChatBox").hidden = m === "auto"; $("proBox").hidden = m !== "pro";
+  $("btnBook").hidden = !(m === "pro" && BOOKING_URL);
+  $("p4Title").textContent = m === "pro" ? "Listo para la videollamada con tu profesor" : m === "ia" ? "Conversa sobre tu historia con la IA" : "Conversemos";
+  $("p4Lead").textContent = m === "pro" ? "Practica con la IA y luego tu profesor te pedirá que expliques tu historia y te hará preguntas." : m === "ia" ? "La IA te pide que expliques tu historia y te hace preguntas, como lo haría un profesor." : "En tu plan practicas las Fases 1 a 3. Aquí eliges el tema de tu siguiente historia.";
+  $("hwTitle").textContent = m === "pro" ? "Tarea para la próxima clase" : "Tu siguiente historia";
+  $("hwNote").textContent = m === "pro" ? "El profesor la deja al final de la clase. Solo la pregunta detonadora es obligatoria." : "Escribe el tema de tu siguiente historia. Si quieres un reto extra, agrega una estructura, verbos o adjetivos.";
+  if (S.reading && S.reading.attempts && S.reading.attempts.length && !$("readRes").hidden) showReading();
+  $("summary").textContent = summaryText();
+}
+document.querySelectorAll("[data-plan]").forEach(b => b.addEventListener("click", () => setPlan(b.dataset.plan)));
+
+/* ---------- Conversación con la IA (planes IA y Pro) ---------- */
+function chatPrompt(finish){
+  const transcript = S.chat.turns.map(t => `${t.who === "ai" ? "Tutor" : "Student"}: ${t.text}`).join("\n") || "(no messages yet)";
+  return `You are an English tutor for Wrealispec having a short conversation with a student (CEFR ${S.level}) about the student's story.
+Student name: ${store.name || "(unknown)"}.
+Story:
+"""
+${S.corrected}
+"""
+Questions a teacher could ask: ${(S.teacher_questions || []).join(" | ")}
+Conversation so far:
+${transcript}
+
+Rules:
+- Use simple English at the student's level, 1 to 3 short sentences per turn.
+- First turn: greet the student by name and ask them to explain their story in their own words.
+- Then ask ONE question at a time (about 5 questions in total), reacting naturally to what the student said.
+- If the student makes an important mistake, repeat their idea correctly in your reply, without lecturing.
+- If the student writes in Spanish, answer kindly in English and encourage them to try in English.
+${finish ? "- The student wants to finish now: say goodbye and set done to true.\n" : ""}- When the student has answered about 5 questions, say goodbye and set done to true.
+Reply with only JSON:
+{"reply":"","hint_es":"","done":false,"feedback":null}
+hint_es: a short Spanish translation of your reply.
+When done is true, feedback is {"fluency":0,"grammar":0,"vocabulary":0,"comment_es":"","corrections":[{"original":"","correction":"","rule_es":""}]}: scores from 0 to 100 (they are never shown as numbers), comment_es is 2 warm sentences in Spanish (what went well, then one tip), corrections are maximum 4 from the student's messages, rule_es maximum 20 words.`;
+}
+function renderChat(){
+  const log = $("chatLog"); log.innerHTML = "";
+  S.chat.turns.forEach((t) => {
+    const b = document.createElement("div"); b.className = `bubble ${t.who}`;
+    const p = document.createElement("span"); p.textContent = t.text; b.append(p);
+    if (t.who === "ai"){
+      const hint = document.createElement("span"); hint.className = "hint"; hint.textContent = t.hint || ""; hint.hidden = true;
+      const bt = document.createElement("span"); bt.className = "bt";
+      const l = document.createElement("button"); l.type = "button"; l.className = "linkbtn"; l.textContent = "▶ Escuchar"; l.onclick = () => { stopSpeech(); speak(t.text); };
+      bt.append(l);
+      if (t.hint){ const h = document.createElement("button"); h.type = "button"; h.className = "linkbtn"; h.textContent = "Ver en español"; h.onclick = () => { hint.hidden = !hint.hidden; h.textContent = hint.hidden ? "Ver en español" : "Ocultar español"; }; bt.append(h); }
+      b.append(hint, bt);
+    }
+    log.append(b);
+  });
+  log.scrollTop = log.scrollHeight;
+  const started = S.chat.turns.length > 0;
+  $("chatInputRow").hidden = !started || S.chat.done;
+  $("chatStartRow").hidden = started && !S.chat.done;
+  $("btnChatStart").textContent = S.chat.done ? "Empezar otra conversación" : "Empezar conversación";
+  const fb = S.chat.feedback;
+  $("chatFb").hidden = !fb;
+  if (fb){
+    const box = $("chatRates"); box.innerHTML = "";
+    [["Fluidez", fb.fluency], ["Gramática", fb.grammar], ["Vocabulario", fb.vocabulary]].forEach(([n, v]) => {
+      const w = document.createElement("div"); const h = document.createElement("strong"); h.textContent = n;
+      const lv = document.createElement("div"); lvRender(lv, Math.round(Number(v) || 0)); w.append(h, lv); box.append(w);
+    });
+    $("chatComment").textContent = fb.comment_es || "";
+    renderErrors($("chatCorr"), Array.isArray(fb.corrections) ? fb.corrections.slice(0, 4) : []);
+  }
+}
+async function chatTurn(finish, statusEl){
+  const sample = await sampleP;
+  if (!sample) return fail(statusEl, "La conversación con la IA llega cuando la IA esté conectada en esta versión en línea.");
+  ["btnChatStart","btnChatSend","btnChatEnd"].forEach(id => $(id).disabled = true); busy(statusEl, "La IA está escribiendo…");
+  try {
+    const r = await sample.json(chatPrompt(finish), { cache:false });
+    if (!r || typeof r.reply !== "string") throw { code:"invalid_json" };
+    S.chat.turns.push({ who:"ai", text: r.reply.trim(), hint: String(r.hint_es || "") });
+    if (r.done || finish){ S.chat.done = true; S.chat.feedback = r.feedback && typeof r.feedback === "object" ? r.feedback : null; }
+    save(); renderChat(); busy(statusEl, ""); stopSpeech(); speak(r.reply);
+    if (S.chat.feedback) $("summary").textContent = summaryText();
+  } catch(e){ fail(statusEl, errMsg(e)); }
+  finally { ["btnChatStart","btnChatSend","btnChatEnd"].forEach(id => $(id).disabled = false); }
+}
+$("btnChatStart").onclick = () => { S.chat = { turns:[], done:false, feedback:null }; save(); renderChat(); chatTurn(false, $("stChat")); };
+$("btnChatSend").onclick = () => {
+  const t = $("chatIn").value.trim(); if (!t) return fail($("stChat2"), "Escribe tu respuesta.");
+  S.chat.turns.push({ who:"me", text:t }); $("chatIn").value = ""; save(); renderChat(); chatTurn(false, $("stChat2"));
+};
+$("chatIn").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); $("btnChatSend").click(); } });
+$("btnChatEnd").onclick = () => {
+  if (!S.chat.turns.some(t => t.who === "me")) return fail($("stChat2"), "Contesta al menos una pregunta antes de terminar.");
+  chatTurn(true, $("stChat2"));
+};
+$("btnProj").onclick = () => {
+  const t = $("projTopic").value.trim(); if (!t){ $("projTopic").focus(); return; }
+  $("newTopic").value = `Proyecto del mes: ${t}`; ["hwStruct","hwVerbs","hwAdj"].forEach(id => { $(id).value = ""; }); $("hwQ").checked = false;
+  $("projTopic").value = ""; $("btnNew").click(); S.project = true; save();
+};
 $("btnNew").onclick = () => {
   const t = $("newTopic").value.trim();
   if (!t) { $("newTopic").focus(); $("newTopic").placeholder = "Escribe aquí la pregunta detonadora"; return; }

@@ -100,6 +100,14 @@ section h2{font-size:clamp(2.1rem,4.6vw,3.1rem)}
 .lv:nth-child(4){background:#1C7A4E}.lv:nth-child(5){background:#135C3A}
 .note{margin-top:16px;color:var(--ink-soft);max-width:40em}
 
+.plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:30px}
+@media (max-width:820px){.plans{grid-template-columns:minmax(0,1fr)}}
+.plan{background:var(--sheet);border:1px solid var(--rule);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:10px;min-width:0;position:relative}
+.plan.pro{border:2px solid var(--margin)}
+.plan h3{font-size:1.25rem;font-weight:800}
+.plan .price{font-family:var(--f-display);font-size:2rem;line-height:1;font-variant-numeric:tabular-nums}
+.plan p{font-size:.95rem;color:var(--ink-soft)}
+.plan .badge{position:absolute;top:-12px;right:16px;font:700 .72rem var(--f-mono);letter-spacing:.06em;text-transform:uppercase;background:var(--margin);color:#fff;padding:5px 10px;border-radius:999px}
 .teach{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:36px;align-items:start}
 @media (max-width:820px){.teach{grid-template-columns:minmax(0,1fr)}}
 .teach ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:14px}
@@ -180,6 +188,16 @@ footer a{color:inherit}
     <p class="note" data-i18n="lv.note"></p>
   </section>
 
+  <section id="plans" aria-labelledby="pl-t">
+    <h2 id="pl-t" data-i18n="plans.title"></h2>
+    <p class="sub" data-i18n="plans.sub"></p>
+    <div class="plans">
+      <div class="plan"><h3 data-i18n="plan1.name"></h3><span class="price" data-i18n="plan1.price"></span><p data-i18n="plan1.d"></p></div>
+      <div class="plan"><h3 data-i18n="plan2.name"></h3><span class="price" data-i18n="plan2.price"></span><p data-i18n="plan2.d"></p></div>
+      <div class="plan pro"><span class="badge" data-i18n="plan3.tag"></span><h3 data-i18n="plan3.name"></h3><span class="price" data-i18n="plan3.price"></span><p data-i18n="plan3.d"></p><p class="small" data-i18n="plans.note"></p></div>
+    </div>
+  </section>
+
   <section id="teachers" aria-labelledby="t-t">
     <div class="teach">
       <div>
@@ -237,6 +255,12 @@ es: {
   "lv.sub":"En lugar de números, rangos que te motivan a seguir:",
   "lv.1":"Te falta","lv.2":"Un poco más","lv.3":"Ya casi","lv.4":"Muy bien","lv.5":"¡Excelente!",
   "lv.note":"Y si en tres intentos no llegas, tu profesor te escucha y reconoce tu esfuerzo.",
+  "plans.title":"Elige cómo aprender",
+  "plans.sub":"Cambia de plan cuando quieras: si un mes prefieres practicar por tu cuenta, está bien, y regresas cuando quieras.",
+  "plan1.name":"Autodidacta","plan1.price":"$10 USD / mes","plan1.d":"Fases 1 a 3 con la IA: corrección de tu historia, audio, lectura en voz alta y retos de escucha.",
+  "plan2.name":"IA","plan2.price":"$30 USD / mes","plan2.d":"Todo lo de Autodidacta, más la Fase 4 con la IA: te pide que expliques tu historia, te hace preguntas y te da retroalimentación.",
+  "plan3.name":"Pro","plan3.price":"$1,800 MXN / mes","plan3.tag":"Mayor avance","plan3.d":"Todo lo anterior, más 6 clases de una hora con tu profesor ($300 MXN por clase), su retroalimentación, tu tarea, la agenda y el proyecto del mes.",
+  "plans.note":"Semanas 1 y 3: una clase. Semanas 2 y 4: dos clases.",
   "t.title":"Para profesores y escuelas",
   "t.sub":"Wrealispec convierte una clase de una hora en días de práctica guiada entre clase y clase.",
   "t.1":"La IA hace el trabajo pesado entre clases: corrige, genera el audio y da seguimiento.",
@@ -275,6 +299,12 @@ pt: {
   "lv.sub":"Em vez de números, níveis que motivam você a continuar:",
   "lv.1":"Ainda falta","lv.2":"Um pouco mais","lv.3":"Quase lá","lv.4":"Muito bem","lv.5":"Excelente!",
   "lv.note":"E se em três tentativas você não chegar lá, o seu professor escuta e reconhece o seu esforço.",
+  "plans.title":"Escolha como aprender",
+  "plans.sub":"Mude de plano quando quiser: se em um mês você preferir praticar por conta própria, tudo bem, e você volta quando quiser.",
+  "plan1.name":"Autodidata","plan1.price":"US$ 10 / mês","plan1.d":"Fases 1 a 3 com a IA: correção da sua história, áudio, leitura em voz alta e desafios de escuta.",
+  "plan2.name":"IA","plan2.price":"US$ 30 / mês","plan2.d":"Tudo do Autodidata, mais a Fase 4 com a IA: ela pede que você explique a sua história, faz perguntas e dá feedback.",
+  "plan3.name":"Pro","plan3.price":"$1.800 MXN / mês","plan3.tag":"Maior avanço","plan3.d":"Tudo o que vem antes, mais 6 aulas de uma hora com o seu professor ($300 MXN por aula), o feedback dele, a sua tarefa, a agenda e o projeto do mês.",
+  "plans.note":"Semanas 1 e 3: uma aula. Semanas 2 e 4: duas aulas.",
   "t.title":"Para professores e escolas",
   "t.sub":"Wrealispec transforma uma aula de uma hora em dias de prática guiada entre uma aula e outra.",
   "t.1":"A IA faz o trabalho pesado entre as aulas: corrige, gera o áudio e acompanha o progresso.",
@@ -313,6 +343,12 @@ en: {
   "lv.sub":"Instead of numbers, levels that keep you going:",
   "lv.1":"Not yet","lv.2":"A bit more","lv.3":"Almost there","lv.4":"Very good","lv.5":"Excellent!",
   "lv.note":"And if you don't get there in three tries, your teacher listens and recognizes your effort.",
+  "plans.title":"Choose how you learn",
+  "plans.sub":"Switch plans anytime: if one month you'd rather practice on your own, that's fine, and you can come back whenever you want.",
+  "plan1.name":"Self-study","plan1.price":"$10 USD / month","plan1.d":"Phases 1 to 3 with AI: story correction, audio, reading aloud and listening challenges.",
+  "plan2.name":"AI","plan2.price":"$30 USD / month","plan2.d":"Everything in Self-study, plus Phase 4 with AI: it asks you to explain your story, asks you questions and gives you feedback.",
+  "plan3.name":"Pro","plan3.price":"$1,800 MXN / month","plan3.tag":"Fastest progress","plan3.d":"Everything above, plus 6 one-hour classes with your teacher ($300 MXN per class), their feedback, your homework, scheduling and the project of the month.",
+  "plans.note":"Weeks 1 and 3: one class. Weeks 2 and 4: two classes.",
   "t.title":"For teachers and schools",
   "t.sub":"Wrealispec turns a one-hour class into days of guided practice between classes.",
   "t.1":"AI does the heavy lifting between classes: correcting, generating audio and tracking progress.",
