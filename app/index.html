@@ -174,6 +174,7 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
 .lvl.l3 .lv-seg.on, .lvl.l4 .lv-seg.on{background:var(--ok)} .lvl.l3 .lv-label, .lvl.l4 .lv-label{color:var(--ok)}
 .tries{font-weight:700}
 .pick-label{font-weight:700;font-size:.9rem}
+.chg{color:var(--ok);font-weight:700;text-decoration:underline;text-decoration-color:var(--ok);text-decoration-thickness:2px;text-underline-offset:4px}
 .chat{display:flex;flex-direction:column;gap:10px;max-height:480px;overflow-y:auto;padding:2px}
 .bubble{max-width:85%;padding:10px 14px;border-radius:14px;line-height:1.45;overflow-wrap:anywhere}
 .bubble.ai{align-self:flex-start;background:var(--chip);border-bottom-left-radius:4px}
@@ -675,7 +676,7 @@ Rules:
 2. corrected: rewrite the text so it is correct, natural English. Keep the student's ideas, order and voice. Change only what is needed. Do not add new ideas. Use vocabulary at most one level above ${level}. Write times like "6:30 am" (without periods).
 3. errors: the most important mistakes (maximum 8). Prioritize repeated mistakes and mistakes that change the meaning. For each one: "original" (exact words from the transcription), "correction", "type" (grammar | vocabulary | spelling | word_order | punctuation), "rule_es" (short explanation in simple Spanish, maximum 20 words).
 4. strengths_es: 2 specific things the student did well, in Spanish.
-5. feedback_es: 2 sentences in Spanish, in a warm, encouraging tone like a friendly teacher. First what was good, then the one thing to focus on before the next class. Never use numbers or grades.
+5. feedback_es: 2 sentences in Spanish, in a warm, encouraging tone like a friendly teacher. Write all Spanish in Mexican Spanish, the way people speak in Mexico (for example «papas», not «patatas»; «ustedes», not «vosotros»; «computadora», not «ordenador»; «celular», not «móvil»). First what was good, then the one thing to focus on before the next class. Never use numbers or grades.
 6. word_count: number of words in the transcription.
 7. teacher_questions: 3 simple follow-up questions in English, at level ${level}, that a teacher can ask in a video call about this story to start a conversation.
 8. useful_phrases: 4 short English sentences the student can use to explain this story, each with "en" and "es".
@@ -777,7 +778,7 @@ function workerSample(){
   };
   const s = async (prompt, opts) => ({ text: await call(prompt, opts), truncated: false });
   const parse = (t) => { const m = String(t).match(/\{[\s\S]*\}/); if (!m) return null; try { return JSON.parse(m[0]); } catch(e){ return null; } };
-  const JSON_RULE = "\n\nIMPORTANT: reply with valid JSON only. Inside text values never use double quotes; use «» or single quotes instead.";
+  const JSON_RULE = "\n\nIMPORTANT: reply with valid JSON only. Inside text values never use double quotes; use «» or single quotes instead. Write all Spanish in Mexican Spanish, the way people speak in Mexico (for example «papas», not «patatas»; «ustedes», not «vosotros»; «computadora», not «ordenador»; «celular», not «móvil»).";
   s.json = async (prompt, opts) => {
     // Si la respuesta llega cortada o mal formada, se intenta una vez más automáticamente.
     for (let attempt = 0; attempt < 2; attempt++){
@@ -1059,11 +1060,23 @@ function errCount(){
   const [a,b] = LEVELS[S.level] || [0,999];
   $("wc").textContent = `· ${k} de ${n} revisados · ${S.word_count} palabras (meta ${S.level}: ${a}–${b})`;
 }
+// Marca en verde, dentro del texto corregido, cada palabra que cambió respecto al original.
+function renderCorrDiff(){
+  const host = $("corrText"); host.innerHTML = "";
+  const orig = String(S.transcription || "").split(/\s+/).filter(Boolean);
+  const corr = String(S.corrected || "").split(/\s+/).filter(Boolean);
+  if (!orig.length){ host.textContent = S.corrected; return; }
+  diffWords(orig, corr).forEach(([k, w]) => {
+    if (k === "miss") return;
+    if (k === "extra"){ const s = document.createElement("span"); s.className = "chg"; s.textContent = w; host.append(s, document.createTextNode(" ")); }
+    else host.append(document.createTextNode(w + " "));
+  });
+}
 function renderCorrect(){
   const ai = S.source === "ai";
   $("corrTitle").textContent = ai ? (S.title || "Tu historia de hoy") : "Lo que escribiste y cómo queda corregido";
   $("origCol").hidden = ai; $("corrGrid").classList.toggle("one", ai);
-  $("corrLbl").textContent = ai ? "Historia de la IA" : "Texto corregido";
+  $("corrLbl").textContent = ai ? "Historia de la IA" : "Texto corregido · en verde lo que cambió";
   $("errTitle").textContent = ai ? "Palabras útiles" : "Errores clave";
   $("errList").classList.toggle("gloss", ai);
   $("copyNote").textContent = ai ? "Ahora copia la historia en tu cuaderno, a mano. Así la empiezas a hacer tuya." : "Ahora copia el texto corregido en tu cuaderno, otra vez a mano. Así fijas las correcciones.";
@@ -1077,7 +1090,7 @@ function renderCorrect(){
   const ul = document.createElement("ul"); ul.className = "clean";
   S.strengths_es.forEach(s => { const li = document.createElement("li"); li.textContent = s; ul.append(li); });
   st.append(ul); st.hidden = !S.strengths_es.length;
-  $("origText").textContent = S.transcription; $("fixTrans").value = S.transcription; $("corrText").textContent = S.corrected;
+  $("origText").textContent = S.transcription; $("fixTrans").value = S.transcription; renderCorrDiff();
   renderErrors($("errList"), S.errors, true); errCount(); renderAsgRes();
 }
 
