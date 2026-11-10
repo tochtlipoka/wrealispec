@@ -752,7 +752,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.6 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.7 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -1900,8 +1900,11 @@ function showReading(){
   $("readFb").textContent = r ? (r.feedback_es || "") : "";
   // Solo se muestran palabras que de verdad no coincidieron (nunca una que sí se entendió igual).
   const missed = new Set(readingMisses().map(m => norm(m.word)));
-  const words = (r && Array.isArray(r.words_to_practice) ? r.words_to_practice : [])
+  let words = (r && Array.isArray(r.words_to_practice) ? r.words_to_practice : [])
     .filter(w => w && w.word && missed.has(norm(w.word)) && norm(w.word) !== norm(w.heard_as || "")).slice(0, 5);
+  // Si la IA no respondió, se muestran igual las palabras que no coincidieron, con su pizarra.
+  if (!r) words = readingMisses().filter(m => m.word.length > 2 && /^[a-z]/.test(m.word)).slice(0, 5)
+    .map(m => ({ word: m.word, heard_as: m.heard, tip_es: "Escúchala en la pizarra, despacio y a velocidad normal, y repítela." }));
   if (words.length) renderErrors($("readWords"), words.map(w => ({ original: w.word, correction: w.heard_as ? `se escuchó “${w.heard_as}”` : "no se escuchó", type: "pronunciación", rule_es: w.tip_es })), false, (k) => openPronBoard(words[k]));
   else $("readWords").innerHTML = "";
   $("readWords").hidden = !words.length;

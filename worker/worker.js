@@ -135,17 +135,23 @@ export default {
       payload.tool_choice = { type: "tool", name: "respond" };
     }
 
+    const callClaude = (body) => fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
     let upstream;
     try {
-      upstream = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "x-api-key": env.ANTHROPIC_API_KEY,
-          "anthropic-version": "2023-06-01",
-          "content-type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      upstream = await callClaude(payload);
+      // Si el modelo preciso no responde (no disponible para la llave, saturado, etc.), se intenta con el rápido.
+      if (!upstream.ok && model !== MODEL) {
+        payload.model = MODEL;
+        upstream = await callClaude(payload);
+      }
     } catch (e) {
       return reply({ error: "upstream_error" }, 502, cors);
     }
