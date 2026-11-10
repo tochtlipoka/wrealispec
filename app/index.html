@@ -970,7 +970,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.20 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.21 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -1240,9 +1240,10 @@ function workerSample(){
   };
   s.json = async (prompt, opts = {}) => {
     // Si la respuesta llega cortada, mal formada o sin los campos esperados, se intenta una vez más.
-    const ok = (v) => v && typeof v === "object" && (!opts.need || opts.need.every(k => v[k] !== undefined && v[k] !== null));
+    const ok = (v) => v && typeof v === "object" && (!opts.need || opts.need.every(k => v[k] !== undefined && v[k] !== null)) && (!opts.check || opts.check(v));
     for (let attempt = 0; attempt < 2; attempt++){
-      const d = await call(prompt + JSON_RULE, opts, true);
+      // 1.er intento: respuesta estructurada; 2.º: texto libre (a veces la IA se equivoca en un modo y no en el otro).
+      const d = await call(prompt + JSON_RULE, opts, attempt === 0);
       let v = d.json && typeof d.json === "object" ? fixJson(d.json) : fixJson(parse(d.text || ""));
       if (ok(v)) return v;
       try { window.__wrealispecLast = d; console.warn("Wrealispec: respuesta de la IA que no se pudo leer", d); } catch(e){}
@@ -2661,13 +2662,37 @@ function qaEmptyUI(){
   $("qaTitle").textContent = "Preparando tus retos…"; $("qaDots").innerHTML = "";
   ["qaPrev","qaNext","btnQaCheck"].forEach(id => $(id).hidden = true); $("qaResM").hidden = true;
 }
+// Acepta los retos aunque la IA los mande con otra forma: otro nombre de lista, cada reto como texto,
+// o "question" en lugar de "prompt".
+function qaItems(r){
+  if (!r || typeof r !== "object") return [];
+  let list = r.items || r.exercises || r.questions || r.challenges;
+  if (!list) list = Object.values(r).find(v => Array.isArray(v)) || [];
+  if (typeof list === "string"){ try { list = JSON.parse(list); } catch(e){ list = []; } }
+  if (!Array.isArray(list)) list = typeof list === "object" ? Object.values(list) : [];
+  const TYPES = ["multiple_choice","dictation","multi_select","open","opinion"];
+  return list.map((x, i) => {
+    if (typeof x === "string"){ try { x = JSON.parse(x); } catch(e){ return null; } }
+    if (!x || typeof x !== "object") return null;
+    const prompt = String(x.prompt || x.question || x.text || x.sentence || "").trim();
+    if (!prompt) return null;
+    let type = String(x.type || "").toLowerCase().replace(/[\s-]+/g, "_");
+    if (!TYPES.includes(type)) type = TYPES[i] || "open";
+    let options = Array.isArray(x.options) ? x.options.map(o => String(o)) : [];
+    let answer = Array.isArray(x.answer) ? x.answer : (x.answer != null && x.answer !== "" ? [x.answer] : []);
+    answer = answer.map(a => typeof a === "number" ? a : options.indexOf(String(a)) >= 0 ? options.indexOf(String(a)) : Number(a)).filter(n => Number.isInteger(n) && n >= 0 && n < options.length);
+    if ((type === "multiple_choice" || type === "multi_select") && (options.length < 2 || !answer.length)) type = "open", options = [], answer = [];
+    const LBL = { multiple_choice:"Elige la respuesta correcta", dictation:"Escribe exactamente lo que escuchas", multi_select:"Elige todas las correctas", open:"Responde la pregunta", opinion:"Da tu opinión" };
+    return { type, prompt, label_es: String(x.label_es || LBL[type]), options, answer };
+  }).filter(Boolean);
+}
 async function createQa(){
   const st = $("stQaM"); const sample = await sampleP;
   if (!sample) return fail(st, "Demostración: los ejercicios con IA se activan en la siguiente versión.");
   $("qaNew").disabled = true; $("btnQa").disabled = true; busy(st, "Preparando tus retos…");
   try {
-    const r = await sample.json(qaPrompt(S.level, S.corrected), { cache:false, need:["items"] });
-    const items = (r && Array.isArray(r.items) ? r.items : []).filter(x => x && x.prompt).slice(0,5);
+    const r = await sample.json(qaPrompt(S.level, S.corrected), { cache:false, check: (v) => qaItems(v).length >= 3 });
+    const items = qaItems(r).slice(0,5);
     if (!items.length) throw { code:"invalid_json" };
     S.qa = { items, answers: [], res: null }; save(); busy(st, ""); $("qaPrev").hidden = false; openQa(0);
   } catch(e){ fail(st, errMsg(e)); } finally { $("btnQa").disabled = false; $("qaNew").disabled = false; }
