@@ -424,7 +424,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
   <div class="modal pl" id="bdModal" hidden role="dialog" aria-modal="true" aria-labelledby="bdTitle">
     <div class="modal-card bd-card">
       <div class="pl-head">
-        <div class="vc-txt"><span class="eyebrow">Pizarra · tu error explicado</span><strong id="bdTitle">Preparando tu pizarra…</strong></div>
+        <div class="vc-txt"><span class="eyebrow" id="bdEyebrow">Pizarra · tu error explicado</span><strong id="bdTitle">Preparando tu pizarra…</strong></div>
         <button class="xbtn" id="bdClose" aria-label="Cerrar pizarra">×</button>
       </div>
       <div class="board" id="bdBoard"><div class="bd-lines" id="bdLines"></div></div>
@@ -752,7 +752,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.4 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.5 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -940,7 +940,8 @@ Rules:
 Reply with only JSON:
 {"feedback_es":"","words_to_practice":[{"word":"","heard_as":"","tip_es":""}]}
 feedback_es: 2 sentences in Spanish, in a warm, encouraging tone, first what went well, then the main thing to practice. Never use numbers or percentages.
-words_to_practice: maximum 5 words, chosen only from the list above; heard_as is what the recognizer wrote (or "" if skipped); tip_es explains how to pronounce it in simple Spanish, maximum 15 words, you may use Spanish-like spelling (for example "zinc" → "dzink").`;
+Be accurate: never state syllable counts or rules you are not sure about; focus on the one sound that most likely caused the confusion.
+words_to_practice: maximum 5 words, chosen only from the list above; heard_as is what the recognizer wrote (or "" if skipped); tip_es: in simple Spanish, maximum 15 words: name the one sound to practice and give a Spanish-like spelling with syllables separated by hyphens and the stressed syllable in CAPITALS (for example «every» → «É-vri», «bus» → «BAS» con la «a» corta).`;
 }
 function qaPrompt(level, story){
   return `Create 5 short listening exercises about this story for a Spanish-speaking student of English (CEFR ${level}):
@@ -1305,7 +1306,7 @@ function lvRender(host, pct){
   host.append(top, bar, names);
 }
 const countWords = (t) => (String(t||"").match(/[A-Za-z0-9'’]+/g) || []).length;
-function renderErrors(host, list, checkable){
+function renderErrors(host, list, checkable, onBoard){
   host.innerHTML = "";
   if (!list.length){ host.innerHTML = `<div class="err"><span class="r">Sin errores importantes. ¡Bien!</span></div>`; return; }
   list.forEach((er, i) => {
@@ -1313,10 +1314,12 @@ function renderErrors(host, list, checkable){
     d.innerHTML = `<span class="o"></span><span class="c"></span><span class="r"><span class="ty"></span><span class="rt"></span></span>`;
     d.querySelector(".o").textContent = er.original || er.word || ""; d.querySelector(".c").textContent = er.correction || er.heard_as_label || "";
     d.querySelector(".ty").textContent = (er.type || "").replace("_"," "); d.querySelector(".rt").textContent = er.rule_es || er.tip_es || "";
-    if (checkable){
+    if (onBoard){
       const bb = document.createElement("button"); bb.type = "button"; bb.className = "bd-btn";
       bb.innerHTML = `<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M1.5 2h13v9h-5l2 3h-1.8l-2-3h-.4l-2 3H3.5l2-3h-4zM3 3.5v6h10v-6z"/></svg> Explícamelo en la pizarra`;
-      bb.onclick = () => openBoard(i); d.append(bb);
+      bb.onclick = () => onBoard(i); d.append(bb);
+    }
+    if (checkable){
       const lab = document.createElement("label"); lab.className = "chk";
       const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!S.errChecked[i];
       d.classList.toggle("seen", cb.checked);
@@ -1486,7 +1489,7 @@ function renderCorrect(){
   st.append(ul); st.hidden = !S.strengths_es.length;
   const photo = !!(S.fromPhoto || S.example); $("fixBox").hidden = !photo; $("origLbl").textContent = photo ? "Lo que leí en tu cuaderno" : "Lo que escribiste";
   $("origText").textContent = S.transcription; $("fixTrans").value = S.transcription; renderCorrDiff();
-  renderErrors($("errList"), S.errors, true); errCount(); renderAsgRes();
+  renderErrors($("errList"), S.errors, true, openBoard); errCount(); renderAsgRes();
 }
 
 /* ---------- Voz ----------
@@ -1884,7 +1887,7 @@ function showReading(){
   const missed = new Set(readingMisses().map(m => norm(m.word)));
   const words = (r && Array.isArray(r.words_to_practice) ? r.words_to_practice : [])
     .filter(w => w && w.word && missed.has(norm(w.word)) && norm(w.word) !== norm(w.heard_as || "")).slice(0, 5);
-  if (words.length) renderErrors($("readWords"), words.map(w => ({ original: w.word, correction: w.heard_as ? `se escuchó “${w.heard_as}”` : "no se escuchó", type: "pronunciación", rule_es: w.tip_es })));
+  if (words.length) renderErrors($("readWords"), words.map(w => ({ original: w.word, correction: w.heard_as ? `se escuchó “${w.heard_as}”` : "no se escuchó", type: "pronunciación", rule_es: w.tip_es })), false, (k) => openPronBoard(words[k]));
   else $("readWords").innerHTML = "";
   $("readWords").hidden = !words.length;
   $("readRes").hidden = false;
@@ -1894,7 +1897,7 @@ async function evaluateReading(txt, shortMsg){
   const st = $("st4");
   if (countWords(txt) < 10) return fail(st, shortMsg);
   $("readIn").value = txt;
-  S.reading = { text: txt, pct: null, res: null, attempts: S.reading.attempts || [] };
+  S.reading = { text: txt, pct: null, res: null, attempts: S.reading.attempts || [], boards: S.reading.boards || {} };
   const ops = readingOps(); const ok = ops.filter(o => o[0] === "ok").length; const total = ops.filter(o => o[0] !== "extra").length || 1;
   S.reading.pct = Math.round(ok / total * 100); S.reading.attempts.push(S.reading.pct); save(); showReading();
   const sample = await sampleP; if (!sample) return busy(st, "");
@@ -2049,12 +2052,28 @@ Rules:
 - en: an English sentence (maximum 12 words) that an English voice says after say_es, to model the correct form; "" if not needed.
 - Order: 1) show the mistake; 2) the rule; 3) the correct form; 4) one or two examples, from the student's story when possible; last step: short encouragement, with the full correct sentence in en.`;
 }
-let bd = null, bdIdx = -1;
+function boardPronPrompt(level, story, w){
+  const sentence = splitSentences(story).find(x => new RegExp(`\\b${w.word.replace(/[^A-Za-z']/g, "")}\\b`, "i").test(x)) || "";
+  return `You are the whiteboard teacher of Wrealispec. Teach a Spanish-speaking student of English (CEFR ${level}) how to pronounce ONE word, as a short animated whiteboard lesson: 4 or 5 steps, about 35 seconds in total.
+Word: "${w.word}". When the student read it aloud, the speech recognizer ${w.heard_as ? `understood "${w.heard_as}"` : "did not understand it"}.
+Sentence from the student's story: "${sentence}"
+Reply with only JSON:
+{"title_es":"","steps":[{"say_es":"","board":[{"t":"","k":"","hl":""}],"en":"","slow":false}]}
+Rules:
+- Be accurate. Never state syllable counts or rules you are not sure about. Focus on the one or two sounds that most likely caused the confusion.
+- title_es: maximum 6 words in Spanish (for example «Cómo se dice every»).
+- say_es: warm, simple Mexican Spanish, 1 or 2 short sentences. A Spanish voice reads it, so never write English words in say_es: say «esta palabra», «el primer sonido», etc.
+- board: 0 to 2 lines per step, maximum 42 characters each. k: right = the word or the sentence; wrong = what was heard, only if it is a different word; note = a very short tip in Spanish about the sound; example = a Spanish-like spelling with syllables separated by hyphens and the stressed syllable in CAPITALS (for example «É-vri»). hl: an exact part of t to highlight, or "".
+- en: what an English voice says after say_es (the word, or the sentence, maximum 12 words); "" if nothing. slow: true to play it slowly.
+- Order: 1) the word, and what was heard; 2) the sound to practice, with the Spanish-like spelling; 3) the word said slowly (slow: true) and then at normal speed (slow: false); 4) the word inside the sentence from the story; last step: short encouragement.`;
+}
+let bd = null, bdKey = "";
 const bdAudio = {};   // audios ya preparados en esta visita, por error
 function cleanBoard(r){
   const steps = (Array.isArray(r && r.steps) ? r.steps : []).slice(0, 8).map(st => ({
     say: String(st && st.say_es || "").trim().slice(0, 300),
     en: String(st && st.en || "").trim().slice(0, 140),
+    slow: !!(st && st.slow),
     board: (Array.isArray(st && st.board) ? st.board : []).slice(0, 3).map(l => ({
       t: String(l && l.t || "").trim().slice(0, 60),
       k: ["wrong", "right", "note", "example"].includes(l && l.k) ? l.k : "note",
@@ -2092,7 +2111,7 @@ function speakEs(text){
   });
 }
 async function bdPrepareAudio(){
-  const key = bdIdx + "|" + textHash(JSON.stringify(bd.steps));
+  const key = bdKey + "|" + textHash(JSON.stringify(bd.steps));
   if (bdAudio.key === key) return bdAudio.data;
   if (!ttsOn) return null;
   const st = $("bdSt");
@@ -2129,15 +2148,27 @@ async function bdPlay(){
     if (bd.steps[k].en){
       await wait(250);
       const j = A ? A.enIdx.indexOf(k) : -1;
-      if (A && A.en && j >= 0) await playSpan(A.en.starts[j], A.en.ends[j], my, null, bdEn, 0.95); else await speak(bd.steps[k].en, 0.9);
+      const r = bd.steps[k].slow ? 0.72 : 0.95;
+      if (A && A.en && j >= 0) await playSpan(A.en.starts[j], A.en.ends[j], my, null, bdEn, r); else await speak(bd.steps[k].en, bd.steps[k].slow ? 0.65 : 0.9);
     }
     await wait(450);
   }
   if (my === runId){ $("bdPlay").textContent = "Reproducir otra vez"; $("bdPlay").disabled = false; }
 }
-async function openBoard(i){
+function openBoard(i){
   const er = S.errors[i]; if (!er) return;
-  bdIdx = i; bd = er.board ? cleanBoard(er.board) : null;
+  startBoard("w" + i, er, () => boardPrompt(S.level, S.corrected, er));
+}
+function openPronBoard(w){
+  if (!w || !w.word) return;
+  S.reading.boards = S.reading.boards || {};
+  const k = norm(w.word), holder = S.reading.boards[k] || (S.reading.boards[k] = {});
+  startBoard("p" + k, holder, () => boardPronPrompt(S.level, S.corrected, w));
+}
+// holder es donde se guarda el guion (el error o la palabra), para no volver a pedirlo a la IA.
+async function startBoard(key, holder, makePrompt){
+  bdKey = key; bd = holder.board ? cleanBoard(holder.board) : null;
+  $("bdEyebrow").textContent = key[0] === "p" ? "Pizarra · cómo se pronuncia" : "Pizarra · tu error explicado";
   $("bdTitle").textContent = bd ? bd.title : "Preparando tu pizarra…";
   $("bdLines").innerHTML = `<div class="bd-wait">${bd ? "Toca «Reproducir»" : "Preparando la explicación…"}</div>`;
   $("bdSub").textContent = ""; $("bdDots").innerHTML = ""; $("bdSt").textContent = ""; $("bdSt").classList.remove("bad");
@@ -2148,19 +2179,19 @@ async function openBoard(i){
     if (!sample){ $("bdLines").innerHTML = ""; return fail($("bdSt"), "La pizarra funciona en wrealispec.com con la IA activada."); }
     try {
       busy($("bdSt"), "La IA está preparando tu pizarra…");
-      const r = await sample.json(boardPrompt(S.level, S.corrected, er));
+      const r = await sample.json(makePrompt());
       bd = cleanBoard(r); if (!bd) throw { code:"invalid_json" };
-      er.board = { title_es: bd.title, steps: bd.steps.map(x => ({ say_es: x.say, en: x.en, board: x.board })) }; save();
+      holder.board = { title_es: bd.title, steps: bd.steps.map(x => ({ say_es: x.say, en: x.en, slow: x.slow, board: x.board })) }; save();
       busy($("bdSt"), "");
     } catch(e){ $("bdLines").innerHTML = ""; return fail($("bdSt"), errMsg(e)); }
   }
-  if (bdIdx !== i || $("bdModal").hidden) return;
+  if (bdKey !== key || $("bdModal").hidden) return;
   $("bdTitle").textContent = bd.title; bdReset();
   $("bdLines").innerHTML = `<div class="bd-wait">Toca «Reproducir»</div>`;
   $("bdPlay").disabled = false;
   bdPlay();   // empieza solo; si el navegador bloquea el sonido, el alumno toca «Reproducir»
 }
-function closeBoard(){ stopSpeech(); $("bdModal").hidden = true; bdIdx = -1; }
+function closeBoard(){ stopSpeech(); $("bdModal").hidden = true; bdKey = ""; }
 $("bdPlay").onclick = bdPlay;
 $("bdClose").onclick = closeBoard;
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("bdModal").hidden) closeBoard(); });
