@@ -270,6 +270,27 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
 .qa-one .qh::before{display:none}
 .qa-nav{justify-content:space-between}
 .qa-resm{border-top:1px solid var(--rule);padding-top:12px}
+/* Asistente de nueva historia */
+.nw-card{max-width:680px}
+.pick-list{display:flex;flex-direction:column;gap:8px}
+.pick{display:flex;align-items:center;gap:10px;text-align:left;font:inherit;border:1.5px solid var(--rule);border-radius:12px;padding:10px 14px;background:var(--sheet);color:var(--ink);cursor:pointer}
+.pick:hover{border-color:var(--accent)}
+.pick[aria-checked="true"]{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 20%,transparent)}
+.pick .pk-en{font-weight:700}
+.pick .pk-es{font-size:.85rem;color:var(--ink-soft)}
+.pick .pk-txt{display:flex;flex-direction:column}
+.lv-group{margin:4px 0 12px}
+.lv-group h4,.nw-voc h4{margin:0 0 8px;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);font-family:var(--f-mono)}
+.chip-sel{display:flex;flex-wrap:wrap;gap:8px}
+.chip-s{font:inherit;font-weight:700;font-size:.92rem;border:1.5px solid var(--rule);background:var(--sheet);color:var(--ink);border-radius:999px;padding:6px 13px;cursor:pointer}
+.chip-s[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.chip-s:disabled{opacity:.4;cursor:not-allowed}
+.chip-s.off{text-decoration:line-through;opacity:.5}
+.nw-count{font-weight:700;color:var(--accent)}
+.nw-voc{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:520px){.nw-voc{grid-template-columns:1fr}}
+.nw-step{display:flex;flex-direction:column;gap:12px;max-height:56vh;overflow-y:auto;padding:2px}
+@media (max-width:620px){.nw-step{max-height:52dvh}}
 /* Conversación por voz */
 .chat-card .chat{max-height:none;flex:1;min-height:220px;max-height:48vh}
 @media (max-width:620px){.chat-card .chat{max-height:42dvh}}
@@ -516,6 +537,44 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
         <div class="row chat-end"><button class="btn quiet" id="btnChatEnd">Terminar y recibir retroalimentación</button></div>
       </div>
       <span class="status" id="stChat2" role="status"></span>
+    </div>
+  </div>
+
+  <div class="modal pl" id="nwModal" hidden role="dialog" aria-modal="true" aria-labelledby="nwTitle">
+    <div class="modal-card pl-card nw-card">
+      <div class="pl-head">
+        <div class="vc-txt"><span class="eyebrow" id="nwEyebrow">Tu siguiente historia · paso 1 de 3</span><strong id="nwTitle">¿Sobre qué vas a escribir?</strong></div>
+        <button class="xbtn" id="nwClose" aria-label="Cerrar">×</button>
+      </div>
+      <div class="dots" id="nwDots" aria-hidden="true"><span class="dot on"></span><span class="dot"></span><span class="dot"></span></div>
+
+      <div class="nw-step" data-nw="0">
+        <p class="muted small">Elige una pregunta detonadora para tu nivel, o escribe la tuya o el tema que quieres aprender.</p>
+        <div class="pick-list" id="nwQs" role="radiogroup" aria-label="Preguntas detonadoras"></div>
+        <div class="field"><label for="nwOwn">O escribe tu pregunta o tu tema</label><input type="text" id="nwOwn" placeholder="Ej. What is your dream job? · Vocabulario para el aeropuerto"></div>
+      </div>
+
+      <div class="nw-step" data-nw="1" hidden>
+        <p class="muted small">Elige <strong>hasta 5</strong> estructuras para practicar en tu historia (opcional). <span id="nwCount" class="nw-count">0 de 5</span></p>
+        <div id="nwStructs"></div>
+        <button type="button" class="linkbtn" id="nwMoreLv">Ver estructuras de otros niveles</button>
+      </div>
+
+      <div class="nw-step" data-nw="2" hidden>
+        <p class="muted small">La IA te propone verbos y adjetivos para tu tema. Toca los que <strong>no</strong> quieras usar para quitarlos.</p>
+        <div class="nw-voc">
+          <div><h4>Verbos</h4><div class="chip-sel" id="nwVerbs"></div></div>
+          <div><h4>Adjetivos</h4><div class="chip-sel" id="nwAdj"></div></div>
+        </div>
+        <div class="row"><button type="button" class="btn quiet" id="nwRegen">Proponer otros</button><span class="status" id="nwSt" role="status"></span></div>
+        <div class="checks"><label><input type="checkbox" id="nwQ"> Mi historia debe incluir al menos una pregunta.</label></div>
+      </div>
+
+      <div class="row qa-nav">
+        <button class="btn quiet" id="nwPrev">Atrás</button>
+        <button class="btn" id="nwNext">Siguiente</button>
+        <button class="btn" id="nwGo" hidden>Empezar mi historia</button>
+      </div>
     </div>
   </div>
 
@@ -808,14 +867,11 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <div class="field">
       <h3 id="hwTitle">Tarea para la próxima clase</h3>
       <p class="small muted" id="hwNote">El profesor la deja al final de la clase. Solo la pregunta detonadora es obligatoria.</p>
-      <div class="field"><label for="newTopic">Pregunta detonadora</label><input type="text" id="newTopic" placeholder="Ej. What did you do last weekend?"></div>
-      <div class="field"><label for="hwStruct">Estructura a practicar</label><input type="text" id="hwStruct" placeholder="Ej. Pasado simple"></div>
-      <div class="grid2">
-        <div class="field"><label for="hwVerbs">Verbos a usar</label><input type="text" id="hwVerbs" placeholder="Ej. went, visited, ate"><span class="small muted">Sepáralos con comas, en la forma en que deben usarlos.</span></div>
-        <div class="field"><label for="hwAdj">Adjetivos a usar</label><input type="text" id="hwAdj" placeholder="Ej. amazing, tired"></div>
+      <div hidden>
+        <input type="text" id="newTopic"><input type="text" id="hwStruct"><input type="text" id="hwVerbs"><input type="text" id="hwAdj"><input type="checkbox" id="hwQ">
+        <button id="btnNew" type="button"></button>
       </div>
-      <div class="checks"><label><input type="checkbox" id="hwQ"> Su historia debe incluir al menos una pregunta.</label></div>
-      <div class="row"><button class="btn" id="btnNew">Empezar nueva historia</button><a class="btn ghost" id="btnBook" target="_blank" rel="noopener" hidden>Agenda tu próxima clase</a></div>
+      <div class="row"><button class="btn" id="btnNewOpen"><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M7.25 2h1.5v5.25H14v1.5H8.75V14h-1.5V8.75H2v-1.5h5.25z"/></svg> Preparar mi siguiente historia</button><a class="btn ghost" id="btnBook" target="_blank" rel="noopener" hidden>Agenda tu próxima clase</a></div>
       <p class="small muted">Esta historia se guarda en tu historial, en este navegador.</p>
     </div>
   </section>
@@ -831,7 +887,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.15 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.16 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -2618,7 +2674,7 @@ function setPlan(m){
   $("p4Title").textContent = m === "pro" ? "Listo para la videollamada con tu profesor" : m === "ia" ? "Conversa sobre tu historia con la IA" : "Conversemos";
   $("p4Lead").textContent = m === "pro" ? "Practica con la IA y luego tu profesor te pedirá que expliques tu historia y te hará preguntas." : m === "ia" ? "La IA te pide que expliques tu historia y te hace preguntas, como lo haría un profesor." : "En tu plan practicas las Fases 1 a 3. Aquí eliges el tema de tu siguiente historia.";
   $("hwTitle").textContent = m === "pro" ? "Tarea para la próxima clase" : "Tu siguiente historia";
-  $("hwNote").textContent = m === "pro" ? "El profesor la deja al final de la clase. Solo la pregunta detonadora es obligatoria." : "Escribe el tema de tu siguiente historia. Si quieres un reto extra, agrega una estructura, verbos o adjetivos.";
+  $("hwNote").textContent = m === "pro" ? "El profesor la deja al final de la clase: tema, estructuras y vocabulario, en 3 pasos." : "Elige el tema de tu siguiente historia y las estructuras que quieres practicar. La IA te propone verbos y adjetivos para tu reto.";
   if (S.reading && S.reading.attempts && S.reading.attempts.length && !$("readRes").hidden) showReading();
   $("summary").textContent = summaryText();
 }
@@ -2826,6 +2882,116 @@ $("btnNew").onclick = () => {
   ["newTopic","hwStruct","hwVerbs","hwAdj"].forEach(id => { $(id).value = ""; }); $("hwQ").checked = false;
   save(); renderAll(); go(0);
 };
+/* ---------- Asistente de nueva historia (3 pasos) ---------- */
+const NW_QS = {
+  A1: [["Describe your family.","Describe a tu familia."],["What do you do every morning?","¿Qué haces cada mañana?"],["What is your favorite food?","¿Cuál es tu comida favorita?"],["Describe your house.","Describe tu casa."],["What do you like to do on weekends?","¿Qué te gusta hacer los fines de semana?"],["Who is your best friend?","¿Quién es tu mejor amigo o amiga?"]],
+  A2: [["What did you do last weekend?","¿Qué hiciste el fin de semana pasado?"],["Tell me about your last vacation.","Cuéntame de tus últimas vacaciones."],["Describe a typical day at work or school.","Describe un día normal en tu trabajo o escuela."],["What are your plans for next month?","¿Qué planes tienes para el próximo mes?"],["Describe your favorite place in your city.","Describe tu lugar favorito de tu ciudad."],["What is the best gift you have received?","¿Cuál es el mejor regalo que has recibido?"]],
+  B1: [["Tell me about a trip you will never forget.","Cuéntame de un viaje que nunca olvidarás."],["What would you do if you won the lottery?","¿Qué harías si ganaras la lotería?"],["Describe a problem you solved recently.","Describe un problema que resolviste hace poco."],["What has changed in your life in the last five years?","¿Qué ha cambiado en tu vida en los últimos cinco años?"],["Tell me about a person who inspires you.","Háblame de una persona que te inspira."],["What is your dream job and why?","¿Cuál es el trabajo de tus sueños y por qué?"]],
+  B2: [["Describe a decision that changed your life.","Describe una decisión que cambió tu vida."],["Is technology making us happier? Give your opinion.","¿La tecnología nos hace más felices? Da tu opinión."],["Tell me about a mistake you learned from.","Cuéntame de un error del que aprendiste."],["If you could live in another country, where and why?","Si pudieras vivir en otro país, ¿dónde y por qué?"],["Describe a challenge at work and how you handled it.","Describe un reto en el trabajo y cómo lo manejaste."],["What advice would you give your younger self?","¿Qué consejo le darías a tu yo más joven?"]],
+  C1: [["Should remote work be the norm? Argue your position.","¿El trabajo remoto debería ser la norma? Argumenta."],["Describe a turning point in your career.","Describe un momento decisivo en tu carrera."],["How will AI change your profession in ten years?","¿Cómo cambiará la IA tu profesión en diez años?"],["Tell me about a cultural difference that surprised you.","Cuéntame de una diferencia cultural que te sorprendió."],["What makes a great leader? Use examples.","¿Qué hace a un gran líder? Usa ejemplos."],["Describe a project you are proud of and what you learned.","Describe un proyecto del que estés orgulloso y qué aprendiste."]],
+};
+const NW_STRUCTS = {
+  A1: ["Verbo to be (am, is, are)","Presente simple","There is / There are","Can / can't","Presente continuo","Posesivos (my, your, his…)","Preguntas con What, Where, When…","Preposiciones de lugar (in, on, under)"],
+  A2: ["Pasado simple","Was / were","Futuro con going to","Comparativos","Superlativos","Adverbios de frecuencia","Have to / must","Like / love + -ing","Conectores (and, but, because)"],
+  B1: ["Presente perfecto","Pasado continuo","Futuro con will","Primer condicional","Segundo condicional","Used to","Voz pasiva (presente y pasado)","Conectores (although, however, so)"],
+  B2: ["Presente perfecto continuo","Pasado perfecto","Tercer condicional","Estilo indirecto (reported speech)","Oraciones de relativo (who, which, that)","Modales de deducción (must, might, can't)","Wish / If only"],
+  C1: ["Condicionales mixtos","Inversión (Never have I…)","Oraciones hendidas (What I need is…)","Cláusulas de participio","Voz pasiva avanzada","Modales en pasado (should have, could have)"],
+};
+const LVS = ["A1","A2","B1","B2","C1"];
+let nw = { step: 0, q: "", structs: [], verbs: [], adj: [], off: new Set(), allLv: false };
+function nwLevel(){ return LVS.includes(S.level) ? S.level : "A2"; }
+function nwRenderQs(){
+  const box = $("nwQs"); box.innerHTML = "";
+  (NW_QS[nwLevel()] || NW_QS.A2).forEach(([en, es]) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "pick"; b.setAttribute("role", "radio");
+    b.setAttribute("aria-checked", String(nw.q === en));
+    b.innerHTML = `<span class="pk-txt"><span class="pk-en"></span><span class="pk-es"></span></span>`;
+    b.querySelector(".pk-en").textContent = en; b.querySelector(".pk-es").textContent = es;
+    b.onclick = () => { nw.q = en; $("nwOwn").value = ""; nwRenderQs(); };
+    box.append(b);
+  });
+}
+function nwRenderStructs(){
+  const box = $("nwStructs"); box.innerHTML = ""; const lv = nwLevel(), i = LVS.indexOf(lv);
+  const levels = nw.allLv ? LVS : LVS.slice(Math.max(0, i - 1), i + 1).reverse();
+  levels.forEach(l => {
+    const g = document.createElement("div"); g.className = "lv-group";
+    g.innerHTML = `<h4>${l}${l === lv ? " · tu nivel" : ""}</h4><div class="chip-sel"></div>`;
+    NW_STRUCTS[l].forEach(st => {
+      const c = document.createElement("button"); c.type = "button"; c.className = "chip-s"; c.textContent = st;
+      const on = nw.structs.includes(st); c.setAttribute("aria-pressed", String(on));
+      c.disabled = !on && nw.structs.length >= 5;
+      c.onclick = () => { nw.structs = on ? nw.structs.filter(x => x !== st) : [...nw.structs, st]; nwRenderStructs(); };
+      g.querySelector(".chip-sel").append(c);
+    });
+    box.append(g);
+  });
+  $("nwCount").textContent = `${nw.structs.length} de 5`;
+  $("nwMoreLv").textContent = nw.allLv ? "Ver solo mi nivel" : "Ver estructuras de otros niveles";
+}
+$("nwMoreLv").onclick = () => { nw.allLv = !nw.allLv; nwRenderStructs(); };
+function nwRenderVoc(){
+  [["nwVerbs", nw.verbs], ["nwAdj", nw.adj]].forEach(([id, list]) => {
+    const box = $(id); box.innerHTML = "";
+    if (!list.length){ box.innerHTML = `<span class="small muted">—</span>`; return; }
+    list.forEach(w => { const c = document.createElement("button"); c.type = "button"; c.className = "chip-s" + (nw.off.has(w) ? " off" : "");
+      c.setAttribute("aria-pressed", String(!nw.off.has(w))); c.textContent = w;
+      c.onclick = () => { nw.off.has(w) ? nw.off.delete(w) : nw.off.add(w); nwRenderVoc(); }; box.append(c); });
+  });
+}
+const nwTopic = () => $("nwOwn").value.trim() || nw.q;
+async function nwSuggest(){
+  const st = $("nwSt"); const sample = await sampleP;
+  if (!sample){ fail(st, "La IA propone el vocabulario en wrealispec.com. Puedes empezar sin verbos ni adjetivos."); return; }
+  $("nwRegen").disabled = true; $("nwGo").disabled = true; busy(st, "La IA está eligiendo tu vocabulario…");
+  try {
+    const prev = [...nw.verbs, ...nw.adj];
+    const r = await sample.json(`You are an English tutor for Wrealispec. Suggest vocabulary for a student's next short story.
+Student level: CEFR ${nwLevel()}.
+Topic or trigger question: "${nwTopic()}"
+Structures to practice: ${nw.structs.length ? nw.structs.join("; ") : "(any)"}
+Reply with only JSON: {"verbs":[],"adjectives":[]}
+- verbs: 5 or 6 useful verbs for this topic, written in the form the student should use with the structures (for example "went" for past simple, "have visited" for present perfect).
+- adjectives: 5 or 6 useful adjectives for this topic.
+- Words must match the student's level. ${prev.length ? `Do not repeat: ${prev.join(", ")}.` : ""}`, { cache:false, need:["verbs"] });
+    const clean = (a) => (Array.isArray(a) ? a : []).map(x => String(x || "").trim()).filter(Boolean).slice(0, 6);
+    nw.verbs = clean(r.verbs); nw.adj = clean(r.adjectives); nw.off = new Set(); nwRenderVoc(); busy(st, "");
+  } catch(e){ fail(st, errMsg(e)); }
+  finally { $("nwRegen").disabled = false; $("nwGo").disabled = false; }
+}
+$("nwRegen").onclick = nwSuggest;
+function nwShow(){
+  const titles = ["¿Sobre qué vas a escribir?", "¿Qué quieres practicar?", "Tu vocabulario para el reto"];
+  const who = plan() === "pro" ? "Tarea para la próxima clase" : "Tu siguiente historia";
+  document.querySelectorAll(".nw-step").forEach(el => el.hidden = Number(el.dataset.nw) !== nw.step);
+  $("nwEyebrow").textContent = `${who} · paso ${nw.step + 1} de 3`; $("nwTitle").textContent = titles[nw.step];
+  $("nwDots").querySelectorAll(".dot").forEach((d, i) => d.classList.toggle("on", i <= nw.step));
+  $("nwPrev").disabled = nw.step === 0; $("nwNext").hidden = nw.step === 2; $("nwGo").hidden = nw.step !== 2;
+}
+$("btnNewOpen").onclick = () => {
+  nw = { step: 0, q: "", structs: [], verbs: [], adj: [], off: new Set(), allLv: false };
+  $("nwOwn").value = ""; $("nwQ").checked = false; $("nwSt").textContent = "";
+  nwRenderQs(); nwRenderStructs(); nwRenderVoc(); nwShow(); $("nwModal").hidden = false;
+};
+$("nwOwn").addEventListener("input", () => { if ($("nwOwn").value.trim() && nw.q){ nw.q = ""; nwRenderQs(); } });
+$("nwNext").onclick = () => {
+  if (nw.step === 0 && !nwTopic()){ $("nwOwn").focus(); $("nwOwn").placeholder = "Elige una pregunta de arriba o escribe aquí tu tema"; return; }
+  nw.step++; nwShow();
+  if (nw.step === 2 && !nw.verbs.length) nwSuggest();
+};
+$("nwPrev").onclick = () => { nw.step = Math.max(0, nw.step - 1); nwShow(); };
+const closeNw = () => { $("nwModal").hidden = true; };
+$("nwClose").onclick = closeNw;
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("nwModal").hidden) closeNw(); });
+$("nwGo").onclick = () => {
+  $("newTopic").value = nwTopic();
+  $("hwStruct").value = nw.structs.join("; ");
+  $("hwVerbs").value = nw.verbs.filter(w => !nw.off.has(w)).join(", ");
+  $("hwAdj").value = nw.adj.filter(w => !nw.off.has(w)).join(", ");
+  $("hwQ").checked = $("nwQ").checked;
+  closeNw(); $("btnNew").click(); window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
 /* ---------- Assignment tracking ---------- */
 function usedWord(text, w){
   const esc = w.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
