@@ -320,6 +320,10 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
 .lvl-b .lb-n{font-size:.75rem;color:var(--ink-soft);text-align:center;line-height:1.2}
 .lvl-b[aria-checked="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .lvl-b[aria-checked="true"] .lb-n{color:var(--accent-ink);opacity:.9}
+#rtModal .pl-card{max-width:min(980px,calc(100vw - 48px))}
+#rtModal textarea{min-height:240px}
+.rt-view{display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 230px);overflow-y:auto;padding:2px}
+@media (max-width:620px){#rtModal .pl-card{max-width:none}.rt-view{max-height:66dvh}#rtModal textarea{min-height:180px}}
 /* Asistente de nueva historia */
 .nw-card{max-width:680px}
 .pick-list{display:flex;flex-direction:column;gap:8px}
@@ -697,6 +701,31 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     </div>
   </div>
 
+  <div class="modal pl" id="rtModal" hidden role="dialog" aria-modal="true" aria-labelledby="rtTitle">
+    <div class="modal-card pl-card">
+      <div class="pl-head">
+        <div class="vc-txt"><span class="eyebrow">Vuelve a contar tu historia · sin mirar</span><strong id="rtTitle">Escríbela con tus palabras</strong></div>
+        <button class="xbtn" id="rtClose" aria-label="Cerrar">×</button>
+      </div>
+      <div id="rtWrite" class="rt-view">
+        <p class="muted small" id="rtIntro">No tiene que ser igual: lo importante es que digas las ideas principales. Te la reviso rápido.</p>
+    <div class="field"><label for="retell">Tu historia, con tus palabras</label><textarea id="retell"></textarea></div>
+    <span class="status" id="st5" role="status"></span>
+    <div id="retellRes" hidden class="field rt-res">
+      <div class="lvl" id="covLv"></div>
+      <p id="retellFb"></p>
+      <div id="missing"></div>
+      <div class="errors" id="retellErrs"></div>
+    </div>
+      </div>
+      <div class="row qa-nav" id="rtNav">
+        <button class="btn quiet" id="rtEdit" hidden>Corregir mi versión</button>
+        <button class="btn" id="btnRetell">Revisar mi versión</button>
+        <button class="btn" id="rtDone" hidden>Listo</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal" id="trModal" hidden role="dialog" aria-modal="true" aria-labelledby="trTitle">
     <div class="modal-card" style="max-width:660px">
       <span class="eyebrow">Antes de corregir · revisa tu texto</span>
@@ -887,13 +916,9 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
       <h2>Vuelve a contar tu historia</h2>
       <p class="muted">Escríbela otra vez con tus palabras, sin mirar, y te la reviso rápido. No tiene que ser igual: lo importante es que digas las ideas principales.</p>
     </div>
-    <div class="field"><label for="retell">Tu historia, con tus palabras</label><textarea id="retell"></textarea></div>
-    <div class="row"><button class="btn" id="btnRetell">Revisar mi versión</button><span class="status" id="st5" role="status"></span></div>
-    <div id="retellRes" hidden class="field">
-      <div class="lvl" id="covLv"></div>
-      <p id="retellFb"></p>
-      <div id="missing"></div>
-      <div class="errors" id="retellErrs"></div>
+    <div class="read-sum" id="retellSum">
+      <div><span class="eyebrow" id="retellSumEy">Sin mirar tu historia</span><strong id="retellSumLv">Escríbela con tus palabras</strong></div>
+      <button class="btn" id="btnRetellOpen">Escribir mi versión</button>
     </div>
     <div class="row"><button class="btn" data-go="3">Siguiente fase: Conversemos</button></div>
   </section>
@@ -970,7 +995,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.21 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.22 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -2060,7 +2085,7 @@ function renderPhase3(){
   if (S.reading.pct != null) showReading(); else $("readRes").hidden = true;
   renderQa();
   $("retell").value = S.retell.text || "";
-  if (S.retell.res) showRetell(S.retell.res); else $("retellRes").hidden = true;
+  if (S.retell.res) showRetell(S.retell.res); else { $("retellRes").hidden = true; rtSummary(); }
 }
 $("readIn").oninput = () => { S.reading.text = $("readIn").value; save(); };
 const norm = (w) => w.toLowerCase().replace(/[’]/g,"'").replace(/[^a-z0-9':]/g,"");
@@ -2733,13 +2758,37 @@ function showRetell(r){
   }
   renderErrors($("retellErrs"), Array.isArray(r.errors) ? r.errors : []);
   $("retellRes").hidden = false;
+  rtSummary();
 }
+function rtSummary(){
+  const r = S.retell && S.retell.res;
+  $("retellSumEy").textContent = r ? "Tu versión sin mirar" : "Sin mirar tu historia";
+  $("retellSumLv").textContent = r ? lvLabel(Math.round(Number(r.coverage_pct) || 0)) : "Escríbela con tus palabras";
+  $("btnRetellOpen").textContent = r ? "Ver mi revisión" : "Escribir mi versión";
+  $("btnRetellOpen").classList.toggle("ghost", !!r);
+}
+function rtMode(res){
+  const field = $("retell").closest(".field");
+  field.hidden = res; $("retellRes").hidden = !res; $("rtIntro").hidden = res;
+  $("btnRetell").hidden = res; $("rtEdit").hidden = !res; $("rtDone").hidden = !res;
+  $("rtTitle").textContent = res ? "Tu revisión" : "Escríbela con tus palabras";
+  $("rtWrite").scrollTop = 0;
+}
+$("btnRetellOpen").onclick = () => {
+  $("st5").textContent = ""; $("st5").classList.remove("bad");
+  rtMode(!!(S.retell && S.retell.res)); $("rtModal").hidden = false;
+  setTimeout(() => (S.retell && S.retell.res ? $("rtDone") : $("retell")).focus(), 50);
+};
+$("rtEdit").onclick = () => { rtMode(false); $("retell").focus(); };
+const closeRt = () => { $("rtModal").hidden = true; rtSummary(); };
+$("rtDone").onclick = closeRt; $("rtClose").onclick = closeRt;
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("rtModal").hidden) closeRt(); });
 $("btnRetell").onclick = async () => {
   const txt = $("retell").value.trim(); const st = $("st5");
   if (countWords(txt) < 15) return fail(st, "Escribe al menos 15 palabras para poder revisarla.");
   const sample = await sampleP; if (!sample) return fail(st, "Demostración: la revisión con IA se activa en la siguiente versión.");
   $("btnRetell").disabled = true; busy(st, "Revisando tu versión…");
-  try { const r = await sample.json(retellPrompt(S.level, S.corrected, txt)); S.retell = { text: txt, res: r }; save(); showRetell(r); busy(st, ""); }
+  try { const r = await sample.json(retellPrompt(S.level, S.corrected, txt)); S.retell = { text: txt, res: r }; save(); showRetell(r); busy(st, ""); rtMode(true); }
   catch(e){ fail(st, errMsg(e)); } finally { $("btnRetell").disabled = false; }
 };
 
