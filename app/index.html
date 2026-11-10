@@ -582,7 +582,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
       <div class="errors" id="errList"></div>
     </div>
     <p class="note warn small" id="copyNote">Ahora copia el texto corregido en tu cuaderno, otra vez a mano. Así fijas las correcciones.</p>
-    <div class="row" id="dlRow"><button class="btn ghost" id="btnPdf">Descargar PDF</button><button class="btn quiet" id="btnDl">Texto (.txt)</button><span class="status" id="stPdf" role="status"></span></div>
+    <div class="row" id="dlRow"><button class="btn ghost" id="btnPdf">Descargar PDF</button><button type="button" class="linkbtn" id="btnPrint">¿Salió en blanco? Imprimir o guardar como PDF</button><span class="status" id="stPdf" role="status"></span></div>
     <p class="small muted">Se guarda en tu celular o computadora para estudiarlo sin internet.</p>
     <div class="row"><button class="btn" data-go="1">Siguiente fase: Escucha y repite</button></div>
   </section>
@@ -780,7 +780,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.10 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.11 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -1457,7 +1457,6 @@ function downloadStory(){
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
   document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
-$("btnDl").addEventListener("click", downloadStory);
 /* ---------- PDF con diseño de Wrealispec (se arma en el navegador, sin costo) ---------- */
 function loadScript(src){ return new Promise((res, rej) => { if (document.querySelector(`script[src="${src}"]`)) return res(); const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = rej; document.head.append(s); }); }
 function pdfSheet(){
@@ -1494,8 +1493,16 @@ $("btnPdf").addEventListener("click", async () => {
   try {
     await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js");
     const el = pdfSheet();
+    // La hoja se pone en la página (arriba a la izquierda, detrás de todo) y se captura sin tomar en cuenta
+    // el desplazamiento: si no, cuando la página está bajada el PDF sale en blanco.
+    pdfWrap = document.createElement("div");
+    pdfWrap.style.cssText = "position:absolute;left:0;top:0;width:740px;z-index:-9999;pointer-events:none;background:#fff";
+    pdfWrap.append(el); document.body.append(pdfWrap);
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
     const name = `Wrealispec - ${String(S.title || S.topic || "mi historia").replace(/[\\/:*?"<>|]+/g, "").slice(0, 60)}.pdf`;
-    const opt = { margin: [10, 10, 12, 10], filename: name, image: { type: "jpeg", quality: 0.95 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" }, jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }, pagebreak: { mode: ["css", "legacy"] } };
+    const opt = { margin: [10, 10, 12, 10], filename: name, image: { type: "jpeg", quality: 0.95 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", scrollX: 0, scrollY: 0, windowWidth: 760 },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }, pagebreak: { mode: ["css", "legacy"] } };
     if (typeof dlCap !== "undefined" && dlCap){
       const blob = await window.html2pdf().set(opt).from(el).outputPdf("blob");
       await dlCap.save({ filename: name, data: blob });
@@ -1503,8 +1510,20 @@ $("btnPdf").addEventListener("click", async () => {
       await window.html2pdf().set(opt).from(el).save();
     }
     busy(st, "");
-  } catch(e){ fail(st, "No se pudo crear el PDF. Inténtalo de nuevo o usa la opción de texto."); }
-  finally { $("btnPdf").disabled = false; }
+  } catch(e){ fail(st, "No se pudo crear el PDF. Usa «Imprimir o guardar como PDF»."); }
+  finally { $("btnPdf").disabled = false; if (pdfWrap){ pdfWrap.remove(); pdfWrap = null; } }
+});
+let pdfWrap = null;
+// Respaldo sin librerías: abre la hoja lista para imprimir; en el cuadro de impresión se elige «Guardar como PDF».
+$("btnPrint").addEventListener("click", () => {
+  const w = window.open("", "_blank");
+  if (!w) return fail($("stPdf"), "Tu navegador bloqueó la ventana. Permite ventanas emergentes para wrealispec.com.");
+  const title = `Wrealispec - ${String(S.title || S.topic || "mi historia")}`.replace(/[<>&]/g, "");
+  w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${title}</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Caveat:wght@700&display=swap">
+    <style>@page{size:A4;margin:12mm}body{margin:0;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}tr,li{page-break-inside:avoid}</style>
+    </head><body>${pdfSheet().outerHTML}<script>window.onload=()=>setTimeout(()=>window.print(),400)<\/script></body></html>`);
+  w.document.close();
 });
 // Dentro de Claude no se pueden descargar archivos: el botón solo aparece en wrealispec.com.
 if (window.claude) $("dlRow").hidden = true;
