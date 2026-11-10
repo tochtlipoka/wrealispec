@@ -263,6 +263,13 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
   .modal.pl .pl-card{max-width:none;border-radius:18px 18px 0 0;max-height:94dvh;padding:18px 16px max(18px,env(safe-area-inset-bottom,0px))}
   .pl-scroll{max-height:38dvh}
 }
+/* Retos en ventana flotante: uno por pantalla */
+.qa-one{margin:0;padding:0;list-style:none}
+.qa-one > li:not(.cur){display:none}
+.qa-one > li{border:0;padding:0;background:none}
+.qa-one .qh::before{display:none}
+.qa-nav{justify-content:space-between}
+.qa-resm{border-top:1px solid var(--rule);padding-top:12px}
 /* Pizarra */
 .bd-btn{grid-column:1 / -1;justify-self:start;display:inline-flex;align-items:center;gap:7px;font:inherit;font-weight:700;font-size:.88rem;
   color:#F4F1E8;background:#24433B;border:0;border-radius:999px;padding:6px 13px;cursor:pointer}
@@ -434,6 +441,24 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
         <div class="dots" id="bdDots" aria-hidden="true"></div>
       </div>
       <span class="status" id="bdSt" role="status"></span>
+    </div>
+  </div>
+
+  <div class="modal pl" id="qaModal" hidden role="dialog" aria-modal="true" aria-labelledby="qaTitle">
+    <div class="modal-card pl-card">
+      <div class="pl-head">
+        <div class="vc-txt"><span class="eyebrow">Escucha y responde · sin leer</span><strong id="qaTitle">Reto 1 de 5</strong></div>
+        <button class="xbtn" id="qaClose" aria-label="Cerrar retos">×</button>
+      </div>
+      <div class="dots" id="qaDots" aria-hidden="true"></div>
+      <ol class="qa qa-one" id="qaList"></ol>
+      <div id="qaResM" hidden class="field qa-resm"><div class="lvl" id="qaLvM"></div><p class="muted" id="qaSumM"></p></div>
+      <div class="row qa-nav">
+        <button class="btn quiet" id="qaPrev">Anterior</button>
+        <button class="btn" id="qaNext">Siguiente</button>
+        <button class="btn" id="btnQaCheck" hidden>Revisar respuestas</button>
+      </div>
+      <span class="status" id="stQa2" role="status"></span>
     </div>
   </div>
 
@@ -641,9 +666,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
       <h2>Escucha y responde</h2>
       <p class="muted">5 retos cortos sobre tu historia: elige la respuesta correcta, escribe lo que escuchas o contesta la pregunta. Escucha cada uno sin leerlo.</p>
     </div>
-    <div class="row"><button class="btn" id="btnQa">Crear retos</button><span class="status" id="stQa" role="status"></span></div>
-    <ol class="qa" id="qaList"></ol>
-    <div class="row" id="qaCheckRow" hidden><button class="btn" id="btnQaCheck">Revisar respuestas</button><span class="status" id="stQa2" role="status"></span></div>
+    <div class="row"><button class="btn" id="btnQaOpen" hidden>Hacer mis retos</button><button class="btn" id="btnQa">Crear retos</button><span class="status" id="stQa" role="status"></span></div>
     <div id="qaRes" hidden class="field"><div class="lvl" id="qaLv"></div><p class="muted" id="qaSum"></p></div>
     <hr style="border:0;border-top:1px solid var(--rule);width:100%;margin:6px 0">
     <div class="panel-head">
@@ -757,7 +780,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.8 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.9 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -1566,11 +1589,11 @@ const rateVal = () => Number($("rate").value);
 $("rate").oninput = () => { $("rateVal").textContent = `×${rateVal().toFixed(2)}`; if (natEl) natEl.playbackRate = rateVal(); };
 let runId = 0;
 const natEl = new Audio(); natEl.preload = "auto";
-const bdEs = new Audio(), bdEn = new Audio();  // audios de la pizarra (explicación en español y ejemplos en inglés)
+const bdEs = new Audio(), bdEn = new Audio(), qaEl = new Audio();  // audios de la pizarra (explicación en español y ejemplos en inglés)
 $("rate").oninput();
 function stopSpeech(){
   runId++; try { synth && synth.cancel(); } catch(e){} try { natEl.pause(); } catch(e){}
-  try { bdEs.pause(); bdEn.pause(); } catch(e){}
+  try { bdEs.pause(); bdEn.pause(); qaEl.pause(); } catch(e){}
   document.querySelectorAll(".s.now").forEach(n => n.classList.remove("now")); const t = $("turn"); if (t) t.textContent = "";
 }
 function speak(text, rate){
@@ -2293,7 +2316,7 @@ function renderQa(){
     const head = document.createElement("div"); head.className = "qh";
     const lab = document.createElement("span"); lab.className = "lab"; lab.textContent = it.label_es || "Responde";
     const play = document.createElement("button"); play.className = "btn quiet"; play.textContent = "▶ Escuchar";
-    play.onclick = () => { stopSpeech(); speak(it.prompt, Math.max(0.6, rateVal() - (it.type === "dictation" ? 0.15 : 0.05))); };
+    play.onclick = () => qaSay(i, it);
     head.append(lab, play);
     const ptxt = document.createElement("p"); ptxt.className = "ptxt"; ptxt.textContent = it.prompt; ptxt.hidden = true;
     if (it.type !== "dictation"){
@@ -2335,13 +2358,54 @@ function renderQa(){
     }
     list.append(li);
   });
-  $("qaCheckRow").hidden = !S.qa.items.length;
-  $("btnQa").textContent = S.qa.items.length ? "Crear retos nuevos" : "Crear retos";
+  const has = !!S.qa.items.length;
+  $("btnQaOpen").hidden = !has; $("btnQaOpen").textContent = res.length ? "Ver mis respuestas" : "Hacer mis retos";
+  $("btnQa").textContent = has ? "Crear retos nuevos" : "Crear retos"; $("btnQa").classList.toggle("quiet", has);
   if (res.length){
-    const ok = res.filter(r => r && r.ok).length;
-    lvRender($("qaLv"), Math.round(ok / (S.qa.items.length || 1) * 100)); $("qaSum").textContent = S.qa.res.summary_es || "";
+    const ok = res.filter(r => r && r.ok).length, pct = Math.round(ok / (S.qa.items.length || 1) * 100);
+    lvRender($("qaLv"), pct); $("qaSum").textContent = S.qa.res.summary_es || "";
+    lvRender($("qaLvM"), pct); $("qaSumM").textContent = S.qa.res.summary_es || "";
     $("qaRes").hidden = false;
   } else $("qaRes").hidden = true;
+  if (!$("qaModal").hidden) qaShow();
+}
+/* Ventana de retos: uno por pantalla, con la voz natural del alumno. */
+let qaStep = 0, qaAudio = null;
+function qaShow(){
+  const lis = [...$("qaList").children], n = lis.length; if (!n) return;
+  qaStep = Math.max(0, Math.min(n - 1, qaStep)); const last = qaStep === n - 1;
+  lis.forEach((li, i) => li.classList.toggle("cur", i === qaStep));
+  $("qaTitle").textContent = `Reto ${qaStep + 1} de ${n}`;
+  $("qaDots").innerHTML = lis.map((_, i) => `<span class="dot${i <= qaStep ? " on" : ""}"></span>`).join("");
+  $("qaPrev").disabled = qaStep === 0; $("qaNext").hidden = last;
+  $("btnQaCheck").hidden = !last; $("btnQaCheck").textContent = S.qa.res ? "Revisar otra vez" : "Revisar respuestas";
+  $("qaResM").hidden = !(last && S.qa.res);
+}
+function openQa(start){
+  qaStep = start || 0; $("stQa2").textContent = ""; $("stQa2").classList.remove("bad");
+  $("qaModal").hidden = false; renderQa(); qaShow(); setTimeout(() => $("qaClose").focus(), 50);
+  prepareQaVoice();
+}
+function closeQa(){ stopSpeech(); $("qaModal").hidden = true; renderQa(); $("btnQaOpen").focus(); }
+$("qaClose").onclick = closeQa;
+$("qaPrev").onclick = () => { stopSpeech(); qaStep--; qaShow(); };
+$("qaNext").onclick = () => { stopSpeech(); qaStep++; qaShow(); };
+$("btnQaOpen").onclick = () => openQa(0);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("qaModal").hidden) closeQa(); });
+async function prepareQaVoice(){
+  if (!ttsOn || !S.qa.items.length) return null;
+  const parts = S.qa.items.map(it => speakFix(it.prompt)), voice = VOICE_CARDS[S.voice] ? S.voice : "us-f";
+  const key = voice + "|" + textHash(parts.join("|"));
+  if (qaAudio && qaAudio.key === key) return qaAudio.ready ? qaAudio : qaAudio.pending;
+  const pending = (async () => { const a = await assembleMarked(await fetchMarked(parts, voice), parts); qaEl.src = a.url; return { key, ready: true, ...a }; })();
+  qaAudio = { key, pending };
+  try { qaAudio = await pending; return qaAudio; } catch(e){ qaAudio = null; return null; }
+}
+async function qaSay(i, it){
+  stopSpeech(); const my = runId; const A = await prepareQaVoice(); if (my !== runId) return;
+  const slow = it.type === "dictation";
+  if (A && A.starts && A.starts[i] != null) await playSpan(A.starts[i], A.ends[i], my, null, qaEl, slow ? 0.8 : 0.95);
+  else await speak(it.prompt, Math.max(0.6, rateVal() - (slow ? 0.15 : 0.05)));
 }
 $("btnQa").onclick = async () => {
   const st = $("stQa"); const sample = await sampleP;
@@ -2351,7 +2415,7 @@ $("btnQa").onclick = async () => {
     const r = await sample.json(qaPrompt(S.level, S.corrected), { cache:false });
     const items = (r && Array.isArray(r.items) ? r.items : []).filter(x => x && x.prompt).slice(0,5);
     if (!items.length) throw { code:"invalid_json" };
-    S.qa = { items, answers: [], res: null }; save(); renderQa(); busy(st, "");
+    S.qa = { items, answers: [], res: null }; save(); renderQa(); busy(st, ""); openQa(0);
   } catch(e){ fail(st, errMsg(e)); } finally { $("btnQa").disabled = false; }
 };
 $("btnQaCheck").onclick = async () => {
@@ -2376,7 +2440,7 @@ $("btnQaCheck").onclick = async () => {
         summary = (r && r.summary_es) || "";
       }
     }
-    S.qa.res = { results, summary_es: summary }; save(); renderQa(); busy(st, "");
+    S.qa.res = { results, summary_es: summary }; save(); renderQa(); busy(st, ""); qaShow();
   } catch(e){ fail(st, errMsg(e)); } finally { $("btnQaCheck").disabled = false; }
 };
 $("retell").oninput = () => { S.retell.text = $("retell").value; save(); };
