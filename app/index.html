@@ -299,6 +299,18 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
 .pro-card{max-width:760px}
 .pro-body{display:flex;flex-direction:column;gap:18px;max-height:66vh;overflow-y:auto;padding:2px}
 @media (max-width:620px){.pro-body{max-height:70dvh}}
+/* Ventanas anchas para revisiones detalladas, retos y conversación */
+#recModal .pl-card,#qaModal .pl-card,#chatModal .pl-card,#proModal .pl-card{max-width:min(980px,calc(100vw - 48px))}
+#recModal .pl-card,#chatModal .pl-card{min-height:min(620px,calc(100vh - 48px))}
+#qaModal .pl-card{min-height:min(480px,calc(100vh - 48px))}
+#recResView{max-height:calc(100vh - 220px)}
+#chatModal .chat{max-height:calc(100vh - 360px);min-height:300px}
+#qaModal .qa-one{flex:1}
+@media (max-width:620px){
+  #recModal .pl-card,#qaModal .pl-card,#chatModal .pl-card,#proModal .pl-card{max-width:none;min-height:0}
+  #chatModal .chat{max-height:42dvh;min-height:200px}
+  #recResView{max-height:70dvh}
+}
 /* Asistente de nueva historia */
 .nw-card{max-width:680px}
 .pick-list{display:flex;flex-direction:column;gap:8px}
@@ -947,7 +959,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.18 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.19 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
