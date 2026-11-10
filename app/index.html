@@ -780,7 +780,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.9 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.10 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -1036,13 +1036,24 @@ function workerSample(){
   const s = async (prompt, opts) => ({ text: (await call(prompt, opts)).text || "", truncated: false });
   const parse = (t) => { const m = String(t).match(/\{[\s\S]*\}/); if (!m) return null; try { return JSON.parse(m[0]); } catch(e){ return null; } };
   const JSON_RULE = "\n\nIMPORTANT: reply with valid JSON only. Inside text values never use double quotes; use «» or single quotes instead. Write all Spanish in Mexican Spanish, the way people speak in Mexico (for example «papas», not «patatas»; «ustedes», not «vosotros»; «computadora», not «ordenador»; «celular», not «móvil»).";
-  s.json = async (prompt, opts) => {
-    // Si la respuesta llega cortada o mal formada, se intenta una vez más automáticamente.
+  // A veces la IA manda listas como texto ("[{...}]") o envuelve todo en otra llave
+  // ({"response": {...}}): aquí se arregla para que la app siempre reciba la forma esperada.
+  const fixJson = (o) => {
+    if (!o || typeof o !== "object" || Array.isArray(o)) return o;
+    const keys = Object.keys(o);
+    if (keys.length === 1 && o[keys[0]] && typeof o[keys[0]] === "object" && !Array.isArray(o[keys[0]])) return fixJson(o[keys[0]]);
+    if (keys.length === 1 && typeof o[keys[0]] === "string" && /^\s*\{/.test(o[keys[0]])){ try { return fixJson(JSON.parse(o[keys[0]])); } catch(e){} }
+    const out = {};
+    keys.forEach(k => { let v = o[k]; if (typeof v === "string" && /^\s*[\[{]/.test(v)){ try { v = JSON.parse(v); } catch(e){} } out[k] = v; });
+    return out;
+  };
+  s.json = async (prompt, opts = {}) => {
+    // Si la respuesta llega cortada, mal formada o sin los campos esperados, se intenta una vez más.
+    const ok = (v) => v && typeof v === "object" && (!opts.need || opts.need.every(k => v[k] !== undefined && v[k] !== null));
     for (let attempt = 0; attempt < 2; attempt++){
       const d = await call(prompt + JSON_RULE, opts, true);
-      if (d.json && typeof d.json === "object") return d.json;
-      const v = parse(d.text || "");
-      if (v) return v;
+      let v = d.json && typeof d.json === "object" ? fixJson(d.json) : fixJson(parse(d.text || ""));
+      if (ok(v)) return v;
       try { window.__wrealispecLast = d; console.warn("Wrealispec: respuesta de la IA que no se pudo leer", d); } catch(e){}
     }
     throw { code:"invalid_json" };
@@ -1951,7 +1962,7 @@ async function evaluateReading(txt, shortMsg){
   S.reading.pct = Math.round(ok / total * 100); S.reading.attempts.push(S.reading.pct); save(); showReading();
   const sample = await sampleP; if (!sample) return busy(st, "");
   $("btnRead").disabled = true; busy(st, "La IA está revisando tu pronunciación…");
-  try { S.reading.res = await sample.json(readingPrompt(S.level, S.corrected, txt, readingMisses())); save(); showReading(); busy(st, ""); }
+  try { S.reading.res = await sample.json(readingPrompt(S.level, S.corrected, txt, readingMisses()), { need:["feedback_es"] }); save(); showReading(); busy(st, ""); }
   catch(e){ fail(st, errMsg(e)); } finally { $("btnRead").disabled = false; }
 }
 function bestReading(){ const a = S.reading.attempts || []; return a.length ? Math.max(...a) : (S.reading.pct ?? 0); }
@@ -2412,7 +2423,7 @@ $("btnQa").onclick = async () => {
   if (!sample) return fail(st, "Demostración: los ejercicios con IA se activan en la siguiente versión.");
   $("btnQa").disabled = true; busy(st, "Preparando tus retos…");
   try {
-    const r = await sample.json(qaPrompt(S.level, S.corrected), { cache:false });
+    const r = await sample.json(qaPrompt(S.level, S.corrected), { cache:false, need:["items"] });
     const items = (r && Array.isArray(r.items) ? r.items : []).filter(x => x && x.prompt).slice(0,5);
     if (!items.length) throw { code:"invalid_json" };
     S.qa = { items, answers: [], res: null }; save(); renderQa(); busy(st, ""); openQa(0);
