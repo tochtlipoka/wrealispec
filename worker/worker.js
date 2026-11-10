@@ -49,14 +49,14 @@ const TTS_CHUNK_CHARS = 2500; // tamaño de cada pedazo
 // reinician cada día a medianoche de la Ciudad de México. Se pueden cambiar sin tocar el código
 // con variables del Worker (Settings → Variables), p. ej. DAILY_AI_PER_PERSON o DAILY_TTS_TOTAL.
 const LIMIT_DEFAULTS = {
-  DAILY_AI_PER_PERSON: 40,      // una clase completa usa ~10-15 llamadas
-  DAILY_TTS_PER_PERSON: 60,     // audios con voz natural de Google (historia y pizarra)
+  DAILY_AI_PER_PERSON: 80,      // una clase completa con conversación usa ~20-25 llamadas
+  DAILY_TTS_PER_PERSON: 150,    // audios con voz natural (historia, pizarra, retos y conversación)
   DAILY_SAMPLE_PER_PERSON: 20,  // frases de prueba al elegir la voz
-  DAILY_AI_TOTAL: 1500,         // topes de todo el sitio por día (red de seguridad)
-  DAILY_TTS_TOTAL: 1000,
+  DAILY_AI_TOTAL: 3000,         // topes de todo el sitio por día (red de seguridad)
+  DAILY_TTS_TOTAL: 4000,
   DAILY_SAMPLE_TOTAL: 2000,
-  DAILY_STT_PER_PERSON: 20,     // lecturas en voz alta convertidas a texto
-  DAILY_STT_TOTAL: 2000,
+  DAILY_STT_PER_PERSON: 80,     // grabaciones convertidas a texto (lectura y conversación)
+  DAILY_STT_TOTAL: 3000,
 };
 const LIMIT_NAMES = {
   ai: ["DAILY_AI_PER_PERSON", "DAILY_AI_TOTAL"],

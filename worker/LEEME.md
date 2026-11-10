@@ -35,10 +35,10 @@ Límites por defecto (se reinician a medianoche de la Ciudad de México):
 
 | Variable | Por defecto | Qué cuenta |
 |---|---|---|
-| `DAILY_AI_PER_PERSON` | 40 | llamadas a la IA por persona al día |
-| `DAILY_TTS_PER_PERSON` | 60 | audios con voz natural por persona al día (historia y pizarra) |
-| `DAILY_AI_TOTAL` | 1500 | llamadas a la IA de todo el sitio al día |
-| `DAILY_TTS_TOTAL` | 1000 | audios de todo el sitio al día |
+| `DAILY_AI_PER_PERSON` | 80 | llamadas a la IA por persona al día |
+| `DAILY_TTS_PER_PERSON` | 150 | audios con voz natural por persona al día (historia, pizarra, retos y conversación) |
+| `DAILY_AI_TOTAL` | 3000 | llamadas a la IA de todo el sitio al día |
+| `DAILY_TTS_TOTAL` | 4000 | audios de todo el sitio al día |
 
 Para cambiarlos sin tocar el código: Settings → Variables and Secrets → Add → tipo **Text** con el nombre de la tabla y el número nuevo.
 
@@ -49,7 +49,7 @@ La Fase 3 convierte la grabación del alumno en texto con Whisper, el modelo de 
 1. Worker `wrealispec-ai` → **Bindings** → **Add binding** → **Workers AI** → nombre de la variable `AI` → Add binding.
 2. Listo: no hay llave nueva. Cloudflare da una cuota gratis diaria (unos 200 minutos de audio al día) y después cobra centavos.
 
-Límite: `DAILY_STT_PER_PERSON` (20 lecturas por persona al día) y `DAILY_STT_TOTAL` (2000 en todo el sitio).
+Límite: `DAILY_STT_PER_PERSON` (80 grabaciones por persona al día, lectura y conversación) y `DAILY_STT_TOTAL` (3000 en todo el sitio).
 
 ## Tope de gasto mensual
 
