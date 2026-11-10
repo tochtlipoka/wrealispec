@@ -197,7 +197,18 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
   padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 .modal-card{background:var(--sheet);color:var(--ink);border-radius:16px;padding:24px;max-width:440px;width:100%;display:flex;flex-direction:column;gap:14px;box-shadow:0 30px 60px -20px rgba(0,0,0,.45)}
 .hello{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;font-weight:700;font-size:1.05rem}
-.linkbtn{background:none;border:0;padding:0;cursor:pointer;color:var(--accent);font:inherit;font-weight:400;font-size:.9rem;text-decoration:underline}
+/* Botones secundarios: siempre con forma de botón, nunca como vínculo subrayado */
+.linkbtn{display:inline-flex;align-items:center;gap:6px;background:var(--sheet);border:1.5px solid var(--rule);border-radius:999px;padding:7px 15px;
+  cursor:pointer;color:var(--accent);font:inherit;font-weight:700;font-size:.88rem;line-height:1.2;text-decoration:none;transition:border-color .15s,background .15s}
+.linkbtn:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 7%,var(--sheet))}
+.linkbtn:disabled{opacity:.5;cursor:not-allowed}
+.bubble .linkbtn{padding:3px 11px;font-size:.8rem}
+.pillsum{list-style:none;display:inline-flex;align-items:center;gap:8px;cursor:pointer;border:1.5px solid var(--rule);border-radius:999px;padding:7px 15px;
+  font-weight:700;font-size:.88rem;color:var(--accent);background:var(--sheet)}
+.pillsum::-webkit-details-marker{display:none}
+.pillsum::after{content:"▾";font-size:.8em;transition:transform .15s}
+details[open] > .pillsum::after{transform:rotate(180deg)}
+.pillsum:hover{border-color:var(--accent)}
 .grid2.one{grid-template-columns:minmax(0,1fr)}
 .errors.gloss .o{text-decoration:none;color:var(--ink);font-weight:700}
 .errors.gloss .c{color:var(--ink-soft);font-weight:400}
@@ -351,8 +362,8 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
 .rec-review{display:flex;flex-direction:column;gap:10px}
 .rec-review audio{width:100%}
 .rec-up{margin:0}
-.rec-up .linkbtn{font-size:inherit}
-.kbd-alt summary{cursor:pointer;color:var(--accent);font-weight:700;font-size:.92rem}
+.rec-up{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.kbd-alt summary{align-self:flex-start}
 .kbd-alt[open]{display:flex;flex-direction:column;gap:12px}
 .ai-note{border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:12px;background:var(--paper);padding:14px 16px;display:flex;flex-direction:column;gap:8px}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
@@ -466,7 +477,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
         <div class="row"><button class="btn" id="recSend">Evaluar mi lectura</button><button class="btn quiet" id="recAgain">Grabar otra vez</button></div>
       </div>
       <span class="status" id="recSt" role="status"></span>
-      <p class="small muted rec-up">¿Ya tienes tu lectura grabada (nota de voz, MP3)? <label class="linkbtn" for="recFile">Sube tu audio</label><input type="file" id="recFile" accept="audio/*,.m4a,.ogg,.opus,.mp3,.wav,.webm" hidden></p>
+      <p class="small muted rec-up">¿Ya tienes tu lectura grabada (nota de voz, MP3)? <label class="linkbtn" for="recFile" tabindex="0" role="button">Sube tu audio</label><input type="file" id="recFile" accept="audio/*,.m4a,.ogg,.opus,.mp3,.wav,.webm" hidden></p>
     </div>
   </div>
 
@@ -680,7 +691,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
       <div class="field" id="origCol">
         <div class="notebook hand" id="origBox"><span class="lbl" id="origLbl">Lo que leí en tu cuaderno</span><span id="origText"></span></div>
         <details id="fixBox">
-          <summary>¿Leí mal alguna palabra? Corrígela</summary>
+          <summary class="pillsum">¿Leí mal alguna palabra? Corrígela</summary>
           <div class="field" style="margin-top:12px">
             <textarea id="fixTrans" aria-label="Transcripción editable"></textarea>
             <div class="row"><button class="btn quiet" id="btnRecorrect">Volver a corregir con este texto</button><span class="status" id="st2" role="status"></span></div>
@@ -746,7 +757,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     </div>
     <span class="status" id="st4" role="status"></span>
     <details class="kbd-alt">
-      <summary>¿No puedes grabar? Usa el dictado del teclado</summary>
+      <summary class="pillsum">¿No puedes grabar? Usa el dictado del teclado</summary>
       <p class="small muted">Toca el recuadro y presiona el <strong>micrófono del teclado</strong> de tu celular (con el teclado en inglés), o en Windows presiona <strong>Windows + H</strong>. Lee tu historia y presiona Evaluar.</p>
       <div class="field"><label for="readIn">Lo que el micrófono escuchó</label><textarea id="readIn" spellcheck="false" autocomplete="off" placeholder="Presiona el micrófono del teclado y lee tu historia…"></textarea></div>
       <div class="row"><button class="btn ghost" id="btnRead">Evaluar mi lectura</button></div>
@@ -887,7 +898,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.16 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.17 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -2222,6 +2233,7 @@ $("btnOpenRec").onclick = openRec;
 $("recClose").onclick = closeRec;
 $("recBtn").onclick = () => (rec && rec.mr && rec.mr.state === "recording") ? rec.mr.stop() : startRec();
 $("recAgain").onclick = () => { $("recAudio").pause(); recBlob = null; $("recTime").textContent = "0:00"; startRec(); };
+document.querySelector('label[for="recFile"]').addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); $("recFile").click(); } });
 $("recFile").onchange = () => {
   const f = $("recFile").files && $("recFile").files[0]; $("recFile").value = "";
   if (!f) return;
