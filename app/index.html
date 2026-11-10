@@ -780,7 +780,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.12 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.13 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -1958,13 +1958,17 @@ function showReading(){
   const host = $("readDiff"); host.innerHTML = "";
   ops.forEach(([k, w]) => { const s = document.createElement("span"); s.className = k; s.textContent = w; host.append(s, document.createTextNode(" ")); });
   const r = S.reading.res;
-  $("readFb").textContent = r ? (r.feedback_es || "") : "";
+  // Si la IA no dejó comentario, se da uno corto para que la sección nunca quede vacía.
+  $("readFb").textContent = r ? (String(r.feedback_es || "").trim() || (S.reading.pct >= PASS
+    ? "Tu lectura se entendió muy bien. Si alguna palabra salió distinta, escúchala en la pizarra y repítela."
+    : "Vas bien. Escucha en la pizarra las palabras de abajo y vuelve a intentarlo.")) : "";
   // Solo se muestran palabras que de verdad no coincidieron (nunca una que sí se entendió igual).
   const missed = new Set(readingMisses().map(m => norm(m.word)));
   let words = (r && Array.isArray(r.words_to_practice) ? r.words_to_practice : [])
     .filter(w => w && w.word && missed.has(norm(w.word)) && norm(w.word) !== norm(w.heard_as || "")).slice(0, 5);
-  // Si la IA no respondió, se muestran igual las palabras que no coincidieron, con su pizarra.
-  if (!r) words = readingMisses().filter(m => m.word.length > 2 && /^[a-z]/.test(m.word)).slice(0, 5)
+  // Si la IA no respondió o no eligió palabras, se muestran las que no coincidieron (sin nombres
+  // propios ni números), cada una con su pizarra.
+  if (!words.length) words = readingMisses().filter(m => /^[a-z][a-z']{2,}$/.test(m.word)).slice(0, 5)
     .map(m => ({ word: m.word, heard_as: m.heard, tip_es: "Escúchala en la pizarra, despacio y a velocidad normal, y repítela." }));
   if (words.length) renderErrors($("readWords"), words.map(w => ({ original: w.word, correction: w.heard_as ? `se escuchó “${w.heard_as}”` : "no se escuchó", type: "pronunciación", rule_es: w.tip_es })), false, (k) => openPronBoard(words[k]));
   else $("readWords").innerHTML = "";
