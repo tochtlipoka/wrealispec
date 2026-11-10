@@ -263,6 +263,29 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
   .modal.pl .pl-card{max-width:none;border-radius:18px 18px 0 0;max-height:94dvh;padding:18px 16px max(18px,env(safe-area-inset-bottom,0px))}
   .pl-scroll{max-height:38dvh}
 }
+/* Pizarra */
+.bd-btn{grid-column:1 / -1;justify-self:start;display:inline-flex;align-items:center;gap:7px;font:inherit;font-weight:700;font-size:.88rem;
+  color:#F4F1E8;background:#24433B;border:0;border-radius:999px;padding:6px 13px;cursor:pointer}
+.bd-btn:hover{background:#2E5449}
+.bd-card{max-width:760px;gap:14px}
+.board{position:relative;border-radius:14px;padding:22px 24px;min-height:250px;max-height:52vh;overflow-y:auto;
+  background:radial-gradient(120% 90% at 20% 0%,#2C4F45 0%,#1F3A33 55%,#183029 100%);
+  box-shadow:inset 0 0 0 7px #5E4630,inset 0 0 0 9px #3F2E1F,inset 0 0 50px rgba(0,0,0,.35)}
+.bd-lines{display:flex;flex-direction:column;gap:10px;padding:6px 6px}
+.bd-l{font-family:var(--f-hand);font-size:clamp(1.45rem,4.6vw,2rem);line-height:1.2;color:#F4F1E8;
+  clip-path:inset(0 100% 0 0);animation:chalk .9s ease-out forwards;text-shadow:0 0 1px rgba(255,255,255,.35)}
+@keyframes chalk{to{clip-path:inset(0 0 0 0)}}
+.bd-l.bd-wrong{color:#FF9C95;text-decoration:line-through;text-decoration-thickness:3px;text-decoration-color:#FF6B61}
+.bd-l.bd-right{color:#FFE27A}
+.bd-l.bd-note{font-family:var(--f-body);font-size:1.02rem;line-height:1.4;color:#BFE3FF}
+.bd-l.bd-example{color:#F4F1E8;opacity:.92}
+.bd-l.bd-example::before{content:"→ ";color:#9BD8B0}
+.bd-l mark{background:none;color:#7CF0B0;font-weight:700;border-bottom:3px solid #7CF0B0}
+.bd-l.past{opacity:.6}
+.bd-wait{font-family:var(--f-hand);font-size:1.6rem;color:#C9D6CF;opacity:.8}
+.bd-sub{font-size:1.02rem;line-height:1.45;min-height:2.9em;margin:0}
+.bd-sub .en{display:block;font-weight:700;color:var(--accent);margin-top:2px}
+@media (prefers-reduced-motion: reduce){.bd-l{clip-path:none;animation:none}}
 /* Fase 3: grabación */
 .rec{display:flex;gap:18px;align-items:center;padding:6px 0}
 .mic{width:76px;height:76px;border-radius:50%;border:0;background:var(--margin);cursor:pointer;display:grid;place-items:center;flex:none;
@@ -395,6 +418,22 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
       </div>
       <span class="status" id="recSt" role="status"></span>
       <p class="small muted rec-up">¿Ya tienes tu lectura grabada (nota de voz, MP3)? <label class="linkbtn" for="recFile">Sube tu audio</label><input type="file" id="recFile" accept="audio/*,.m4a,.ogg,.opus,.mp3,.wav,.webm" hidden></p>
+    </div>
+  </div>
+
+  <div class="modal pl" id="bdModal" hidden role="dialog" aria-modal="true" aria-labelledby="bdTitle">
+    <div class="modal-card bd-card">
+      <div class="pl-head">
+        <div class="vc-txt"><span class="eyebrow">Pizarra · tu error explicado</span><strong id="bdTitle">Preparando tu pizarra…</strong></div>
+        <button class="xbtn" id="bdClose" aria-label="Cerrar pizarra">×</button>
+      </div>
+      <div class="board" id="bdBoard"><div class="bd-lines" id="bdLines"></div></div>
+      <p class="bd-sub" id="bdSub" aria-live="polite"></p>
+      <div class="pl-bar">
+        <button class="btn play" id="bdPlay" disabled>Reproducir</button>
+        <div class="dots" id="bdDots" aria-hidden="true"></div>
+      </div>
+      <span class="status" id="bdSt" role="status"></span>
     </div>
   </div>
 
@@ -713,7 +752,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.3 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.4 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -1275,6 +1314,9 @@ function renderErrors(host, list, checkable){
     d.querySelector(".o").textContent = er.original || er.word || ""; d.querySelector(".c").textContent = er.correction || er.heard_as_label || "";
     d.querySelector(".ty").textContent = (er.type || "").replace("_"," "); d.querySelector(".rt").textContent = er.rule_es || er.tip_es || "";
     if (checkable){
+      const bb = document.createElement("button"); bb.type = "button"; bb.className = "bd-btn";
+      bb.innerHTML = `<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M1.5 2h13v9h-5l2 3h-1.8l-2-3h-.4l-2 3H3.5l2-3h-4zM3 3.5v6h10v-6z"/></svg> Explícamelo en la pizarra`;
+      bb.onclick = () => openBoard(i); d.append(bb);
       const lab = document.createElement("label"); lab.className = "chk";
       const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!S.errChecked[i];
       d.classList.toggle("seen", cb.checked);
@@ -1516,9 +1558,11 @@ const rateVal = () => Number($("rate").value);
 $("rate").oninput = () => { $("rateVal").textContent = `×${rateVal().toFixed(2)}`; if (natEl) natEl.playbackRate = rateVal(); };
 let runId = 0;
 const natEl = new Audio(); natEl.preload = "auto";
+const bdEs = new Audio(), bdEn = new Audio();  // audios de la pizarra (explicación en español y ejemplos en inglés)
 $("rate").oninput();
 function stopSpeech(){
   runId++; try { synth && synth.cancel(); } catch(e){} try { natEl.pause(); } catch(e){}
+  try { bdEs.pause(); bdEn.pause(); } catch(e){}
   document.querySelectorAll(".s.now").forEach(n => n.classList.remove("now")); const t = $("turn"); if (t) t.textContent = "";
 }
 function speak(text, rate){
@@ -1556,15 +1600,25 @@ async function ensureNatural(parts){
   let data = null;
   try { const c = JSON.parse(localStorage.getItem(AUDIO_KEY) || "null"); if (c && c.key === key) data = c.data; } catch(e){}
   if (!data){
-    let r;
-    try { r = await fetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ tts: { sentences: parts.map(speakFix), voice: S.voice } }) }); }
-    catch(e){ throw new Error("network"); }
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok || !Array.isArray(d.segments)) throw new Error(d.error || "tts_error");
-    data = d.segments;
+    data = await fetchMarked(parts.map(speakFix), S.voice);
     try { localStorage.setItem(AUDIO_KEY, JSON.stringify({ key, data })); } catch(e){}
   }
-  // Une los pedazos en un solo MP3 y calcula dónde empieza y termina cada oración.
+  const a = await assembleMarked(data, parts);
+  if (nat && nat.url) URL.revokeObjectURL(nat.url);
+  nat = { key, ...a };
+  natEl.src = nat.url;
+  return nat;
+}
+async function fetchMarked(sentences, voice){
+  let r;
+  try { r = await fetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ tts: { sentences, voice } }) }); }
+  catch(e){ throw new Error("network"); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || !Array.isArray(d.segments)) throw new Error(d.error || "tts_error");
+  return d.segments;
+}
+// Une los pedazos en un solo MP3 y calcula dónde empieza y termina cada oración.
+async function assembleMarked(data, parts){
   const blobs = data.map(sg => new Blob([b64ToBytes(sg.audio)], { type:"audio/mpeg" }));
   const durs = await Promise.all(blobs.map(blobDuration));
   const starts = new Array(parts.length).fill(null), ends = new Array(parts.length).fill(null);
@@ -1579,10 +1633,7 @@ async function ensureNatural(parts){
     offset += dur;
   });
   const blob = new Blob(blobs, { type:"audio/mpeg" });
-  if (nat && nat.url) URL.revokeObjectURL(nat.url);
-  nat = { key, blob, url: URL.createObjectURL(blob), starts, ends };
-  natEl.src = nat.url;
-  return nat;
+  return { blob, url: URL.createObjectURL(blob), starts, ends };
 }
 const TTS_MSG = {
   tts_not_configured:"La voz natural todavía no está activada. Mientras, escuchas la voz de tu navegador.",
@@ -1601,17 +1652,18 @@ async function prepareVoice(){
   finally { btn.disabled = false; }
 }
 /* Reproduce un tramo del MP3 y resalta la oración que va sonando. */
-function playSpan(from, to, my, onTick){
+function playSpan(from, to, my, onTick, el, rate){
+  el = el || natEl;
   return new Promise((res) => {
-    try { natEl.currentTime = from; } catch(e){}
-    natEl.playbackRate = rateVal();
-    const p = natEl.play(); if (p && p.catch) p.catch(() => finish());
+    try { el.currentTime = from; } catch(e){}
+    el.playbackRate = rate || rateVal();
+    const p = el.play(); if (p && p.catch) p.catch(() => finish());
     let done = false;
-    function finish(){ if (done) return; done = true; natEl.pause(); res(); }
+    function finish(){ if (done) return; done = true; el.pause(); res(); }
     (function tick(){
       if (done) return;
-      if (my !== runId || natEl.ended || natEl.currentTime >= to - 0.04) return finish();
-      if (onTick) onTick(natEl.currentTime);
+      if (my !== runId || el.ended || el.currentTime >= to - 0.04) return finish();
+      if (onTick) onTick(el.currentTime);
       setTimeout(tick, 40);
     })();
   });
@@ -1976,6 +2028,142 @@ $("recSend").onclick = async () => {
   } finally { $("recSend").disabled = false; $("recAgain").disabled = false; $("recBtn").disabled = false; }
 };
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("recModal").hidden) closeRec(); });
+
+/* ---------- Pizarra: cada error clave explicado con voz, paso a paso ----------
+   Claude escribe el guion (qué se dice y qué aparece en la pizarra); Google pone la voz en
+   español para explicar y en inglés para los ejemplos; las marcas de tiempo sincronizan todo.
+   El guion se guarda en la historia, así que abrir la misma pizarra otra vez no vuelve a usar la IA. */
+function boardPrompt(level, story, er){
+  return `You are the whiteboard teacher of Wrealispec. Explain ONE mistake to a Spanish-speaking student of English (CEFR ${level}) as a short animated whiteboard lesson: 4 to 6 steps, about 40 seconds in total.
+The student's corrected story (use it for examples):
+"""
+${story}
+"""
+The mistake: "${er.original}" → "${er.correction}" (type: ${er.type || "grammar"}). Short rule already given: ${er.rule_es || ""}
+Reply with only JSON:
+{"title_es":"","steps":[{"say_es":"","board":[{"t":"","k":"","hl":""}],"en":""}]}
+Rules:
+- title_es: the topic in Spanish, maximum 6 words (for example «El plural con s»).
+- say_es: what the teacher says in this step, in warm, simple Mexican Spanish, 1 or 2 short sentences. A Spanish voice will read it, so never write English words in say_es: refer to them as «esta palabra», «la s final», «el verbo», etc.
+- board: 0 to 2 lines that appear on the board in this step, maximum 42 characters each. k is one of: wrong (the student's mistake, shown crossed out), right (the correct form), note (a very short rule in Spanish), example (another English example). hl: an exact part of t to highlight (for example the added letter or word), or "".
+- en: an English sentence (maximum 12 words) that an English voice says after say_es, to model the correct form; "" if not needed.
+- Order: 1) show the mistake; 2) the rule; 3) the correct form; 4) one or two examples, from the student's story when possible; last step: short encouragement, with the full correct sentence in en.`;
+}
+let bd = null, bdIdx = -1;
+const bdAudio = {};   // audios ya preparados en esta visita, por error
+function cleanBoard(r){
+  const steps = (Array.isArray(r && r.steps) ? r.steps : []).slice(0, 8).map(st => ({
+    say: String(st && st.say_es || "").trim().slice(0, 300),
+    en: String(st && st.en || "").trim().slice(0, 140),
+    board: (Array.isArray(st && st.board) ? st.board : []).slice(0, 3).map(l => ({
+      t: String(l && l.t || "").trim().slice(0, 60),
+      k: ["wrong", "right", "note", "example"].includes(l && l.k) ? l.k : "note",
+      hl: String(l && l.hl || "").trim(),
+    })).filter(l => l.t),
+  })).filter(st => st.say || st.board.length || st.en);
+  return steps.length >= 2 ? { title: String(r.title_es || "Tu error, paso a paso").trim().slice(0, 60), steps } : null;
+}
+function chalkLine(l){
+  const d = document.createElement("div"); d.className = `bd-l bd-${l.k}`;
+  const i = l.hl ? l.t.indexOf(l.hl) : -1;
+  if (i >= 0){ const m = document.createElement("mark"); m.textContent = l.hl; d.append(l.t.slice(0, i), m, l.t.slice(i + l.hl.length)); }
+  else d.textContent = l.t;
+  return d;
+}
+function bdShowStep(k){
+  const host = $("bdLines");
+  host.querySelectorAll(".bd-l").forEach(n => n.classList.add("past"));
+  bd.steps[k].board.forEach(l => host.append(chalkLine(l)));
+  const box = $("bdBoard"); box.scrollTop = box.scrollHeight;
+  const sub = $("bdSub"); sub.textContent = bd.steps[k].say;
+  if (bd.steps[k].en){ const e = document.createElement("span"); e.className = "en"; e.textContent = bd.steps[k].en; sub.append(e); }
+  $("bdDots").querySelectorAll(".dot").forEach((d, j) => d.classList.toggle("on", j <= k));
+}
+function bdReset(){
+  $("bdLines").innerHTML = ""; $("bdSub").textContent = "";
+  $("bdDots").innerHTML = bd ? bd.steps.map(() => `<span class="dot"></span>`).join("") : "";
+}
+function speakEs(text){
+  return new Promise((res) => {
+    if (!synth || !text) return res();
+    const u = new SpeechSynthesisUtterance(text); u.lang = "es-MX"; u.rate = 1;
+    const v = synth.getVoices().filter(x => /^es(-|_)/i.test(x.lang)).sort((a, b) => (/MX|US|419/i.test(b.lang) ? 1 : 0) - (/MX|US|419/i.test(a.lang) ? 1 : 0))[0];
+    if (v) u.voice = v; u.onend = res; u.onerror = res; synth.speak(u);
+  });
+}
+async function bdPrepareAudio(){
+  const key = bdIdx + "|" + textHash(JSON.stringify(bd.steps));
+  if (bdAudio.key === key) return bdAudio.data;
+  if (!ttsOn) return null;
+  const st = $("bdSt");
+  try {
+    busy(st, "Preparando la voz…");
+    const esParts = bd.steps.map(x => x.say || "…");
+    const enIdx = bd.steps.map((x, i) => x.en ? i : -1).filter(i => i >= 0);
+    const enParts = enIdx.map(i => speakFix(bd.steps[i].en));
+    const [esData, enData] = await Promise.all([
+      fetchMarked(esParts, "es-f"),
+      enParts.length ? fetchMarked(enParts, VOICE_CARDS[S.voice] ? S.voice : "us-f") : Promise.resolve(null),
+    ]);
+    const es = await assembleMarked(esData, esParts);
+    const en = enData ? await assembleMarked(enData, enParts) : null;
+    bdEs.src = es.url; if (en) bdEn.src = en.url;
+    busy(st, "");
+    const data = { es, en, enIdx };
+    Object.assign(bdAudio, { key, data });
+    return data;
+  } catch(e){
+    fail(st, TTS_MSG[e.message] ? TTS_MSG[e.message].replace("escuchas la voz de tu navegador", "la pizarra usa la voz de tu navegador") : "No se pudo preparar la voz natural. La pizarra usa la voz de tu navegador.");
+    return null;
+  }
+}
+async function bdPlay(){
+  stopSpeech(); const my = runId;
+  bdReset(); $("bdPlay").textContent = "Reproduciendo…"; $("bdPlay").disabled = true;
+  const A = await bdPrepareAudio(); if (my !== runId) return;
+  for (let k = 0; k < bd.steps.length; k++){
+    if (my !== runId) return;
+    bdShowStep(k);
+    if (A) await playSpan(A.es.starts[k], A.es.ends[k], my, null, bdEs, 1); else await speakEs(bd.steps[k].say);
+    if (my !== runId) return;
+    if (bd.steps[k].en){
+      await wait(250);
+      const j = A ? A.enIdx.indexOf(k) : -1;
+      if (A && A.en && j >= 0) await playSpan(A.en.starts[j], A.en.ends[j], my, null, bdEn, 0.95); else await speak(bd.steps[k].en, 0.9);
+    }
+    await wait(450);
+  }
+  if (my === runId){ $("bdPlay").textContent = "Reproducir otra vez"; $("bdPlay").disabled = false; }
+}
+async function openBoard(i){
+  const er = S.errors[i]; if (!er) return;
+  bdIdx = i; bd = er.board ? cleanBoard(er.board) : null;
+  $("bdTitle").textContent = bd ? bd.title : "Preparando tu pizarra…";
+  $("bdLines").innerHTML = `<div class="bd-wait">${bd ? "Toca «Reproducir»" : "Preparando la explicación…"}</div>`;
+  $("bdSub").textContent = ""; $("bdDots").innerHTML = ""; $("bdSt").textContent = ""; $("bdSt").classList.remove("bad");
+  $("bdPlay").disabled = true; $("bdPlay").textContent = "Reproducir";
+  $("bdModal").hidden = false; setTimeout(() => $("bdClose").focus(), 50);
+  if (!bd){
+    const sample = await sampleP;
+    if (!sample){ $("bdLines").innerHTML = ""; return fail($("bdSt"), "La pizarra funciona en wrealispec.com con la IA activada."); }
+    try {
+      busy($("bdSt"), "La IA está preparando tu pizarra…");
+      const r = await sample.json(boardPrompt(S.level, S.corrected, er));
+      bd = cleanBoard(r); if (!bd) throw { code:"invalid_json" };
+      er.board = { title_es: bd.title, steps: bd.steps.map(x => ({ say_es: x.say, en: x.en, board: x.board })) }; save();
+      busy($("bdSt"), "");
+    } catch(e){ $("bdLines").innerHTML = ""; return fail($("bdSt"), errMsg(e)); }
+  }
+  if (bdIdx !== i || $("bdModal").hidden) return;
+  $("bdTitle").textContent = bd.title; bdReset();
+  $("bdLines").innerHTML = `<div class="bd-wait">Toca «Reproducir»</div>`;
+  $("bdPlay").disabled = false;
+  bdPlay();   // empieza solo; si el navegador bloquea el sonido, el alumno toca «Reproducir»
+}
+function closeBoard(){ stopSpeech(); $("bdModal").hidden = true; bdIdx = -1; }
+$("bdPlay").onclick = bdPlay;
+$("bdClose").onclick = closeBoard;
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("bdModal").hidden) closeBoard(); });
 
 function gradeLocal(it, ans){
   const opts = Array.isArray(it.options) ? it.options : [], key = (Array.isArray(it.answer) ? it.answer : []).map(Number);

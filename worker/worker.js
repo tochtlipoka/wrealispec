@@ -17,6 +17,7 @@ const ALLOWED_PROMPT_STARTS = [
   "You are a pronunciation coach for Wrealispec",
   "Create 5 short listening exercises about this story",
   "You are an English tutor for Wrealispec",
+  "You are the whiteboard teacher of Wrealispec",
 ];
 
 const MODEL = "claude-haiku-5-5";
@@ -31,6 +32,7 @@ const TTS_VOICES = {
   "us-m": { languageCode: "en-US", name: "en-US-Neural2-D" },
   "uk-f": { languageCode: "en-GB", name: "en-GB-Neural2-A" },
   "uk-m": { languageCode: "en-GB", name: "en-GB-Neural2-B" },
+  "es-f": { languageCode: "es-US", name: "es-US-Neural2-A" }, // voz en español para explicar en la pizarra
 };
 const TTS_MAX_CHARS = 9000;   // historia completa (se parte en pedazos para Google)
 const TTS_CHUNK_CHARS = 2500; // tamaño de cada pedazo
@@ -42,7 +44,7 @@ const TTS_CHUNK_CHARS = 2500; // tamaño de cada pedazo
 // con variables del Worker (Settings → Variables), p. ej. DAILY_AI_PER_PERSON o DAILY_TTS_TOTAL.
 const LIMIT_DEFAULTS = {
   DAILY_AI_PER_PERSON: 40,      // una clase completa usa ~10-15 llamadas
-  DAILY_TTS_PER_PERSON: 30,     // audios de historia con voz natural de Google
+  DAILY_TTS_PER_PERSON: 60,     // audios con voz natural de Google (historia y pizarra)
   DAILY_SAMPLE_PER_PERSON: 20,  // frases de prueba al elegir la voz
   DAILY_AI_TOTAL: 1500,         // topes de todo el sitio por día (red de seguridad)
   DAILY_TTS_TOTAL: 1000,

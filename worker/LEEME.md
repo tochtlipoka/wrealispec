@@ -36,7 +36,7 @@ Límites por defecto (se reinician a medianoche de la Ciudad de México):
 | Variable | Por defecto | Qué cuenta |
 |---|---|---|
 | `DAILY_AI_PER_PERSON` | 40 | llamadas a la IA por persona al día |
-| `DAILY_TTS_PER_PERSON` | 30 | audios con voz natural por persona al día |
+| `DAILY_TTS_PER_PERSON` | 60 | audios con voz natural por persona al día (historia y pizarra) |
 | `DAILY_AI_TOTAL` | 1500 | llamadas a la IA de todo el sitio al día |
 | `DAILY_TTS_TOTAL` | 1000 | audios de todo el sitio al día |
 
