@@ -1429,7 +1429,9 @@ async function withAudio(btn, then){
   try { const blob = await googleAudio(); busy(st, ""); then(blob); }
   catch(e){
     const m = e.message === "tts_not_configured" ? "La voz natural todavía no está activada. Mientras, usa la voz del navegador."
-      : e.message === "daily_limit" ? "Llegaste al límite de audios con voz natural de hoy. Usa la voz del navegador; mañana se renueva."
+      : e.message === "tts_empty" ? "Todavía no hay texto corregido para convertir en audio. Regresa a la Fase 1."
+      : e.message === "tts_too_long" ? "Tu historia es demasiado larga para la voz natural. Usa la voz del navegador."
+      : e.message === "daily_limit" ?"Llegaste al límite de audios con voz natural de hoy. Usa la voz del navegador; mañana se renueva."
       : ERR[e.message] && e.message !== "upstream_error" ? ERR[e.message] : "No se pudo crear el audio. Inténtalo de nuevo.";
     fail(st, m);
   }

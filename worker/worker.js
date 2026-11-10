@@ -32,7 +32,8 @@ const TTS_VOICES = {
   "uk-f": { languageCode: "en-GB", name: "en-GB-Neural2-A" },
   "uk-m": { languageCode: "en-GB", name: "en-GB-Neural2-B" },
 };
-const TTS_MAX_CHARS = 3000;
+const TTS_MAX_CHARS = 9000;   // historia completa (se parte en pedazos para Google)
+const TTS_CHUNK_CHARS = 2500; // tamaño de cada pedazo
 
 // ---------- Límite diario de uso (protege el gasto de IA y voz) ----------
 // Se cuenta por persona (dirección IP convertida en un código irreversible; la IP no se guarda)
@@ -137,21 +138,47 @@ async function tts(req, env, cors) {
   const text = typeof req.text === "string" ? req.text.trim() : "";
   const voice = TTS_VOICES[req.voice] || TTS_VOICES["us-f"];
   const rate = Math.min(1.2, Math.max(0.6, Number(req.rate) || 0.9));
-  if (!text || text.length > TTS_MAX_CHARS) return reply({ error: "bad_request" }, 400, cors);
-  let r;
-  try {
-    r = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${env.GOOGLE_TTS_KEY}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ input: { text }, voice, audioConfig: { audioEncoding: "MP3", speakingRate: rate } }),
-    });
-  } catch (e) {
-    return reply({ error: "upstream_error" }, 502, cors);
+  if (!text) return reply({ error: "tts_empty" }, 400, cors);
+  if (text.length > TTS_MAX_CHARS) return reply({ error: "tts_too_long" }, 400, cors);
+
+  // Google acepta hasta ~5,000 bytes por solicitud. Las historias largas se parten por oraciones,
+  // se convierten por partes y los MP3 se unen en uno solo.
+  let mp3 = "";
+  for (const part of chunkText(text, TTS_CHUNK_CHARS)) {
+    let r;
+    try {
+      r = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${env.GOOGLE_TTS_KEY}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ input: { text: part }, voice, audioConfig: { audioEncoding: "MP3", speakingRate: rate } }),
+      });
+    } catch (e) {
+      return reply({ error: "upstream_error" }, 502, cors);
+    }
+    if (r.status === 429) return reply({ error: "rate_limited" }, 429, cors);
+    if (!r.ok) return reply({ error: "tts_error", status: r.status }, 502, cors);
+    const data = await r.json();
+    mp3 += atob(data.audioContent || "");
   }
-  if (r.status === 429) return reply({ error: "rate_limited" }, 429, cors);
-  if (!r.ok) return reply({ error: "tts_error", status: r.status }, 502, cors);
-  const data = await r.json();
-  return reply({ audio: data.audioContent || "" }, 200, cors);
+  return reply({ audio: btoa(mp3) }, 200, cors);
+}
+
+function chunkText(text, max) {
+  const sentences = text.match(/[^.!?]+[.!?]+["')\]]*\s*|[^.!?]+$/g) || [text];
+  const out = [];
+  let cur = "";
+  for (let s of sentences) {
+    while (s.length > max) { // oración larguísima: se corta por espacios
+      const cut = s.lastIndexOf(" ", max) > 0 ? s.lastIndexOf(" ", max) : max;
+      if (cur) { out.push(cur); cur = ""; }
+      out.push(s.slice(0, cut));
+      s = s.slice(cut);
+    }
+    if ((cur + s).length > max) { out.push(cur); cur = ""; }
+    cur += s;
+  }
+  if (cur.trim()) out.push(cur);
+  return out.map((c) => c.trim()).filter(Boolean);
 }
 
 // Suma 1 al contador de la persona y al total del día. Devuelve null si puede seguir,
