@@ -281,6 +281,24 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
 .qa-one .qh::before{display:none}
 .qa-nav{justify-content:space-between}
 .qa-resm{border-top:1px solid var(--rule);padding-top:12px}
+/* Resultado de lectura dentro de la ventana, tarjetas de tutor y profesor */
+.read-sum{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;border:1px solid var(--rule);border-radius:14px;padding:12px 16px;background:var(--paper)}
+.read-sum > div{display:flex;flex-direction:column;gap:2px}
+.read-sum strong{font-family:var(--f-display);font-size:1.25rem}
+#recResView{display:flex;flex-direction:column;gap:14px;max-height:62vh;overflow-y:auto;padding:2px}
+#recResView[hidden]{display:none}
+.rec-view{display:flex;flex-direction:column;gap:14px}
+.rec-res-nav{justify-content:space-between}
+.qa-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.tutor-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;border:1px solid var(--rule);border-radius:16px;padding:16px;background:var(--paper)}
+.tutor-card h3{margin:0 0 2px}
+.tutor-card p{margin:0}
+.tc-act{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end}
+@media (max-width:620px){.tutor-card{grid-template-columns:auto minmax(0,1fr)}.tc-act{grid-column:1 / -1;justify-content:flex-start}}
+.pro-ic{display:grid;place-items:center;color:var(--accent);background:var(--chip)}
+.pro-card{max-width:760px}
+.pro-body{display:flex;flex-direction:column;gap:18px;max-height:66vh;overflow-y:auto;padding:2px}
+@media (max-width:620px){.pro-body{max-height:70dvh}}
 /* Asistente de nueva historia */
 .nw-card{max-width:680px}
 .pick-list{display:flex;flex-direction:column;gap:8px}
@@ -463,6 +481,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
         <div class="vc-txt"><span class="eyebrow">Fase 3 · Grábate</span><strong id="recTitle">Lee tu historia en voz alta</strong></div>
         <button class="xbtn" id="recClose" aria-label="Cerrar">×</button>
       </div>
+      <div id="recView" class="rec-view">
       <div class="pl-scroll"><div class="notebook" id="recStory"><span class="lbl">Tu historia</span><span id="recText"></span></div></div>
       <div class="rec">
         <button class="mic" id="recBtn" aria-label="Empezar a grabar"><span class="mic-dot" aria-hidden="true"></span></button>
@@ -476,7 +495,37 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
         <audio id="recAudio" controls></audio>
         <div class="row"><button class="btn" id="recSend">Evaluar mi lectura</button><button class="btn quiet" id="recAgain">Grabar otra vez</button></div>
       </div>
+      </div>
       <span class="status" id="recSt" role="status"></span>
+      <div id="recResView" hidden>
+    <div id="readRes" hidden class="field">
+      <div class="lvl" id="readLv"></div>
+      <p class="tries" id="readTries"></p>
+      <div class="diff" id="readDiff"></div>
+      <p class="small muted"><span style="color:var(--ok)">Verde</span>: se entendió. <span style="color:var(--margin)">Rojo ondulado</span>: no se entendió o te la saltaste. <span style="text-decoration:line-through">Tachado</span>: el micrófono escuchó otra palabra.</p>
+      <p id="readFb"></p>
+      <div class="errors" id="readWords"></div>
+      <div class="ai-note" id="readAiNote" hidden>
+        <strong>Una nota honesta</strong>
+        <p>Soy una inteligencia artificial y solo escucho el sonido de tu voz: no veo tu boca, tus gestos ni tu expresión, así que esta calificación solo mide qué tanto te entendí. Hay dos formas de mejorar: seguir practicando hasta llegar a <strong>«Muy bien»</strong>, o pedirle a alguien que domine el inglés que te escuche y te dé su opinión.</p>
+        <p><strong>Vas muy bien.</strong> El esfuerzo es el mejor camino para llegar a tu meta de hablar con fluidez.</p>
+      </div>
+    </div>
+    <p class="small muted">El ritmo y la entonación todavía no se califican; esta revisión mide qué tan claro se entiende lo que dices.</p>
+    <div class="sendbox" id="sendBox" hidden>
+      <h3 id="sendTitle">Envía tu grabación a tu profesor</h3>
+      <p class="muted" id="sendText"></p>
+      <div class="row">
+        <button class="btn" id="btnShareRec" hidden><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M8 1.2a6.7 6.7 0 0 0-5.8 10.1L1.3 14.8l3.6-.9A6.7 6.7 0 1 0 8 1.2Zm0 12.2a5.5 5.5 0 0 1-2.8-.8l-.2-.1-2.1.6.6-2-.1-.2A5.5 5.5 0 1 1 8 13.4Zm3-4.1c-.2-.1-1-.5-1.1-.5-.2-.1-.3-.1-.4.1l-.5.6c-.1.1-.2.1-.4 0a4.5 4.5 0 0 1-2.2-1.9c-.2-.3.2-.3.5-1 .1-.1 0-.2 0-.3l-.5-1.2c-.1-.3-.3-.3-.4-.3h-.3a.6.6 0 0 0-.4.2 1.8 1.8 0 0 0-.6 1.3 3.1 3.1 0 0 0 .7 1.7 7 7 0 0 0 2.7 2.4c1 .4 1.4.5 1.9.4a1.6 1.6 0 0 0 1-.7 1.3 1.3 0 0 0 .1-.7c0-.1-.1-.1-.3-.2Z"/></svg> Enviar por WhatsApp</button>
+        <button class="btn" id="btnDlRec" hidden><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M7.25 1.5h1.5v7.19l2.22-2.22 1.06 1.06L8 11.56 3.97 7.53l1.06-1.06 2.22 2.22zM2 12.5h12V14H2z"/></svg> Descargar mi grabación</button>
+        <button class="btn ghost" id="btnSendMsg">Copiar mensaje para tu profesor</button>
+        <span class="status" id="st4b" role="status"></span>
+      </div>
+      <div class="checks"><label><input type="checkbox" data-ck="3"> Envié mi grabación a mi profesor.</label></div>
+    </div>
+
+        <div class="row rec-res-nav"><button class="btn" id="recRetry">Volver a grabar</button><button class="btn quiet" id="recDone">Cerrar</button></div>
+      </div>
       <p class="small muted rec-up">¿Ya tienes tu lectura grabada (nota de voz, MP3)? <label class="linkbtn" for="recFile" tabindex="0" role="button">Sube tu audio</label><input type="file" id="recFile" accept="audio/*,.m4a,.ogg,.opus,.mp3,.wav,.webm" hidden></p>
     </div>
   </div>
@@ -503,7 +552,8 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
         <div class="vc-txt"><span class="eyebrow">Escucha y responde · sin leer</span><strong id="qaTitle">Reto 1 de 5</strong></div>
         <button class="xbtn" id="qaClose" aria-label="Cerrar retos">×</button>
       </div>
-      <div class="dots" id="qaDots" aria-hidden="true"></div>
+      <div class="qa-top"><div class="dots" id="qaDots" aria-hidden="true"></div><button type="button" class="linkbtn" id="qaNew">Crear retos nuevos</button></div>
+      <span class="status" id="stQaM" role="status"></span>
       <ol class="qa qa-one" id="qaList"></ol>
       <div id="qaResM" hidden class="field qa-resm"><div class="lvl" id="qaLvM"></div><p class="muted" id="qaSumM"></p></div>
       <div class="row qa-nav">
@@ -585,6 +635,42 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
         <button class="btn quiet" id="nwPrev">Atrás</button>
         <button class="btn" id="nwNext">Siguiente</button>
         <button class="btn" id="nwGo" hidden>Empezar mi historia</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal pl" id="proModal" hidden role="dialog" aria-modal="true" aria-labelledby="proTitle">
+    <div class="modal-card pl-card pro-card">
+      <div class="pl-head">
+        <div class="vc-txt"><span class="eyebrow">Plan Pro</span><strong id="proTitle">Para tu clase con tu profesor</strong></div>
+        <button class="xbtn" id="proClose" aria-label="Cerrar">×</button>
+      </div>
+      <div class="pro-body">
+    <div class="field">
+      <h3>Resumen para tu profesor</h3>
+      <div class="summary" id="summary"></div>
+      <div class="row"><button class="btn ghost" id="btnCopySum">Copiar resumen</button><span class="status" id="st6" role="status"></span></div>
+    </div>
+    <div class="field">
+      <h3>Retroalimentación del profesor</h3>
+      <div id="tfView"></div>
+      <div class="row"><button class="btn ghost" id="btnTf">Dejar retroalimentación del profesor</button></div>
+      <div id="tfForm" hidden class="field tf">
+        <div class="rates">
+          <div class="field"><label for="tfPron">Pronunciación</label><select id="tfPron"></select></div>
+          <div class="field"><label for="tfFlu">Fluidez</label><select id="tfFlu"></select></div>
+          <div class="field"><label for="tfGram">Gramática</label><select id="tfGram"></select></div>
+          <div class="field"><label for="tfVoc">Vocabulario</label><select id="tfVoc"></select></div>
+        </div>
+        <div class="field"><label for="tfText">Comentarios generales</label><textarea id="tfText" placeholder="Lo que hizo bien, en qué trabajar para la próxima clase…"></textarea></div>
+        <div class="row"><button class="btn" id="btnTfSave">Guardar retroalimentación</button><button class="btn quiet" id="btnTfCancel">Cancelar</button></div>
+      </div>
+    </div>
+    <div class="field">
+      <h3>Proyecto del mes</h3>
+      <p class="muted">Al cerrar tus 6 clases del mes, preparas un proyecto propio: una historia o presentación sobre algo que te importe. Lo expones en tu clase y respondes 4 o 5 preguntas de tu profesor.</p>
+      <div class="row"><input type="text" id="projTopic" placeholder="Ej. My dream business" aria-label="Tema de tu proyecto" style="flex:1;min-width:200px"><button class="btn ghost" id="btnProj">Empezar mi proyecto</button></div>
+    </div>
       </div>
     </div>
   </div>
@@ -709,7 +795,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
       <div class="errors" id="errList"></div>
     </div>
     <p class="note warn small" id="copyNote">Ahora copia el texto corregido en tu cuaderno, otra vez a mano. Así fijas las correcciones.</p>
-    <div class="row" id="dlRow"><button class="btn ghost" id="btnPdf">Descargar PDF</button><button type="button" class="linkbtn" id="btnPrint">¿Salió en blanco? Imprimir o guardar como PDF</button><span class="status" id="stPdf" role="status"></span></div>
+    <div class="row" id="dlRow"><button class="btn ghost" id="btnPdf">Descargar PDF</button><span class="status" id="stPdf" role="status"></span></div>
     <p class="small muted">Se guarda en tu celular o computadora para estudiarlo sin internet.</p>
     <div class="row"><button class="btn" data-go="1">Siguiente fase: Escucha y repite</button></div>
   </section>
@@ -762,32 +848,10 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
       <div class="field"><label for="readIn">Lo que el micrófono escuchó</label><textarea id="readIn" spellcheck="false" autocomplete="off" placeholder="Presiona el micrófono del teclado y lee tu historia…"></textarea></div>
       <div class="row"><button class="btn ghost" id="btnRead">Evaluar mi lectura</button></div>
     </details>
-    <div id="readRes" hidden class="field">
-      <div class="lvl" id="readLv"></div>
-      <p class="tries" id="readTries"></p>
-      <div class="diff" id="readDiff"></div>
-      <p class="small muted"><span style="color:var(--ok)">Verde</span>: se entendió. <span style="color:var(--margin)">Rojo ondulado</span>: no se entendió o te la saltaste. <span style="text-decoration:line-through">Tachado</span>: el micrófono escuchó otra palabra.</p>
-      <p id="readFb"></p>
-      <div class="errors" id="readWords"></div>
-      <div class="ai-note" id="readAiNote" hidden>
-        <strong>Una nota honesta</strong>
-        <p>Soy una inteligencia artificial y solo escucho el sonido de tu voz: no veo tu boca, tus gestos ni tu expresión, así que esta calificación solo mide qué tanto te entendí. Hay dos formas de mejorar: seguir practicando hasta llegar a <strong>«Muy bien»</strong>, o pedirle a alguien que domine el inglés que te escuche y te dé su opinión.</p>
-        <p><strong>Vas muy bien.</strong> El esfuerzo es el mejor camino para llegar a tu meta de hablar con fluidez.</p>
-      </div>
+    <div class="read-sum" id="readSum" hidden>
+      <div><span class="eyebrow">Tu última lectura</span><strong id="readSumLv"></strong><span class="small muted" id="readSumTries"></span></div>
+      <button class="btn ghost" id="btnReadRes">Ver mi resultado</button>
     </div>
-    <p class="small muted">El ritmo y la entonación todavía no se califican; esta revisión mide qué tan claro se entiende lo que dices.</p>
-    <div class="sendbox" id="sendBox" hidden>
-      <h3 id="sendTitle">Envía tu grabación a tu profesor</h3>
-      <p class="muted" id="sendText"></p>
-      <div class="row">
-        <button class="btn" id="btnShareRec" hidden><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M8 1.2a6.7 6.7 0 0 0-5.8 10.1L1.3 14.8l3.6-.9A6.7 6.7 0 1 0 8 1.2Zm0 12.2a5.5 5.5 0 0 1-2.8-.8l-.2-.1-2.1.6.6-2-.1-.2A5.5 5.5 0 1 1 8 13.4Zm3-4.1c-.2-.1-1-.5-1.1-.5-.2-.1-.3-.1-.4.1l-.5.6c-.1.1-.2.1-.4 0a4.5 4.5 0 0 1-2.2-1.9c-.2-.3.2-.3.5-1 .1-.1 0-.2 0-.3l-.5-1.2c-.1-.3-.3-.3-.4-.3h-.3a.6.6 0 0 0-.4.2 1.8 1.8 0 0 0-.6 1.3 3.1 3.1 0 0 0 .7 1.7 7 7 0 0 0 2.7 2.4c1 .4 1.4.5 1.9.4a1.6 1.6 0 0 0 1-.7 1.3 1.3 0 0 0 .1-.7c0-.1-.1-.1-.3-.2Z"/></svg> Enviar por WhatsApp</button>
-        <button class="btn" id="btnDlRec" hidden><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M7.25 1.5h1.5v7.19l2.22-2.22 1.06 1.06L8 11.56 3.97 7.53l1.06-1.06 2.22 2.22zM2 12.5h12V14H2z"/></svg> Descargar mi grabación</button>
-        <button class="btn ghost" id="btnSendMsg">Copiar mensaje para tu profesor</button>
-        <span class="status" id="st4b" role="status"></span>
-      </div>
-      <div class="checks"><label><input type="checkbox" data-ck="3"> Envié mi grabación a mi profesor.</label></div>
-    </div>
-
     <hr style="border:0;border-top:1px solid var(--rule);width:100%;margin:6px 0">
     <div class="panel-head">
       <h2>Escucha y responde</h2>
@@ -837,9 +901,14 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
       <div class="field"><h3>Frases útiles para tu explicación</h3><div class="phr" id="phr"></div></div>
     </div>
     <div id="aiChatBox" class="field">
-      <h3>Conversa con la IA</h3>
-      <p class="small muted">Platica con tu tutor de IA sobre tu historia: te habla en voz alta y tú le contestas hablando con el micrófono. Si te atoras, te da palabras de ayuda (revueltas, para que tú armes la respuesta).</p>
-      <div class="row" id="chatStartRow"><button class="btn" id="btnChatOpen" hidden>Continuar conversación</button><button class="btn" id="btnChatStart">Empezar conversación</button><span class="status" id="stChat" role="status"></span></div>
+      <div class="tutor-card">
+        <span class="av" id="chatCardAv" aria-hidden="true"></span>
+        <div class="tc-txt">
+          <h3>Conversa con tu tutor de IA</h3>
+          <p class="small muted">Te habla en voz alta y tú le contestas con el micrófono. Si te atoras, te da palabras de ayuda.</p>
+        </div>
+        <div class="tc-act" id="chatStartRow"><button class="btn" id="btnChatOpen" hidden>Continuar conversación</button><button class="btn" id="btnChatStart">Empezar conversación</button><span class="status" id="stChat" role="status"></span></div>
+      </div>
       <div id="chatFb" class="field" hidden>
         <h3>Tu retroalimentación de la conversación</h3>
         <div class="rates3" id="chatRates"></div>
@@ -848,31 +917,11 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
       </div>
     </div>
     <div id="proBox" class="field">
-    <div class="field">
-      <h3>Resumen para tu profesor</h3>
-      <div class="summary" id="summary"></div>
-      <div class="row"><button class="btn ghost" id="btnCopySum">Copiar resumen</button><span class="status" id="st6" role="status"></span></div>
-    </div>
-    <div class="field">
-      <h3>Retroalimentación del profesor</h3>
-      <div id="tfView"></div>
-      <div class="row"><button class="btn ghost" id="btnTf">Dejar retroalimentación del profesor</button></div>
-      <div id="tfForm" hidden class="field tf">
-        <div class="rates">
-          <div class="field"><label for="tfPron">Pronunciación</label><select id="tfPron"></select></div>
-          <div class="field"><label for="tfFlu">Fluidez</label><select id="tfFlu"></select></div>
-          <div class="field"><label for="tfGram">Gramática</label><select id="tfGram"></select></div>
-          <div class="field"><label for="tfVoc">Vocabulario</label><select id="tfVoc"></select></div>
-        </div>
-        <div class="field"><label for="tfText">Comentarios generales</label><textarea id="tfText" placeholder="Lo que hizo bien, en qué trabajar para la próxima clase…"></textarea></div>
-        <div class="row"><button class="btn" id="btnTfSave">Guardar retroalimentación</button><button class="btn quiet" id="btnTfCancel">Cancelar</button></div>
+      <div class="tutor-card">
+        <span class="av pro-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30"><path fill="currentColor" d="M12 3 1 9l11 6 9-4.9V17h2V9zm-6 9.2v4.3L12 20l6-3.5v-4.3L12 15.5z"/></svg></span>
+        <div class="tc-txt"><h3>Para tu clase con tu profesor</h3><p class="small muted">Tu resumen, la retroalimentación de tu profesor y tu proyecto del mes.</p></div>
+        <div class="tc-act"><button class="btn ghost" id="btnProOpen">Abrir</button></div>
       </div>
-    </div>
-    <div class="field">
-      <h3>Proyecto del mes</h3>
-      <p class="muted">Al cerrar tus 6 clases del mes, preparas un proyecto propio: una historia o presentación sobre algo que te importe. Lo expones en tu clase y respondes 4 o 5 preguntas de tu profesor.</p>
-      <div class="row"><input type="text" id="projTopic" placeholder="Ej. My dream business" aria-label="Tema de tu proyecto" style="flex:1;min-width:200px"><button class="btn ghost" id="btnProj">Empezar mi proyecto</button></div>
-    </div>
     </div>
     <hr style="border:0;border-top:1px solid var(--rule);width:100%;margin:6px 0">
     <div class="field">
@@ -898,7 +947,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.17 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.18 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -993,7 +1042,8 @@ function asgBlock(a){
   return parts.length ? "\n\nThe teacher asked the student to: " + parts.join("; ") + "." : "";
 }
 function aiStoryPrompt({ topic, level, asg, name }){
-  const [a, b] = LEVELS[level] || [100, 150];
+  // Las historias de la IA son ~40% más largas que la meta del alumno, para que tengan más que estudiar.
+  const [a, b] = (LEVELS[level] || [100, 150]).map(n => Math.round(n * 1.4 / 5) * 5);
   return `You are the writing corrector of Wrealispec. This time, instead of correcting, you write a short original story for the student to study.
 Student name: ${name || "(unknown)"}. Student level (CEFR): ${level}. Topic: "${topic}".${asgBlock(asg)}
 
@@ -1606,34 +1656,9 @@ function pdfSheet(){
   </div>`;
   return box.firstElementChild;
 }
-$("btnPdf").addEventListener("click", async () => {
-  const st = $("stPdf"); $("btnPdf").disabled = true; busy(st, "Preparando tu PDF…");
-  try {
-    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js");
-    const el = pdfSheet();
-    // La hoja se pone en la página (arriba a la izquierda, detrás de todo) y se captura sin tomar en cuenta
-    // el desplazamiento: si no, cuando la página está bajada el PDF sale en blanco.
-    pdfWrap = document.createElement("div");
-    pdfWrap.style.cssText = "position:absolute;left:0;top:0;width:740px;z-index:-9999;pointer-events:none;background:#fff";
-    pdfWrap.append(el); document.body.append(pdfWrap);
-    if (document.fonts && document.fonts.ready) await document.fonts.ready;
-    const name = `Wrealispec - ${String(S.title || S.topic || "mi historia").replace(/[\\/:*?"<>|]+/g, "").slice(0, 60)}.pdf`;
-    const opt = { margin: [10, 10, 12, 10], filename: name, image: { type: "jpeg", quality: 0.95 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", scrollX: 0, scrollY: 0, windowWidth: 760 },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }, pagebreak: { mode: ["css", "legacy"] } };
-    if (typeof dlCap !== "undefined" && dlCap){
-      const blob = await window.html2pdf().set(opt).from(el).outputPdf("blob");
-      await dlCap.save({ filename: name, data: blob });
-    } else {
-      await window.html2pdf().set(opt).from(el).save();
-    }
-    busy(st, "");
-  } catch(e){ fail(st, "No se pudo crear el PDF. Usa «Imprimir o guardar como PDF»."); }
-  finally { $("btnPdf").disabled = false; if (pdfWrap){ pdfWrap.remove(); pdfWrap = null; } }
-});
-let pdfWrap = null;
-// Respaldo sin librerías: abre la hoja lista para imprimir; en el cuadro de impresión se elige «Guardar como PDF».
-$("btnPrint").addEventListener("click", () => {
+// El PDF se arma con la impresión del navegador («Guardar como PDF»): no depende de librerías externas
+// y el texto se puede seleccionar.
+$("btnPdf").addEventListener("click", () => {
   const w = window.open("", "_blank");
   if (!w) return fail($("stPdf"), "Tu navegador bloqueó la ventana. Permite ventanas emergentes para wrealispec.com.");
   const title = `Wrealispec - ${String(S.title || S.topic || "mi historia")}`.replace(/[<>&]/g, "");
@@ -1642,6 +1667,7 @@ $("btnPrint").addEventListener("click", () => {
     <style>@page{size:A4;margin:12mm}body{margin:0;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}tr,li{page-break-inside:avoid}</style>
     </head><body>${pdfSheet().outerHTML}<script>window.onload=()=>setTimeout(()=>window.print(),400)<\/script></body></html>`);
   w.document.close();
+  const st = $("stPdf"); st.classList.remove("bad"); st.textContent = "Se abrió tu hoja. En el cuadro de impresión elige «Guardar como PDF» como destino.";
 });
 // Dentro de Claude no se pueden descargar archivos: el botón solo aparece en wrealispec.com.
 if (window.claude) $("dlRow").hidden = true;
@@ -2092,10 +2118,17 @@ function showReading(){
   else $("readWords").innerHTML = "";
   $("readWords").hidden = !words.length;
   $("readRes").hidden = false;
+  // En la página solo queda un resumen; el detalle vive en la ventana.
+  $("readSum").hidden = false; $("readSumLv").textContent = lvLabel(best);
+  $("readSumTries").textContent = best >= PASS ? "¡Lo lograste! Ya puedes pasar a Escucha y responde." : `Intento ${tries} de 3`;
 }
-$("btnRead").onclick = () => evaluateReading($("readIn").value.trim(), "Lee al menos unas oraciones con el micrófono del teclado.");
-async function evaluateReading(txt, shortMsg){
-  const st = $("st4");
+$("btnRead").onclick = async () => {
+  const txt = $("readIn").value.trim();
+  if (countWords(txt) < 10) return fail($("st4"), "Lee al menos unas oraciones con el micrófono del teclado.");
+  openRec("results"); await evaluateReading(txt, "", $("recSt")); recShow("results");
+};
+async function evaluateReading(txt, shortMsg, stEl){
+  const st = stEl || $("st4");
   if (countWords(txt) < 10) return fail(st, shortMsg);
   $("readIn").value = txt;
   S.reading = { text: txt, pct: null, res: null, attempts: S.reading.attempts || [], boards: S.reading.boards || {} };
@@ -2184,10 +2217,23 @@ function recUI(state){
   $("recReview").hidden = state !== "review";
   if (state !== "rec") $("recMeter").style.width = "0";
 }
-function openRec(){
+function recShow(view){
+  const res = view === "results";
+  $("recView").hidden = res; $("recResView").hidden = !res;
+  document.querySelector("#recModal .rec-up").hidden = res;
+  $("recTitle").textContent = res ? "Tu resultado de lectura" : "Lee tu historia en voz alta";
+  if (res){
+    const tries = (S.reading.attempts || []).length;
+    $("recRetry").hidden = bestReading() >= PASS && tries >= 3;
+    $("recRetry").textContent = tries < 3 ? `Volver a grabar (intento ${tries + 1} de 3)` : "Volver a grabar";
+    $("recResView").scrollTop = 0;
+  }
+}
+function openRec(view){
   sentenceSpans($("recText"));
   recBlob = null; recUI("idle"); $("recTime").textContent = "0:00"; $("recSt").textContent = ""; $("recSt").classList.remove("bad");
-  $("recModal").hidden = false; setTimeout(() => $("recBtn").focus(), 50);
+  recShow(view === "results" ? "results" : "rec");
+  $("recModal").hidden = false; setTimeout(() => (view === "results" ? $("recDone") : $("recBtn")).focus(), 50);
 }
 function stopTracks(){
   if (!rec) return;
@@ -2229,7 +2275,10 @@ async function startRec(){
   }, 250);
   mr.start(); recUI("rec");
 }
-$("btnOpenRec").onclick = openRec;
+$("btnOpenRec").onclick = () => openRec();
+$("btnReadRes").onclick = () => openRec("results");
+$("recRetry").onclick = () => { recShow("rec"); recBlob = null; recUI("idle"); $("recTime").textContent = "0:00"; };
+$("recDone").onclick = () => closeRec();
 $("recClose").onclick = closeRec;
 $("recBtn").onclick = () => (rec && rec.mr && rec.mr.state === "recording") ? rec.mr.stop() : startRec();
 $("recAgain").onclick = () => { $("recAudio").pause(); recBlob = null; $("recTime").textContent = "0:00"; startRec(); };
@@ -2273,9 +2322,10 @@ $("recSend").onclick = async () => {
     if (!r.ok) throw new Error(d.error || "stt_error");
     const txt = String(d.text || "").trim();
     if (countWords(txt) < 10) throw new Error("short");
-    busy(st, ""); keepRecording(recBlob); closeRec();
-    await evaluateReading(txt, "No escuché suficiente texto.");
-    $("readRes").scrollIntoView({ behavior: "smooth", block: "start" });
+    busy(st, ""); keepRecording(recBlob); $("recAudio").pause();
+    recShow("results");
+    await evaluateReading(txt, "No escuché suficiente texto.", $("recSt"));
+    recShow("results");
   } catch(e){
     fail(st, e.message === "short" ? "Casi no escuché nada. Acércate al micrófono, lee en voz alta y vuelve a grabar."
       : STT_MSG[e.message] || "No pude escuchar tu lectura esta vez. Inténtalo de nuevo.");
@@ -2516,8 +2566,8 @@ function renderQa(){
     list.append(li);
   });
   const has = !!S.qa.items.length;
-  $("btnQaOpen").hidden = !has; $("btnQaOpen").textContent = res.length ? "Ver mis respuestas" : "Hacer mis retos";
-  $("btnQa").textContent = has ? "Crear retos nuevos" : "Crear retos"; $("btnQa").classList.toggle("quiet", has);
+  $("btnQaOpen").hidden = true;
+  $("btnQa").textContent = !has ? "Crear retos" : res.length ? "Ver mis respuestas" : "Hacer mis retos";
   if (res.length){
     const ok = res.filter(r => r && r.ok).length, pct = Math.round(ok / (S.qa.items.length || 1) * 100);
     lvRender($("qaLv"), pct); $("qaSum").textContent = S.qa.res.summary_es || "";
@@ -2539,11 +2589,11 @@ function qaShow(){
   $("qaResM").hidden = !(last && S.qa.res);
 }
 function openQa(start){
-  qaStep = start || 0; $("stQa2").textContent = ""; $("stQa2").classList.remove("bad");
+  qaStep = start || 0; $("stQa2").textContent = ""; $("stQa2").classList.remove("bad"); $("qaPrev").hidden = false;
   $("qaModal").hidden = false; renderQa(); qaShow(); setTimeout(() => $("qaClose").focus(), 50);
   prepareQaVoice();
 }
-function closeQa(){ stopSpeech(); $("qaModal").hidden = true; renderQa(); $("btnQaOpen").focus(); }
+function closeQa(){ stopSpeech(); $("qaModal").hidden = true; renderQa(); $("btnQa").focus(); }
 $("qaClose").onclick = closeQa;
 $("qaPrev").onclick = () => { stopSpeech(); qaStep--; qaShow(); };
 $("qaNext").onclick = () => { stopSpeech(); qaStep++; qaShow(); };
@@ -2564,17 +2614,23 @@ async function qaSay(i, it){
   if (A && A.starts && A.starts[i] != null) await playSpan(A.starts[i], A.ends[i], my, null, qaEl, slow ? 0.8 : 0.95);
   else await speak(it.prompt, Math.max(0.6, rateVal() - (slow ? 0.15 : 0.05)));
 }
-$("btnQa").onclick = async () => {
-  const st = $("stQa"); const sample = await sampleP;
+$("btnQa").onclick = () => { if (S.qa.items.length) openQa(0); else { $("qaList").innerHTML = ""; $("qaModal").hidden = false; qaEmptyUI(); createQa(); } };
+$("qaNew").onclick = () => createQa();
+function qaEmptyUI(){
+  $("qaTitle").textContent = "Preparando tus retos…"; $("qaDots").innerHTML = "";
+  ["qaPrev","qaNext","btnQaCheck"].forEach(id => $(id).hidden = true); $("qaResM").hidden = true;
+}
+async function createQa(){
+  const st = $("stQaM"); const sample = await sampleP;
   if (!sample) return fail(st, "Demostración: los ejercicios con IA se activan en la siguiente versión.");
-  $("btnQa").disabled = true; busy(st, "Preparando tus retos…");
+  $("qaNew").disabled = true; $("btnQa").disabled = true; busy(st, "Preparando tus retos…");
   try {
     const r = await sample.json(qaPrompt(S.level, S.corrected), { cache:false, need:["items"] });
     const items = (r && Array.isArray(r.items) ? r.items : []).filter(x => x && x.prompt).slice(0,5);
     if (!items.length) throw { code:"invalid_json" };
-    S.qa = { items, answers: [], res: null }; save(); renderQa(); busy(st, ""); openQa(0);
-  } catch(e){ fail(st, errMsg(e)); } finally { $("btnQa").disabled = false; }
-};
+    S.qa = { items, answers: [], res: null }; save(); busy(st, ""); $("qaPrev").hidden = false; openQa(0);
+  } catch(e){ fail(st, errMsg(e)); } finally { $("btnQa").disabled = false; $("qaNew").disabled = false; }
+}
 $("btnQaCheck").onclick = async () => {
   const st = $("stQa2"); const items = S.qa.items; const answers = items.map((_, i) => S.qa.answers[i]);
   const filled = (a) => Array.isArray(a) ? a.length > 0 : a !== undefined && a !== null && String(a).trim() !== "";
@@ -2719,6 +2775,7 @@ hint_words: 6 to 10 English words or very short chunks (1 to 3 words each) that 
 When done is true, feedback is {"fluency":0,"grammar":0,"vocabulary":0,"comment_es":"","corrections":[{"original":"","correction":"","rule_es":""}]}: scores from 0 to 100 (they are never shown as numbers), comment_es is 2 warm sentences in Spanish (what went well, then one tip), corrections are maximum 4 from the student's messages, rule_es maximum 20 words.`;
 }
 function renderChat(){
+  $("chatCardAv").innerHTML = avatar(VOICE_CARDS[S.voice] ? S.voice : "us-f");
   const log = $("chatLog"); log.innerHTML = "";
   S.chat.turns.forEach((t) => {
     const b = document.createElement("div"); b.className = `bubble ${t.who}`;
@@ -2795,6 +2852,9 @@ function openChat(){
 }
 function closeChat(){ stopChatRec(true); stopSpeech(); $("chatModal").hidden = true; renderChat(); }
 $("chatClose").onclick = closeChat;
+$("btnProOpen").onclick = () => { $("summary").textContent = summaryText(); $("proModal").hidden = false; setTimeout(() => $("proClose").focus(), 50); };
+$("proClose").onclick = () => { $("proModal").hidden = true; };
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("proModal").hidden) $("proModal").hidden = true; });
 $("btnChatOpen").onclick = openChat;
 $("btnChatStart").onclick = () => { S.chat = { turns:[], done:false, feedback:null }; save(); openChat(); chatTurn(false, $("stChat2")); };
 function sendChatText(t, byVoice){
