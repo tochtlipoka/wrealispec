@@ -1427,7 +1427,12 @@ async function googleAudio(){
 async function withAudio(btn, then){
   const st = $("stG"); btn.disabled = true; busy(st, "Preparando la voz…");
   try { const blob = await googleAudio(); busy(st, ""); then(blob); }
-  catch(e){ fail(st, e.message === "tts_not_configured" ? "La voz natural todavía no está activada. Mientras, usa la voz del navegador." : "No se pudo crear el audio. Inténtalo de nuevo."); }
+  catch(e){
+    const m = e.message === "tts_not_configured" ? "La voz natural todavía no está activada. Mientras, usa la voz del navegador."
+      : e.message === "daily_limit" ? "Llegaste al límite de audios con voz natural de hoy. Usa la voz del navegador; mañana se renueva."
+      : ERR[e.message] && e.message !== "upstream_error" ? ERR[e.message] : "No se pudo crear el audio. Inténtalo de nuevo.";
+    fail(st, m);
+  }
   finally { btn.disabled = false; }
 }
 $("btnG").onclick = () => withAudio($("btnG"), (blob) => {
