@@ -627,7 +627,12 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <div class="sendbox" id="sendBox" hidden>
       <h3 id="sendTitle">Envía tu grabación a tu profesor</h3>
       <p class="muted" id="sendText"></p>
-      <div class="row"><button class="btn ghost" id="btnSendMsg">Copiar mensaje para tu profesor</button><span class="status" id="st4b" role="status"></span></div>
+      <div class="row">
+        <button class="btn" id="btnShareRec" hidden><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M8 1.2a6.7 6.7 0 0 0-5.8 10.1L1.3 14.8l3.6-.9A6.7 6.7 0 1 0 8 1.2Zm0 12.2a5.5 5.5 0 0 1-2.8-.8l-.2-.1-2.1.6.6-2-.1-.2A5.5 5.5 0 1 1 8 13.4Zm3-4.1c-.2-.1-1-.5-1.1-.5-.2-.1-.3-.1-.4.1l-.5.6c-.1.1-.2.1-.4 0a4.5 4.5 0 0 1-2.2-1.9c-.2-.3.2-.3.5-1 .1-.1 0-.2 0-.3l-.5-1.2c-.1-.3-.3-.3-.4-.3h-.3a.6.6 0 0 0-.4.2 1.8 1.8 0 0 0-.6 1.3 3.1 3.1 0 0 0 .7 1.7 7 7 0 0 0 2.7 2.4c1 .4 1.4.5 1.9.4a1.6 1.6 0 0 0 1-.7 1.3 1.3 0 0 0 .1-.7c0-.1-.1-.1-.3-.2Z"/></svg> Enviar por WhatsApp</button>
+        <button class="btn quiet" id="btnDlRec" hidden>Descargar mi grabación</button>
+        <button class="btn ghost" id="btnSendMsg">Copiar mensaje para tu profesor</button>
+        <span class="status" id="st4b" role="status"></span>
+      </div>
       <div class="checks"><label><input type="checkbox" data-ck="3"> Envié mi grabación a mi profesor.</label></div>
     </div>
 
@@ -752,7 +757,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.7 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.8 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -1866,6 +1871,7 @@ function readingMisses(){
   return out.slice(0, 15);
 }
 function showReading(){
+  const hasRec = !!(lastRec && lastRec.story === S.id);
   const ops = readingOps();
   lvRender($("readLv"), S.reading.pct);
   const heard = document.createElement("p"); heard.className = "heard";
@@ -1880,7 +1886,7 @@ function showReading(){
   if (best >= PASS){
     $("readTries").textContent = "¡Lo lograste! Ya puedes pasar a Escucha y responde.";
     $("sendTitle").textContent = "Comparte tu avance con tu profesor (opcional)";
-    $("sendText").textContent = "Si quieres, grábate leyendo tu historia (WhatsApp o Audacity) y mándale el audio a tu profesor para que escuche tu avance.";
+    $("sendText").textContent = hasRec ? "Si quieres, mándale a tu profesor la grabación que hiciste aquí, para que escuche tu avance." : "Si quieres, grábate leyendo tu historia (WhatsApp o Audacity) y mándale el audio a tu profesor para que escuche tu avance.";
     box.hidden = false;
   } else if (tries >= 3 && plan() !== "pro"){
     $("readTries").textContent = "Ya lo intentaste 3 veces. ¡Eso es esfuerzo! Repasa con el modo eco las palabras en rojo y vuelve a intentarlo más tarde. Con el plan Pro, tu profesor te escucha y te da su visto bueno.";
@@ -1888,12 +1894,14 @@ function showReading(){
   } else if (tries >= 3){
     $("readTries").textContent = "Ya lo intentaste 3 veces. ¡Eso es esfuerzo! Ahora deja que tu profesor te escuche.";
     $("sendTitle").textContent = "Envía tu grabación a tu profesor";
-    $("sendText").textContent = "Grábate leyendo tu historia (WhatsApp o Audacity) y mándale el audio. Tu profesor lo escucha y te da el visto bueno de tu esfuerzo. Después puedes seguir con Escucha y responde.";
+    $("sendText").textContent = hasRec ? "Mándale a tu profesor la grabación que hiciste aquí. Te escucha y te da el visto bueno de tu esfuerzo. Después puedes seguir con Escucha y responde." : "Grábate leyendo tu historia (WhatsApp o Audacity) y mándale el audio. Tu profesor lo escucha y te da el visto bueno de tu esfuerzo. Después puedes seguir con Escucha y responde.";
     box.hidden = false;
   } else {
     $("readTries").textContent = `Intento ${tries} de 3. La meta es llegar a "Muy bien". Si en 3 intentos no llegas, se lo mandas a tu profesor.`;
     box.hidden = true;
   }
+  $("btnShareRec").hidden = $("btnDlRec").hidden = !hasRec;
+  $("btnSendMsg").textContent = hasRec ? "Solo copiar el mensaje" : "Copiar mensaje para tu profesor";
   const host = $("readDiff"); host.innerHTML = "";
   ops.forEach(([k, w]) => { const s = document.createElement("span"); s.className = k; s.textContent = w; host.append(s, document.createTextNode(" ")); });
   const r = S.reading.res;
@@ -1927,6 +1935,51 @@ function bestReading(){ const a = S.reading.attempts || []; return a.length ? Ma
 $("btnSendMsg").onclick = () => copy(bestReading() >= PASS
   ? `Hola profe, le mando la grabación de mi historia "${S.topic}" para que escuche mi avance. ¡Gracias!`
   : `Hola profe, le mando la grabación de mi historia "${S.topic}". Lo intenté 3 veces y todavía me cuesta trabajo. ¿Me puede escuchar y darme su visto bueno? ¡Gracias!`, $("st4b"));
+
+/* Última grabación evaluada: se queda solo en este dispositivo (nunca en un servidor) para mandársela al profesor. */
+const REC_KEY = "wrealispec.lastRec";
+let lastRec = null;   // { blob, story }
+function recExt(t){ t = String(t || ""); return /webm/.test(t) ? "webm" : /mp4|m4a|aac/.test(t) ? "m4a" : /ogg|opus/.test(t) ? "ogg" : /mpeg|mp3/.test(t) ? "mp3" : /wav/.test(t) ? "wav" : "webm"; }
+async function keepRecording(blob){
+  if (!blob) return;
+  lastRec = { blob, story: S.id };
+  try {
+    if (blob.size > 1500000) { localStorage.removeItem(REC_KEY); return; }
+    const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(blob); });
+    localStorage.setItem(REC_KEY, JSON.stringify({ story: S.id, url: b64 }));
+  } catch(e){}
+}
+(function restoreRec(){
+  try {
+    const c = JSON.parse(localStorage.getItem(REC_KEY) || "null"); if (!c || !c.url) return;
+    const [head, data] = c.url.split(","); const type = (head.match(/data:([^;]+)/) || [])[1] || "audio/webm";
+    lastRec = { blob: new Blob([b64ToBytes(data)], { type }), story: c.story };
+  } catch(e){}
+})();
+const teacherMsg = () => bestReading() >= PASS
+  ? `Hola profe, le mando la grabación de mi historia "${S.topic}" para que escuche mi avance. ¡Gracias!`
+  : `Hola profe, le mando la grabación de mi historia "${S.topic}". Lo intenté 3 veces y todavía me cuesta trabajo. ¿Me puede escuchar y darme su visto bueno? ¡Gracias!`;
+const recName = () => `Wrealispec - ${String(S.topic || "mi historia").replace(/[\\/:*?"<>|]+/g, "").slice(0, 50)} (${store.name || "lectura"}).${recExt(lastRec && lastRec.blob.type)}`;
+function downloadRec(){
+  const a = document.createElement("a"); a.href = URL.createObjectURL(lastRec.blob); a.download = recName();
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+}
+function markSent(){ S.checks[3] = true; save(); bindChecks(); }
+$("btnDlRec").onclick = () => { if (lastRec && lastRec.story === S.id) downloadRec(); };
+$("btnShareRec").onclick = async () => {
+  const st = $("st4b"); if (!lastRec || lastRec.story !== S.id) return;
+  const file = new File([lastRec.blob], recName(), { type: lastRec.blob.type || "audio/webm" });
+  // En el celular: menú de compartir con el audio adjunto (eliges WhatsApp y el chat de tu profesor).
+  if (navigator.canShare && navigator.canShare({ files: [file] })){
+    try { await navigator.share({ files: [file], text: teacherMsg() }); markSent(); st.classList.remove("bad"); st.textContent = "¡Listo! Ya lo enviaste."; return; }
+    catch(e){ if (e && e.name === "AbortError") return; }
+  }
+  // En computadora: se descarga el audio y se abre WhatsApp con el mensaje escrito; ahí adjuntas el archivo.
+  downloadRec();
+  window.open("https://wa.me/?text=" + encodeURIComponent(teacherMsg()), "_blank", "noopener");
+  st.classList.remove("bad"); st.textContent = "Se descargó tu grabación. En WhatsApp elige a tu profesor y adjunta el archivo (clip 📎).";
+  markSent();
+};
 
 /* ---------- Fase 3: grabar (o subir) la lectura en voz alta ----------
    El audio se convierte en el navegador a WAV de 16 kHz (ligero y legible para cualquier formato:
@@ -2040,7 +2093,7 @@ $("recSend").onclick = async () => {
     if (!r.ok) throw new Error(d.error || "stt_error");
     const txt = String(d.text || "").trim();
     if (countWords(txt) < 10) throw new Error("short");
-    busy(st, ""); closeRec();
+    busy(st, ""); keepRecording(recBlob); closeRec();
     await evaluateReading(txt, "No escuché suficiente texto.");
     $("readRes").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch(e){
