@@ -273,9 +273,17 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
 /* Conversación por voz */
 .chat-card .chat{max-height:none;flex:1;min-height:220px;max-height:48vh}
 @media (max-width:620px){.chat-card .chat{max-height:42dvh}}
-.talk{display:flex;gap:16px;align-items:center}
-.talk .mic{width:64px;height:64px}
-.talk-links{display:flex;flex-wrap:wrap;gap:4px 16px}
+.ctrl-bar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:6px 0 0}
+.ctrl{justify-self:center;display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;cursor:pointer;color:var(--ink);font:inherit;padding:0}
+.ctrl-ic{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--chip);border:1px solid var(--rule);transition:background .15s,color .15s,border-color .15s}
+.ctrl:hover .ctrl-ic{border-color:var(--accent);color:var(--accent)}
+.ctrl.on .ctrl-ic{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.ctrl-t{font-weight:700;font-size:.85rem}
+.ctrl:disabled{opacity:.5;cursor:not-allowed}
+.ctrl-mic{display:flex;flex-direction:column;align-items:center;gap:8px}
+.ctrl-mic .mic{width:76px;height:76px}
+.ctrl-mic .meter{width:90px}
+.ctrl-state{text-align:center;font-weight:700;margin:4px 0 0;min-height:1.4em}
 .chips{display:flex;flex-wrap:wrap;gap:8px;padding:10px 12px;border:1px dashed var(--rule);border-radius:12px;background:var(--paper)}
 .chips .chips-lbl{flex-basis:100%;font-size:.82rem;color:var(--ink-soft)}
 .chip-w{font:inherit;font-weight:700;font-size:.95rem;border:1px solid var(--rule);background:var(--sheet);color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer}
@@ -485,14 +493,21 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
       <div class="chat" id="chatLog" aria-live="polite"></div>
       <div class="chips" id="chatChips" hidden></div>
       <div id="chatInputRow" hidden>
-        <div class="talk">
-          <button class="mic" id="chatMic" aria-label="Hablar"><span class="mic-dot" aria-hidden="true"></span></button>
-          <div class="rec-info">
-            <strong id="chatMicState">Toca el micrófono y contesta en inglés</strong>
+        <div class="ctrl-bar">
+          <button type="button" class="ctrl" id="chatHelp">
+            <span class="ctrl-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 2a7 7 0 0 0-4 12.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26A7 7 0 0 0 12 2Zm2.3 11.4-.3.2V16h-4v-2.4l-.3-.2a5 5 0 1 1 4.6 0ZM9 20h6v2H9z"/></svg></span>
+            <span class="ctrl-t">Ayuda</span>
+          </button>
+          <div class="ctrl-mic">
+            <button class="mic" id="chatMic" aria-label="Hablar"><span class="mic-dot" aria-hidden="true"></span></button>
             <div class="meter" aria-hidden="true"><span id="chatMeter"></span></div>
-            <div class="talk-links"><button type="button" class="linkbtn" id="chatHelp">Ayuda: palabras revueltas</button><button type="button" class="linkbtn" id="chatWriteT">Prefiero escribir</button></div>
           </div>
+          <button type="button" class="ctrl" id="chatWriteT">
+            <span class="ctrl-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M3 6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zm2 0v12h14V6zm2 2h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2zM7 12h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2zM8 16h8v1.5H8z"/></svg></span>
+            <span class="ctrl-t">Escribir</span>
+          </button>
         </div>
+        <p class="ctrl-state" id="chatMicState">Toca el micrófono y contesta en inglés</p>
         <div class="field" id="chatWrite" hidden>
           <label for="chatIn" class="small">Tu respuesta en inglés</label>
           <textarea id="chatIn" placeholder="Write your answer…"></textarea>
@@ -816,7 +831,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.14 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.15 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -2676,7 +2691,7 @@ function renderChat(){
 async function chatTurn(finish, statusEl){
   const sample = await sampleP;
   if (!sample) return fail(statusEl, "La conversación con la IA llega cuando la IA esté conectada en esta versión en línea.");
-  ["btnChatStart","btnChatSend","btnChatEnd","chatMic"].forEach(id => $(id).disabled = true); busy(statusEl, "Tu tutor está pensando…");
+  ["btnChatStart","btnChatSend","btnChatEnd","chatMic"].forEach(id => $(id).disabled = true); busy(statusEl, "Tu tutor está pensando…"); $("chatMicState").textContent = "Tu tutor está pensando…";
   try {
     const r = await sample.json(chatPrompt(finish), { cache:false });
     if (!r || typeof r.reply !== "string") throw { code:"invalid_json" };
@@ -2686,7 +2701,7 @@ async function chatTurn(finish, statusEl){
     save(); $("chatChips").hidden = true; renderChat(); busy(statusEl, ""); chatSay(r.reply.trim());
     if (S.chat.feedback) $("summary").textContent = summaryText();
   } catch(e){ fail(statusEl, errMsg(e)); }
-  finally { ["btnChatStart","btnChatSend","btnChatEnd","chatMic"].forEach(id => $(id).disabled = false); }
+  finally { ["btnChatStart","btnChatSend","btnChatEnd","chatMic"].forEach(id => $(id).disabled = false); chatMicUI(!!chatRec); }
 }
 /* ---------- Conversación en ventana flotante: la IA habla con voz natural, el alumno contesta con el micrófono ---------- */
 const chatEl = new Audio();
@@ -2716,23 +2731,25 @@ $("btnChatOpen").onclick = openChat;
 $("btnChatStart").onclick = () => { S.chat = { turns:[], done:false, feedback:null }; save(); openChat(); chatTurn(false, $("stChat2")); };
 function sendChatText(t, byVoice){
   S.chat.turns.push(byVoice ? { who:"me", text:t, voice:true } : { who:"me", text:t });
-  $("chatIn").value = ""; $("chatChips").hidden = true; save(); renderChat(); chatTurn(false, $("stChat2"));
+  $("chatIn").value = ""; $("chatChips").hidden = true; $("chatHelp").classList.remove("on"); save(); renderChat(); chatTurn(false, $("stChat2"));
 }
 $("btnChatSend").onclick = () => {
   const t = $("chatIn").value.trim(); if (!t) return fail($("stChat2"), "Escribe tu respuesta.");
   sendChatText(t, false);
 };
-$("chatWriteT").onclick = () => { const w = $("chatWrite"); w.hidden = !w.hidden; $("chatWriteT").textContent = w.hidden ? "Prefiero escribir" : "Ocultar teclado"; if (!w.hidden) $("chatIn").focus(); };
+$("chatWriteT").onclick = () => { const w = $("chatWrite"); w.hidden = !w.hidden; $("chatWriteT").classList.toggle("on", !w.hidden); if (!w.hidden) $("chatIn").focus(); };
 // Palabras revueltas: ayudan a armar la respuesta sin darla.
 $("chatHelp").onclick = () => {
   const last = [...S.chat.turns].reverse().find(t => t.who === "ai");
   const words = last && Array.isArray(last.words) ? last.words.slice() : [];
   const box = $("chatChips");
+  if (!box.hidden){ box.hidden = true; $("chatHelp").classList.remove("on"); return; }
+  $("chatHelp").classList.add("on");
   if (!words.length){ box.hidden = false; box.innerHTML = `<span class="chips-lbl">Para esta pregunta no hay palabras de ayuda. Toca «Ver en español» en el mensaje del tutor.</span>`; return; }
   for (let i = words.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [words[i], words[j]] = [words[j], words[i]]; }
   box.innerHTML = `<span class="chips-lbl">Palabras que te pueden servir (en desorden). Úsalas para armar tu respuesta; toca una para escribirla.</span>`;
   words.forEach(w => { const c = document.createElement("button"); c.type = "button"; c.className = "chip-w"; c.textContent = w;
-    c.onclick = () => { const ta = $("chatIn"); $("chatWrite").hidden = false; $("chatWriteT").textContent = "Ocultar teclado";
+    c.onclick = () => { const ta = $("chatIn"); $("chatWrite").hidden = false; $("chatWriteT").classList.add("on");
       ta.value = (ta.value.trim() ? ta.value.trim() + " " : "") + w; c.classList.add("used"); ta.focus(); };
     box.append(c); });
   box.hidden = false;
