@@ -221,6 +221,48 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
 .wcount{font-family:var(--f-mono);font-size:.82rem;color:var(--ink-soft)}
 .wcount[data-state="ok"]{color:var(--ok);font-weight:700}
 .wcount[data-state="high"]{color:var(--margin)}
+/* Fase 2: voz elegida, selector con retratos y reproductor flotante */
+.av{display:inline-block;width:64px;height:64px;border-radius:16px;overflow:hidden;flex:none;background:var(--chip)}
+.av svg{display:block;width:100%;height:100%}
+.av.sm{width:44px;height:44px;border-radius:12px}
+.vchosen{display:flex;gap:14px;align-items:center;border:1px solid var(--rule);border-radius:14px;padding:12px 14px;background:var(--paper);align-self:flex-start;max-width:100%}
+.vc-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.vc-txt strong{font-family:var(--f-display);font-size:1.15rem;font-weight:800}
+.vc-lock{display:inline-flex;align-items:center;gap:5px}
+.listen-cta{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center}
+.btn.big{font-size:1.1rem;padding:14px 22px;border-radius:12px}
+ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:2px}
+.vp-card{max-width:620px}
+.vgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:480px){.vgrid{grid-template-columns:minmax(0,1fr)}}
+.vopt{position:relative;display:grid;grid-template-columns:64px minmax(0,1fr);gap:4px 12px;align-items:center;text-align:left;
+  border:1.5px solid var(--rule);border-radius:14px;padding:12px;background:var(--sheet);color:var(--ink);font:inherit;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.vopt .av{grid-row:span 3}
+.vopt .vo-c{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+.vopt .vo-w{font-family:var(--f-display);font-weight:800;font-size:1.1rem;line-height:1.1}
+.vopt .vo-try{justify-self:start;display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:.85rem;color:var(--accent);
+  border:1px solid var(--rule);border-radius:999px;padding:3px 10px;background:var(--paper)}
+.vopt .vo-try.playing{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.vopt:hover{border-color:var(--accent)}
+.vopt[aria-checked="true"]{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+.vopt[aria-checked="true"]::after{content:"✓";position:absolute;top:8px;right:10px;width:22px;height:22px;border-radius:50%;
+  background:var(--accent);color:var(--accent-ink);font-weight:800;font-size:.8rem;display:grid;place-items:center}
+.vp-actions{justify-content:space-between}
+.pl-card{max-width:720px;gap:16px}
+.pl-head{display:flex;align-items:center;gap:12px}
+.pl-head .vc-txt{flex:1}
+.xbtn{width:40px;height:40px;border-radius:50%;border:1px solid var(--rule);background:var(--paper);color:var(--ink);font-size:1.5rem;line-height:1;cursor:pointer;flex:none}
+.pl-scroll{max-height:46vh;overflow-y:auto;padding-top:12px;margin-top:-4px}
+.pl-tip{margin-top:-8px}
+.pl-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn.play{min-width:170px;justify-content:center}
+.pl-foot{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:end;justify-content:space-between}
+.pl-rate{flex:1;min-width:200px;max-width:340px}
+@media (max-width:620px){
+  .modal.pl{place-items:end stretch;padding:0}
+  .modal.pl .pl-card{max-width:none;border-radius:18px 18px 0 0;max-height:94dvh;padding:18px 16px max(18px,env(safe-area-inset-bottom,0px))}
+  .pl-scroll{max-height:38dvh}
+}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -270,6 +312,45 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
         <div class="dots" id="feDots" aria-hidden="true"></div>
       </div>
       <div class="row"><button class="btn" id="fbmGo">Ver mi corrección</button><button type="button" class="linkbtn" id="fbmSkip" hidden>Ir directo a mi corrección</button></div>
+    </div>
+  </div>
+
+  <div class="modal" id="vpModal" hidden role="dialog" aria-modal="true" aria-labelledby="vpTitle">
+    <div class="modal-card vp-card">
+      <span class="eyebrow">Fase 2 · Antes de escuchar</span>
+      <h2 id="vpTitle">¿Con qué voz quieres escuchar tu historia?</h2>
+      <p class="muted">Toca <strong>Probar</strong> para oír cada voz. Elige con calma: será la voz de toda esta historia y no se podrá cambiar.</p>
+      <div class="vgrid" id="vpGrid" role="radiogroup" aria-label="Voces"></div>
+      <span class="status" id="vpSt" role="status"></span>
+      <div class="row vp-actions"><button class="btn" id="vpGo" disabled>Elige una voz</button><button type="button" class="linkbtn" id="vpCancel">Ahora no</button></div>
+    </div>
+  </div>
+
+  <div class="modal pl" id="plModal" hidden role="dialog" aria-modal="true" aria-labelledby="plName">
+    <div class="modal-card pl-card">
+      <div class="pl-head">
+        <span class="av sm" id="plAv" aria-hidden="true"></span>
+        <div class="vc-txt"><span class="eyebrow">Escuchando con</span><strong id="plName"></strong></div>
+        <button class="xbtn" id="plClose" aria-label="Cerrar reproductor">×</button>
+      </div>
+      <div class="seg" role="radiogroup" aria-label="Modalidad">
+        <button role="radio" data-mode="cont" aria-checked="true">Continuo</button>
+        <button role="radio" data-mode="eco" aria-checked="false">Modo eco</button>
+      </div>
+      <p class="muted small" id="modeHelp"></p>
+      <div class="pl-scroll"><div class="notebook" id="listenBox"><span class="lbl">Tu historia</span><span id="listenText"></span></div></div>
+      <p class="small muted pl-tip">Toca cualquier oración para oírla sola.</p>
+      <div class="pl-bar">
+        <button class="btn play" id="btnPlay">Escuchar todo</button>
+        <button class="btn quiet" id="btnStop">Detener</button>
+        <span class="turn" id="turn" aria-live="polite"></span>
+      </div>
+      <div class="pl-foot">
+        <div class="field pl-rate"><label for="rate">Velocidad <span id="rateVal" class="muted"></span></label><input type="range" id="rate" min="0.6" max="1.15" step="0.05" value="0.85"></div>
+        <button class="btn quiet" id="btnMp3">Descargar MP3</button>
+      </div>
+      <span class="status" id="stG" role="status"></span>
+      <p class="small muted" id="voiceNote"></p>
     </div>
   </div>
 
@@ -403,34 +484,19 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
     <div class="panel-head">
       <span class="eyebrow">Fase 2 · Escucha y repite</span>
       <h2>Escucha tu historia y repítela</h2>
-      <p class="muted">Elige cómo practicar. Toca cualquier oración para escucharla sola.</p>
+      <p class="muted">Escucha tu historia con una voz natural y repítela con el mismo ritmo.</p>
     </div>
-    <div class="seg" role="radiogroup" aria-label="Modalidad">
-      <button role="radio" data-mode="cont" aria-checked="true">Continuo</button>
-      <button role="radio" data-mode="eco" aria-checked="false">Modo eco</button>
+    <div class="vchosen" id="vChosen" hidden>
+      <span class="av" id="vcAv" aria-hidden="true"></span>
+      <div class="vc-txt"><span class="eyebrow">Tu voz para esta historia</span><strong id="vcName"></strong>
+        <span class="small muted vc-lock"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M4 7V5a4 4 0 1 1 8 0v2h1v8H3V7h1Zm2 0h4V5a2 2 0 1 0-4 0v2Z"/></svg> Elegida para toda esta historia</span></div>
     </div>
-    <p class="muted small" id="modeHelp"></p>
-    <div class="grid2">
-      <div class="field"><label for="voice">Voz</label><select id="voice"></select></div>
-      <div class="field"><label for="rate">Velocidad <span id="rateVal" class="muted"></span></label><input type="range" id="rate" min="0.6" max="1.15" step="0.05" value="0.85"></div>
-    </div>
-    <div class="row">
-      <button class="btn" id="btnPlay">Escuchar todo</button>
-      <button class="btn quiet" id="btnStop">Detener</button>
-      <span class="turn" id="turn" aria-live="polite"></span>
-    </div>
-    <div class="notebook" id="listenBox"><span class="lbl">Tu historia</span><span id="listenText"></span></div>
-    <p class="small muted" id="voiceNote"></p>
-    <div class="gtts" id="gttsBox" hidden>
-      <h3>Voz natural (MP3)</h3>
-      <p class="small muted">Una voz mucho más humana para escuchar tu historia completa. Descárgala y escúchala sin internet, en el coche o en el camión.</p>
-      <div class="row">
-        <select id="gVoice" aria-label="Voz natural"><option value="us-f">Estados Unidos · mujer</option><option value="us-m">Estados Unidos · hombre</option><option value="uk-f">Reino Unido · mujer</option><option value="uk-m">Reino Unido · hombre</option></select>
-        <button class="btn ghost" id="btnG">Escuchar voz natural</button>
-        <button class="btn quiet" id="btnMp3">Descargar MP3</button>
-        <span class="status" id="stG" role="status"></span>
-      </div>
-      <audio id="gAudio" controls hidden style="width:100%;margin-top:8px"></audio>
+    <div class="listen-cta">
+      <button class="btn big" id="btnOpenPlayer"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M4 2.5v11l9-5.5z"/></svg> <span id="openTxt">Escuchar mi historia</span></button>
+      <ul class="clean small muted modes-mini">
+        <li><strong>Continuo:</strong> la historia completa, para captar el ritmo.</li>
+        <li><strong>Modo eco:</strong> una oración, una pausa, y la repites igual.</li>
+      </ul>
     </div>
     <div class="field">
       <h3>Antes de pasar a la siguiente fase</h3>
@@ -589,7 +655,7 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.1 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.2 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -661,6 +727,7 @@ function normalize(s){
   s.retell = s.retell || { text:"", res:null };
   s.checks = Array.isArray(s.checks) ? s.checks : [false,false,false,false];
   s.teacher = s.teacher || null;
+  s.voice = typeof s.voice === "string" ? s.voice : "";
   return s;
 }
 
@@ -1314,9 +1381,13 @@ function renderCorrect(){
   renderErrors($("errList"), S.errors, true); errCount(); renderAsgRes();
 }
 
-/* ---------- Speech ---------- */
+/* ---------- Voz ----------
+   Fase 2 usa la voz natural de Google: un solo MP3 por historia y por voz, con marcas al inicio de
+   cada oración para resaltar, pausar y repetir sin pedir más audios. La voz del navegador queda
+   como respaldo (sin servidor, sin internet o si se acaba el límite del día) y para los ejercicios. */
 const synth = window.speechSynthesis;
 let voices = [];
+const ttsOn = typeof AI_URL !== "undefined" && !!AI_URL && !window.claude;
 // Lista de arreglos de lectura: cada error que encontremos en la voz se agrega aquí.
 const SPEAK_FIXES = [
   [/\ba\.\s?m\./gi, "AM"], [/\bp\.\s?m\./gi, "PM"],
@@ -1326,39 +1397,69 @@ const SPEAK_FIXES = [
 function speakFix(t){ return SPEAK_FIXES.reduce((s, [re, to]) => s.replace(re, to), String(t)); }
 const ABBR = /\b(a\.\s?m\.|p\.\s?m\.|e\.g\.|i\.e\.|etc\.|Mr\.|Mrs\.|Ms\.|Dr\.|St\.|vs\.)/gi;
 function splitSentences(t){
-  const P = "\u2063";
+  const P = "⁣";
   // Si después de la abreviatura empieza otra oración (mayúscula), su último punto sí cierra la oración.
   const prot = String(t).replace(ABBR, (m, _g, off, str) => /^\s+[A-Z]/.test(str.slice(off + m.length)) ? m.slice(0, -1).replace(/\./g, P) + "." : m.replace(/\./g, P));
   return (prot.match(/[^.!?]+[.!?]+["')\]]*|[^.!?]+$/g) || []).map(s => s.split(P).join(".").trim()).filter(Boolean);
 }
+
+/* Las cuatro voces naturales, con su retrato. */
+const VOICE_CARDS = {
+  "us-f": { country:"Estados Unidos", who:"Mujer",  lang:"en-US", female:true,  bg:"#DCE5FF", skin:"#E8B793", hair:"#3A2418", long:true },
+  "us-m": { country:"Estados Unidos", who:"Hombre", lang:"en-US", female:false, bg:"#D6EFE3", skin:"#9C6A47", hair:"#1E1A19", long:false },
+  "uk-f": { country:"Reino Unido",    who:"Mujer",  lang:"en-GB", female:true,  bg:"#FBE1E5", skin:"#F1CBB0", hair:"#A5482B", long:true },
+  "uk-m": { country:"Reino Unido",    who:"Hombre", lang:"en-GB", female:false, bg:"#FFF0C9", skin:"#E4B48F", hair:"#7A5434", long:false, beard:true },
+};
+const voiceLabel = (k) => VOICE_CARDS[k] ? `${VOICE_CARDS[k].country} · ${VOICE_CARDS[k].who.toLowerCase()}` : "";
+function avatar(k){
+  const v = VOICE_CARDS[k] || VOICE_CARDS["us-f"], tag = v.lang === "en-GB" ? "UK" : "US";
+  const back = v.long ? `<path d="M19 38c0-16 8-25 21-25s21 9 21 25v24c0 5-4 7-9 6l-24 0c-5 1-9-1-9-6z" fill="${v.hair}"/>` : "";
+  const top = v.long
+    ? `<path d="M23 36c1-12 8-19 17-19s16 7 17 19c-6-1-12-5-15-11-3 6-11 10-19 11z" fill="${v.hair}"/>`
+    : `<path d="M25 34c0-11 7-17 15-17s15 6 15 17c-3-4-6-6-9-6h-12c-3 0-6 2-9 6z" fill="${v.hair}"/>`;
+  const beard = v.beard ? `<path d="M29 42c2 9 6 13 11 13s9-4 11-13c-2 3-5 5-11 5s-9-2-11-5z" fill="${v.hair}" opacity=".9"/>` : "";
+  return `<svg viewBox="0 0 80 80" role="img" aria-label="${v.country}, ${v.who}"><rect width="80" height="80" fill="${v.bg}"/>${back}
+    <path d="M12 80c2-14 13-21 28-21s26 7 28 21z" fill="${v.female ? "#2B56E0" : "#1B2559"}"/>
+    <rect x="35" y="48" width="10" height="11" rx="4" fill="${v.skin}"/>
+    <ellipse cx="40" cy="38" rx="14" ry="16" fill="${v.skin}"/>${beard}${top}
+    <circle cx="35" cy="39" r="1.6" fill="#1B2559"/><circle cx="45" cy="39" r="1.6" fill="#1B2559"/>
+    <path d="M36 46c2.5 2 5.5 2 8 0" stroke="#1B2559" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    <rect x="52" y="64" width="22" height="12" rx="6" fill="#fff" opacity=".92"/>
+    <text x="63" y="73" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" font-weight="700" fill="#1B2559">${tag}</text></svg>`;
+}
+
+/* Voz del navegador (respaldo y ejercicios): la más parecida a la voz elegida. */
 function loadVoices(){
   if (!synth) return;
-  const all = synth.getVoices();
-  const rank = (v) => /natural|online|neural|premium|enhanced|google/i.test(v.name) ? 0 : 1;
-  const pick = (re) => all.filter(v => re.test(String(v.lang).replace("_", "-"))).sort((a, b) => rank(a) - rank(b)).slice(0, 4);
-  const us = pick(/^en-US$/i), uk = pick(/^en-GB$/i);
-  voices = [...us, ...uk];
-  if (!voices.length) voices = all.filter(v => /^en(-|_|$)/i.test(v.lang)).slice(0, 8);
-  const label = (v) => (v.name.replace(/^(Microsoft|Google|Apple)\s+/i, "").replace(/\s*\(.*?\)\s*/g, " ").replace(/\s+Online\b/i, "").replace(/\s*-\s*English.*$/i, "").trim() || v.name);
-  const sel = $("voice"); const prev = sel.value; sel.innerHTML = "";
-  const group = (name, list, offset) => { if (!list.length) return; const g = document.createElement("optgroup"); g.label = name;
-    list.forEach((v, k) => { const o = document.createElement("option"); o.value = offset + k; o.textContent = label(v); g.append(o); }); sel.append(g); };
-  if (us.length || uk.length){ group("Estados Unidos", us, 0); group("Reino Unido", uk, us.length); }
-  else voices.forEach((v, i) => { const o = document.createElement("option"); o.value = i; o.textContent = `${label(v)} (${v.lang})`; sel.append(o); });
-  sel.value = prev && voices[prev] ? prev : "0";
-  $("voiceNote").textContent = voices.length ? "Voz del navegador: 4 de Estados Unidos y 4 de Reino Unido (según tu dispositivo). Si suena robótica, prueba otra o abre la página en Chrome o Edge." : "Tu navegador no tiene voces en inglés. Prueba con Chrome o Edge.";
+  voices = synth.getVoices().filter(v => /^en(-|_|$)/i.test(v.lang));
+  const n = $("voiceNote");
+  if (n) n.textContent = ttsOn ? "" : (voices.length ? "Estás escuchando la voz de tu navegador. Si suena robótica, abre la página en Chrome o Edge." : "Tu navegador no tiene voces en inglés. Prueba con Chrome o Edge.");
 }
 if (synth){ loadVoices(); synth.onvoiceschanged = loadVoices; }
+function browserVoice(){
+  const want = VOICE_CARDS[S.voice] || VOICE_CARDS["us-f"];
+  const rank = (v) => /natural|online|neural|premium|enhanced|google/i.test(v.name) ? 0 : 1;
+  const fem = /female|zira|aria|jenny|samantha|susan|hazel|libby|sonia|serena|karen|moira|tessa|emma|ava|allison|kate/i;
+  const mal = /\bmale|david|mark|guy|ryan|george|daniel|alex|fred|oliver|thomas|arthur|brian|christopher/i;
+  const same = voices.filter(v => String(v.lang).replace("_", "-").toLowerCase() === want.lang.toLowerCase());
+  const pool = same.length ? same : voices;
+  const sex = pool.filter(v => (want.female ? fem : mal).test(v.name) && !(want.female ? mal : fem).test(v.name));
+  return (sex.length ? sex : pool).slice().sort((a, b) => rank(a) - rank(b))[0] || null;
+}
 const rateVal = () => Number($("rate").value);
-$("rate").oninput = () => { $("rateVal").textContent = `×${rateVal().toFixed(2)}`; };
-$("rate").oninput();
+$("rate").oninput = () => { $("rateVal").textContent = `×${rateVal().toFixed(2)}`; if (natEl) natEl.playbackRate = rateVal(); };
 let runId = 0;
-function stopSpeech(){ runId++; try { synth && synth.cancel(); } catch(e){} document.querySelectorAll(".s.now").forEach(n => n.classList.remove("now")); $("turn").textContent = ""; }
+const natEl = new Audio(); natEl.preload = "auto";
+$("rate").oninput();
+function stopSpeech(){
+  runId++; try { synth && synth.cancel(); } catch(e){} try { natEl.pause(); } catch(e){}
+  document.querySelectorAll(".s.now").forEach(n => n.classList.remove("now")); const t = $("turn"); if (t) t.textContent = "";
+}
 function speak(text, rate){
   return new Promise((res) => {
     if (!synth) return res();
-    const u = new SpeechSynthesisUtterance(speakFix(text)); const v = voices[Number($("voice").value)];
-    if (v){ u.voice = v; u.lang = v.lang; } else u.lang = "en-US";
+    const u = new SpeechSynthesisUtterance(speakFix(text)); const v = browserVoice();
+    if (v){ u.voice = v; u.lang = v.lang; } else u.lang = (VOICE_CARDS[S.voice] || {}).lang || "en-US";
     u.rate = rate || rateVal(); u.onend = res; u.onerror = res; synth.speak(u);
   });
 }
@@ -1370,13 +1471,104 @@ function sentenceSpans(host, onClick){
     host.append(s, document.createTextNode(" ")); });
   return parts;
 }
+
+/* ---------- Voz natural: un MP3 por historia y voz, con tiempos de cada oración ---------- */
+const AUDIO_KEY = "wrealispec.audio";
+let nat = null;          // { key, url, blob, starts:[], ends:[] }
+let natFailed = "";      // si la voz natural falló, se usa la del navegador y se explica por qué
+function textHash(t){ let h = 0; for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
+function b64ToBytes(b){ const bin = atob(b || ""), out = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; }
+function blobDuration(blob){
+  return new Promise((res) => { const a = new Audio(); const u = URL.createObjectURL(blob); let done = false;
+    const end = (d) => { if (done) return; done = true; URL.revokeObjectURL(u); res(Number.isFinite(d) ? d : 0); };
+    a.preload = "metadata"; a.onloadedmetadata = () => end(a.duration); a.onerror = () => end(0); setTimeout(() => end(a.duration), 6000); a.src = u; });
+}
+async function ensureNatural(parts){
+  if (!ttsOn || !S.voice) return null;
+  const key = S.voice + "|" + textHash(parts.join(" "));
+  if (nat && nat.key === key) return nat;
+  let data = null;
+  try { const c = JSON.parse(localStorage.getItem(AUDIO_KEY) || "null"); if (c && c.key === key) data = c.data; } catch(e){}
+  if (!data){
+    let r;
+    try { r = await fetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ tts: { sentences: parts.map(speakFix), voice: S.voice } }) }); }
+    catch(e){ throw new Error("network"); }
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !Array.isArray(d.segments)) throw new Error(d.error || "tts_error");
+    data = d.segments;
+    try { localStorage.setItem(AUDIO_KEY, JSON.stringify({ key, data })); } catch(e){}
+  }
+  // Une los pedazos en un solo MP3 y calcula dónde empieza y termina cada oración.
+  const blobs = data.map(sg => new Blob([b64ToBytes(sg.audio)], { type:"audio/mpeg" }));
+  const durs = await Promise.all(blobs.map(blobDuration));
+  const starts = new Array(parts.length).fill(null), ends = new Array(parts.length).fill(null);
+  let offset = 0;
+  data.forEach((sg, k) => {
+    const dur = durs[k] || 0, ids = []; for (let i = sg.first; i <= sg.last; i++) ids.push(i);
+    const known = {}; (sg.marks || []).forEach(m => { known[m.i] = m.t; });
+    const chars = ids.map(i => (parts[i] || "").length), totalChars = chars.reduce((a, b) => a + b, 0) || 1;
+    let acc = 0;
+    ids.forEach((i, j) => { starts[i] = offset + (known[i] != null ? known[i] : dur * acc / totalChars); acc += chars[j]; });
+    ids.forEach((i, j) => { ends[i] = j < ids.length - 1 ? starts[ids[j + 1]] : offset + dur; });
+    offset += dur;
+  });
+  const blob = new Blob(blobs, { type:"audio/mpeg" });
+  if (nat && nat.url) URL.revokeObjectURL(nat.url);
+  nat = { key, blob, url: URL.createObjectURL(blob), starts, ends };
+  natEl.src = nat.url;
+  return nat;
+}
+const TTS_MSG = {
+  tts_not_configured:"La voz natural todavía no está activada. Mientras, escuchas la voz de tu navegador.",
+  daily_limit:"Llegaste al límite de audios con voz natural de hoy. Mientras, escuchas la voz de tu navegador; mañana se renueva.",
+  service_busy:"La voz natural alcanzó su límite de hoy. Mientras, escuchas la voz de tu navegador.",
+  tts_too_long:"Tu historia es demasiado larga para la voz natural. Escuchas la voz de tu navegador.",
+  network:"No hay conexión con el servidor de voz. Escuchas la voz de tu navegador.",
+};
+/* Prepara la voz natural; si no se puede, deja la del navegador y avisa. */
+async function prepareVoice(){
+  if (!ttsOn || natFailed) return null;
+  if (nat && nat.key === S.voice + "|" + textHash(listenParts.join(" "))) return nat;
+  const st = $("stG"), btn = $("btnPlay"); btn.disabled = true; busy(st, "Preparando la voz…");
+  try { const n = await ensureNatural(listenParts); busy(st, ""); return n; }
+  catch(e){ natFailed = e.message; fail(st, TTS_MSG[e.message] || "No se pudo preparar la voz natural. Escuchas la voz de tu navegador."); return null; }
+  finally { btn.disabled = false; }
+}
+/* Reproduce un tramo del MP3 y resalta la oración que va sonando. */
+function playSpan(from, to, my, onTick){
+  return new Promise((res) => {
+    try { natEl.currentTime = from; } catch(e){}
+    natEl.playbackRate = rateVal();
+    const p = natEl.play(); if (p && p.catch) p.catch(() => finish());
+    let done = false;
+    function finish(){ if (done) return; done = true; natEl.pause(); res(); }
+    (function tick(){
+      if (done) return;
+      if (my !== runId || natEl.ended || natEl.currentTime >= to - 0.04) return finish();
+      if (onTick) onTick(natEl.currentTime);
+      setTimeout(tick, 40);
+    })();
+  });
+}
+const mark = (host, i) => host.querySelectorAll(".s").forEach(n => n.classList.toggle("now", Number(n.dataset.i) === i));
+async function sayPart(i, my){
+  const host = $("listenText"); mark(host, i);
+  const n = await prepareVoice(); if (my !== runId) return;
+  if (n && n.starts[i] != null) await playSpan(n.starts[i], n.ends[i], my);
+  else await speak(listenParts[i]);
+}
 async function playFrom(host, parts, start, onlyOne){
   stopSpeech(); const my = runId;
-  for (let i = start; i < parts.length; i++){
-    if (my !== runId) return;
-    host.querySelectorAll(".s").forEach(n => n.classList.toggle("now", Number(n.dataset.i) === i));
-    await speak(parts[i]);
-    if (onlyOne) break;
+  if (onlyOne){ await sayPart(start, my); if (my === runId) host.querySelectorAll(".s.now").forEach(n => n.classList.remove("now")); return; }
+  const n = await prepareVoice(); if (my !== runId) return;
+  if (n){
+    const last = parts.length - 1;
+    await playSpan(n.starts[start] || 0, n.ends[last], my, (t) => {
+      let k = start; while (k < last && n.starts[k + 1] != null && t >= n.starts[k + 1]) k++;
+      mark(host, k);
+    });
+  } else {
+    for (let i = start; i < parts.length; i++){ if (my !== runId) return; mark(host, i); await speak(parts[i]); }
   }
   if (my === runId) host.querySelectorAll(".s.now").forEach(n => n.classList.remove("now"));
 }
@@ -1395,13 +1587,12 @@ function setMode(m){
   $("btnPlay").textContent = m === "eco" ? "Empezar modo eco" : "Escuchar todo";
 }
 document.querySelectorAll(".seg [data-mode]").forEach(b => b.onclick = () => setMode(b.dataset.mode));
-function renderListen(){ listenParts = sentenceSpans($("listenText"), (i) => playFrom($("listenText"), listenParts, i, true)); setMode(mode); bindChecks(); }
 async function echo(){
   stopSpeech(); const my = runId; const host = $("listenText");
+  await prepareVoice(); if (my !== runId) return;
   for (let i = 0; i < listenParts.length; i++){
     if (my !== runId) return;
-    host.querySelectorAll(".s").forEach(n => n.classList.toggle("now", Number(n.dataset.i) === i));
-    $("turn").textContent = "Escucha…"; await speak(listenParts[i]);
+    $("turn").textContent = "Escucha…"; await sayPart(i, my);
     if (my !== runId) return;
     const secs = Math.max(2, Math.round(countWords(listenParts[i]) * 0.55 / rateVal() + 1));
     for (let s = secs; s > 0; s--){ if (my !== runId) return; $("turn").textContent = `Tu turno · ${s}`; await wait(1000); }
@@ -1409,44 +1600,85 @@ async function echo(){
   if (my === runId){ $("turn").textContent = "¡Completo!"; host.querySelectorAll(".s.now").forEach(n => n.classList.remove("now")); }
 }
 $("btnPlay").onclick = () => mode === "eco" ? echo() : playFrom($("listenText"), listenParts, 0, false);
-$("btnStop").onclick = () => { stopSpeech(); $("gAudio").pause(); };
-/* ---------- Voz natural de Google (MP3). Se pide una sola vez por voz y se reutiliza. ---------- */
-const gCache = {};
-const ttsOn = typeof AI_URL !== "undefined" && !!AI_URL && !window.claude;
-$("gttsBox").hidden = !ttsOn;
-async function googleAudio(){
-  const voice = $("gVoice").value, key = voice + "|" + S.corrected;
-  if (gCache[key]) return gCache[key];
-  const r = await fetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ tts: { text: speakFix(S.corrected), voice, rate: 0.95 } }) });
-  const d = await r.json().catch(() => ({}));
-  if (!r.ok || !d.audio) throw new Error(d.error || "tts_error");
-  const bin = atob(d.audio), bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return (gCache[key] = new Blob([bytes], { type: "audio/mpeg" }));
-}
-async function withAudio(btn, then){
-  const st = $("stG"); btn.disabled = true; busy(st, "Preparando la voz…");
-  try { const blob = await googleAudio(); busy(st, ""); then(blob); }
-  catch(e){
-    const m = e.message === "tts_not_configured" ? "La voz natural todavía no está activada. Mientras, usa la voz del navegador."
-      : e.message === "tts_empty" ? "Todavía no hay texto corregido para convertir en audio. Regresa a la Fase 1."
-      : e.message === "tts_too_long" ? "Tu historia es demasiado larga para la voz natural. Usa la voz del navegador."
-      : e.message === "daily_limit" ?"Llegaste al límite de audios con voz natural de hoy. Usa la voz del navegador; mañana se renueva."
-      : ERR[e.message] && e.message !== "upstream_error" ? ERR[e.message] : "No se pudo crear el audio. Inténtalo de nuevo.";
-    fail(st, m);
-  }
-  finally { btn.disabled = false; }
-}
-$("btnG").onclick = () => withAudio($("btnG"), (blob) => {
-  stopSpeech(); const a = $("gAudio");
-  if (a.dataset.src) URL.revokeObjectURL(a.dataset.src);
-  a.src = a.dataset.src = URL.createObjectURL(blob); a.hidden = false; a.playbackRate = rateVal(); a.play().catch(() => {});
-});
-$("gAudio").onplay = () => { $("gAudio").playbackRate = rateVal(); };
-$("btnMp3").onclick = () => withAudio($("btnMp3"), (blob) => {
-  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+$("btnStop").onclick = () => stopSpeech();
+$("btnMp3").onclick = async () => {
+  const st = $("stG");
+  if (!ttsOn) return fail(st, "La descarga en MP3 está disponible con la voz natural.");
+  stopSpeech(); const n = await prepareVoice();
+  if (!n) return;
+  const a = document.createElement("a"); a.href = URL.createObjectURL(n.blob);
   a.download = `Wrealispec - ${String(S.title || S.topic || "mi historia").replace(/[\\/:*?"<>|]+/g, "").slice(0, 60)}.mp3`;
   document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+};
+
+/* ---------- Fase 2: elegir la voz (una vez por historia) y abrir el reproductor ---------- */
+function renderListen(){
+  listenParts = splitSentences(S.corrected);
+  const has = !!VOICE_CARDS[S.voice];
+  $("vChosen").hidden = !has;
+  if (has){ $("vcAv").innerHTML = avatar(S.voice); $("vcName").textContent = voiceLabel(S.voice); }
+  $("openTxt").textContent = has ? "Escuchar mi historia" : "Elegir voz y escuchar";
+  bindChecks();
+}
+function openPlayer(){
+  natFailed = "";
+  listenParts = sentenceSpans($("listenText"), (i) => playFrom($("listenText"), listenParts, i, true));
+  $("plAv").innerHTML = avatar(S.voice); $("plName").textContent = voiceLabel(S.voice);
+  $("stG").textContent = ""; $("stG").classList.remove("bad"); setMode(mode); loadVoices();
+  $("plModal").hidden = false; setTimeout(() => $("btnPlay").focus(), 50);
+  prepareVoice();  // se prepara en cuanto abre, para que el primer «play» sea inmediato
+}
+function closePlayer(){ stopSpeech(); $("plModal").hidden = true; renderListen(); $("btnOpenPlayer").focus(); }
+$("plClose").onclick = closePlayer;
+$("btnOpenPlayer").onclick = () => VOICE_CARDS[S.voice] ? openPlayer() : openVoicePicker();
+
+let vpPick = "", sampleCache = {};
+const sampleEl = new Audio();
+function openVoicePicker(){
+  vpPick = ""; const g = $("vpGrid"); g.innerHTML = "";
+  Object.keys(VOICE_CARDS).forEach(k => {
+    const v = VOICE_CARDS[k];
+    const b = document.createElement("div"); b.className = "vopt"; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", "false"); b.tabIndex = 0; b.dataset.v = k;
+    b.innerHTML = `<span class="av">${avatar(k)}</span><span class="vo-c">${v.country}</span><span class="vo-w">${v.who}</span>
+      <button type="button" class="vo-try"><svg viewBox="0 0 16 16" width="11" height="11" aria-hidden="true"><path fill="currentColor" d="M4 2.5v11l9-5.5z"/></svg> Probar</button>`;
+    const choose = () => { vpPick = k; g.querySelectorAll(".vopt").forEach(o => o.setAttribute("aria-checked", String(o.dataset.v === k)));
+      $("vpGo").disabled = false; $("vpGo").textContent = `Elegir: ${voiceLabel(k)}`; };
+    b.onclick = choose; b.onkeydown = (e) => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); choose(); } };
+    b.querySelector(".vo-try").onclick = (e) => { e.stopPropagation(); choose(); trySample(k, e.currentTarget); };
+    g.append(b);
+  });
+  $("vpGo").disabled = true; $("vpGo").textContent = "Elige una voz"; $("vpSt").textContent = ""; $("vpSt").classList.remove("bad");
+  $("vpModal").hidden = false; setTimeout(() => g.querySelector(".vopt").focus(), 50);
+}
+const SAMPLE_TEXT = "Hi! I'm the voice that will read your story. Let's practice together.";
+async function trySample(k, btn){
+  stopSpeech(); sampleEl.pause();
+  document.querySelectorAll(".vo-try.playing").forEach(x => x.classList.remove("playing"));
+  btn.classList.add("playing"); const st = $("vpSt"); st.classList.remove("bad");
+  const done = () => btn.classList.remove("playing");
+  if (!ttsOn){ const prev = S.voice; S.voice = k; await speak(SAMPLE_TEXT, 0.95); S.voice = prev; return done(); }
+  try {
+    if (!sampleCache[k]){
+      busy(st, "Preparando la voz…");
+      const r = await fetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ tts: { sample: true, voice: k } }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.audio) throw new Error(d.error || "tts_error");
+      sampleCache[k] = URL.createObjectURL(new Blob([b64ToBytes(d.audio)], { type:"audio/mpeg" }));
+    }
+    busy(st, ""); sampleEl.src = sampleCache[k]; sampleEl.onended = done; await sampleEl.play();
+  } catch(e){
+    done(); fail(st, e.message === "daily_limit" ? "Ya probaste muchas voces hoy. Elige con lo que escuchaste." : "No pude reproducir la muestra. Puedes elegir la voz de todos modos.");
+  }
+}
+$("vpGo").onclick = () => {
+  if (!vpPick) return;
+  sampleEl.pause(); S.voice = vpPick; save(); $("vpModal").hidden = true; renderListen(); openPlayer();
+};
+$("vpCancel").onclick = () => { sampleEl.pause(); $("vpModal").hidden = true; };
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (!$("plModal").hidden) closePlayer();
+  else if (!$("vpModal").hidden){ sampleEl.pause(); $("vpModal").hidden = true; }
 });
 async function copy(text, statusEl){
   try { await navigator.clipboard.writeText(text); statusEl.classList.remove("bad"); statusEl.textContent = "Copiado."; }

@@ -39,14 +39,22 @@ const TTS_CHUNK_CHARS = 2500; // tamaño de cada pedazo
 // Se cuenta por persona (dirección IP convertida en un código irreversible; la IP no se guarda)
 // y en total para todo el sitio. Los contadores viven en la base D1 enlazada como "DB" y se
 // reinician cada día a medianoche de la Ciudad de México. Se pueden cambiar sin tocar el código
-// con variables del Worker (Settings → Variables): DAILY_AI_PER_PERSON, DAILY_TTS_PER_PERSON,
-// DAILY_AI_TOTAL y DAILY_TTS_TOTAL.
+// con variables del Worker (Settings → Variables), p. ej. DAILY_AI_PER_PERSON o DAILY_TTS_TOTAL.
 const LIMIT_DEFAULTS = {
-  DAILY_AI_PER_PERSON: 40,   // una clase completa usa ~10-15 llamadas
-  DAILY_TTS_PER_PERSON: 30,  // audios con voz natural de Google
-  DAILY_AI_TOTAL: 1500,      // tope de todo el sitio por día (red de seguridad)
+  DAILY_AI_PER_PERSON: 40,      // una clase completa usa ~10-15 llamadas
+  DAILY_TTS_PER_PERSON: 30,     // audios de historia con voz natural de Google
+  DAILY_SAMPLE_PER_PERSON: 20,  // frases de prueba al elegir la voz
+  DAILY_AI_TOTAL: 1500,         // topes de todo el sitio por día (red de seguridad)
   DAILY_TTS_TOTAL: 1000,
+  DAILY_SAMPLE_TOTAL: 2000,
 };
+const LIMIT_NAMES = {
+  ai: ["DAILY_AI_PER_PERSON", "DAILY_AI_TOTAL"],
+  tts: ["DAILY_TTS_PER_PERSON", "DAILY_TTS_TOTAL"],
+  sample: ["DAILY_SAMPLE_PER_PERSON", "DAILY_SAMPLE_TOTAL"],
+};
+// Frase que se oye al probar cada voz.
+const SAMPLE_TEXT = "Hi! I'm the voice that will read your story. Let's practice together.";
 const KEEP_DAYS = 2; // los contadores viejos se borran solos
 
 export default {
@@ -66,8 +74,11 @@ export default {
     try { body = await request.json(); } catch (e) { return reply({ error: "bad_request" }, 400, cors); }
 
     if (body.tts) {
-      const q = await useQuota(request, env, ctx, "tts");
+      const isSample = body.tts.sample === true;
+      const q = await useQuota(request, env, ctx, isSample ? "sample" : "tts");
       if (q) return reply({ error: q }, 429, cors);
+      if (isSample) return tts({ text: SAMPLE_TEXT, voice: body.tts.voice, rate: 1 }, env, cors);
+      if (Array.isArray(body.tts.sentences)) return ttsMarked(body.tts, env, cors);
       return tts(body.tts, env, cors);
     }
     if (!env.ANTHROPIC_API_KEY) return reply({ error: "not_configured" }, 500, cors);
@@ -163,6 +174,62 @@ async function tts(req, env, cors) {
   return reply({ audio: btoa(mp3) }, 200, cors);
 }
 
+// Historia completa en un solo audio, con marcas invisibles al inicio de cada oración.
+// Google devuelve en qué segundo empieza cada una, y así la app resalta, pausa y repite
+// oración por oración sin pedir más audios. Las marcas no se cobran como caracteres.
+async function ttsMarked(req, env, cors) {
+  if (!env.GOOGLE_TTS_KEY) return reply({ error: "tts_not_configured" }, 500, cors);
+  const voice = TTS_VOICES[req.voice] || TTS_VOICES["us-f"];
+  const sents = req.sentences.filter((x) => typeof x === "string").map((x) => x.trim()).filter(Boolean);
+  if (!sents.length) return reply({ error: "tts_empty" }, 400, cors);
+  const total = sents.reduce((n, x) => n + x.length, 0);
+  if (sents.length > 150 || total > TTS_MAX_CHARS) return reply({ error: "tts_too_long" }, 400, cors);
+
+  // Se agrupan oraciones completas en pedazos que Google acepte (máx. ~5,000 bytes por solicitud).
+  const chunks = [];
+  let cur = [], len = 0;
+  for (let i = 0; i < sents.length; i++) {
+    const e = xmlEscape(sents[i]);
+    if (e.length > 4500) return reply({ error: "tts_too_long" }, 400, cors);
+    if (cur.length && len + e.length > TTS_CHUNK_CHARS) { chunks.push(cur); cur = []; len = 0; }
+    cur.push({ i, e });
+    len += e.length + 20;
+  }
+  if (cur.length) chunks.push(cur);
+
+  const segments = [];
+  for (const chunk of chunks) {
+    const ssml = "<speak>" + chunk.map((c) => `<mark name="s${c.i}"/>${c.e} `).join("") + "</speak>";
+    let r;
+    try {
+      r = await fetch(`https://texttospeech.googleapis.com/v1beta1/text:synthesize?key=${env.GOOGLE_TTS_KEY}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          input: { ssml },
+          voice,
+          audioConfig: { audioEncoding: "MP3", speakingRate: 1 },
+          enableTimePointing: ["SSML_MARK"],
+        }),
+      });
+    } catch (e) {
+      return reply({ error: "upstream_error" }, 502, cors);
+    }
+    if (r.status === 429) return reply({ error: "rate_limited" }, 429, cors);
+    if (!r.ok) return reply({ error: "tts_error", status: r.status }, 502, cors);
+    const data = await r.json();
+    const marks = (data.timepoints || [])
+      .map((t) => ({ i: Number(String(t.markName || "").slice(1)), t: Number(t.timeSeconds) || 0 }))
+      .filter((m) => Number.isInteger(m.i));
+    segments.push({ audio: data.audioContent || "", first: chunk[0].i, last: chunk[chunk.length - 1].i, marks });
+  }
+  return reply({ segments }, 200, cors);
+}
+
+function xmlEscape(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+}
+
 function chunkText(text, max) {
   const sentences = text.match(/[^.!?]+[.!?]+["')\]]*\s*|[^.!?]+$/g) || [text];
   const out = [];
@@ -190,8 +257,9 @@ async function useQuota(request, env, ctx, kind) {
     const v = parseInt(env[name], 10);
     return Number.isFinite(v) && v >= 0 ? v : LIMIT_DEFAULTS[name];
   };
-  const perPerson = lim(kind === "tts" ? "DAILY_TTS_PER_PERSON" : "DAILY_AI_PER_PERSON");
-  const total = lim(kind === "tts" ? "DAILY_TTS_TOTAL" : "DAILY_AI_TOTAL");
+  const [personName, totalName] = LIMIT_NAMES[kind] || LIMIT_NAMES.ai;
+  const perPerson = lim(personName);
+  const total = lim(totalName);
 
   const day = mxDay(0);
   const ip = request.headers.get("CF-Connecting-IP") || "unknown";
