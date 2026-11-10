@@ -311,6 +311,15 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
   #chatModal .chat{max-height:42dvh;min-height:200px}
   #recResView{max-height:70dvh}
 }
+/* Nivel en botones */
+.lvl-pick{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+@media (max-width:520px){.lvl-pick{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.lvl-b{display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit;border:1.5px solid var(--rule);border-radius:12px;padding:9px 6px;background:var(--sheet);color:var(--ink);cursor:pointer;transition:border-color .15s,background .15s}
+.lvl-b:hover{border-color:var(--accent)}
+.lvl-b .lb-c{font-family:var(--f-mono);font-weight:700;font-size:1.05rem}
+.lvl-b .lb-n{font-size:.75rem;color:var(--ink-soft);text-align:center;line-height:1.2}
+.lvl-b[aria-checked="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.lvl-b[aria-checked="true"] .lb-n{color:var(--accent-ink);opacity:.9}
 /* Asistente de nueva historia */
 .nw-card{max-width:680px}
 .pick-list{display:flex;flex-direction:column;gap:8px}
@@ -425,7 +434,8 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
       <p class="muted">Así te puedo saludar por tu nombre y ajustar todo a tu nivel.</p>
       <div class="field"><label for="wName">¿Cómo te llamas?</label><input type="text" id="wName" autocomplete="given-name" placeholder="Ej. Héctor"></div>
       <div class="field"><label for="wLevel">¿Cuál es tu nivel de inglés?</label>
-        <select id="wLevel"><option value="A1">A1 · Principiante</option><option value="A2">A2 · Básico</option><option value="B1">B1 · Intermedio</option><option value="B2">B2 · Intermedio alto</option><option value="C1">C1 · Avanzado</option></select>
+        <select id="wLevel" hidden><option value="A1">A1 · Principiante</option><option value="A2">A2 · Básico</option><option value="B1">B1 · Intermedio</option><option value="B2">B2 · Intermedio alto</option><option value="C1">C1 · Avanzado</option></select>
+        <div class="lvl-pick" data-for="wLevel" role="radiogroup" aria-label="Tu nivel"></div>
         <span class="small muted">Si no lo sabes, elige A2. Lo puedes cambiar después.</span></div>
       <div class="row"><button class="btn" id="wGo">Empezar</button><span class="status" id="wSt" role="status"></span></div>
     </div>
@@ -708,7 +718,8 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <div class="grid2">
       <div class="field"><label for="topic">Tema que te dio el profesor</label><input type="text" id="topic"></div>
       <div class="field"><label for="level">Tu nivel</label>
-        <select id="level"><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option></select>
+        <select id="level" hidden><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option></select>
+        <div class="lvl-pick" data-for="level" role="radiogroup" aria-label="Tu nivel"></div>
         <span class="small muted" id="wordGoal"></span>
       </div>
     </div>
@@ -959,7 +970,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.19 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.20 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -1255,7 +1266,7 @@ setInput(inputMode);
 /* ---------- Bienvenida: nombre y nivel al entrar ---------- */
 function renderHello(){ $("helloTxt").textContent = store.name ? `Hola, ${store.name}.` : "Hola."; }
 function openWelcome(){
-  $("wName").value = store.name || ""; $("wLevel").value = S.level || "A2"; $("wSt").textContent = "";
+  $("wName").value = store.name || ""; $("wLevel").value = S.level || "A2"; $("wSt").textContent = ""; syncLvlPicks();
   $("welcome").hidden = false; setTimeout(() => $("wName").focus(), 50);
 }
 $("wGo").onclick = () => {
@@ -1319,7 +1330,7 @@ function go(i, scrollTo){
 document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(Number(b.dataset.go)));
 
 /* ---------- Step 1 ---------- */
-function renderGoal(){ const [a,b] = LEVELS[$("level").value]; $("wordGoal").textContent = `Meta para ${$("level").value}: ${a} a ${b} palabras (referencia: exámenes de Cambridge).`; updateTypedCount(); }
+var renderGoal = function(){ const [a,b] = LEVELS[$("level").value]; $("wordGoal").textContent = `Meta para ${$("level").value}: ${a} a ${b} palabras (referencia: exámenes de Cambridge).`; updateTypedCount(); };
 function updateTypedCount(){
   const n = countWords($("typed").value); const [a,b] = LEVELS[$("level").value] || [0,999]; const el = $("typedCount");
   const state = n === 0 ? "" : n < a ? "low" : n > b ? "high" : "ok";
@@ -1328,6 +1339,24 @@ function updateTypedCount(){
 }
 $("typed").addEventListener("input", updateTypedCount);
 $("level").onchange = () => { S.level = $("level").value; renderGoal(); save(); };
+/* Selector de nivel en botones: refleja y controla los <select> ocultos. */
+const LV_NAMES = { A1:"Principiante", A2:"Básico", B1:"Intermedio", B2:"Intermedio alto", C1:"Avanzado" };
+function syncLvlPicks(){
+  document.querySelectorAll(".lvl-pick").forEach(box => {
+    const sel = $(box.dataset.for);
+    if (!box.children.length) Object.keys(LV_NAMES).forEach(code => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "lvl-b"; b.setAttribute("role", "radio"); b.dataset.v = code;
+      b.innerHTML = `<span class="lb-c">${code}</span><span class="lb-n">${LV_NAMES[code]}</span>`;
+      b.onclick = () => { sel.value = code; sel.dispatchEvent(new Event("change")); syncLvlPicks(); };
+      box.append(b);
+    });
+    box.querySelectorAll(".lvl-b").forEach(b => b.setAttribute("aria-checked", String(b.dataset.v === sel.value)));
+  });
+}
+const _renderGoal = renderGoal;
+renderGoal = function(){ _renderGoal(); syncLvlPicks(); };
+$("wLevel").addEventListener("change", syncLvlPicks);
+syncLvlPicks();
 $("topic").oninput = () => { S.topic = $("topic").value; save(); };
 let photoFile = null;
 function setPhoto(f){
