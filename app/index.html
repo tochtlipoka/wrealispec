@@ -881,7 +881,8 @@ ideas_missing_es: main ideas missing, in Spanish, maximum 4 (empty list if none)
 errors: maximum 5 important grammar or vocabulary mistakes in the retelling; rule_es in simple Spanish, maximum 20 words.
 feedback_es: 2 sentences in Spanish, in a warm, encouraging tone, first what was good, then one tip. Never use numbers or percentages.`;
 }
-function readingPrompt(level, story, heard){
+function readingPrompt(level, story, heard, misses){
+  const list = misses.length ? misses.map(m => `- "${m.word}" → ${m.heard ? `heard as "${m.heard}"` : "not heard"}`).join("\n") : "(none)";
   return `You are a pronunciation coach for Wrealispec. A Spanish-speaking student (CEFR ${level}) read this story aloud into a speech recognizer:
 """
 ${story}
@@ -890,10 +891,17 @@ This is what the speech recognizer wrote:
 """
 ${heard}
 """
-Words the recognizer wrote differently were probably mispronounced or skipped. Ignore differences in punctuation, capital letters and numbers written as digits. Reply with only JSON:
+These are the ONLY words of the story that did not match what the recognizer wrote:
+${list}
+Rules:
+- Comment only on the words in that list. Never mention any other word, sound or example that is not in the story.
+- Skip names of people or places and Spanish words (for example names or Mexican dishes): the recognizer often spells them differently, so they are not pronunciation mistakes.
+- Ignore differences in punctuation, capital letters and numbers written as digits.
+- If no word in the list is a real mistake, words_to_practice must be [].
+Reply with only JSON:
 {"feedback_es":"","words_to_practice":[{"word":"","heard_as":"","tip_es":""}]}
 feedback_es: 2 sentences in Spanish, in a warm, encouraging tone, first what went well, then the main thing to practice. Never use numbers or percentages.
-words_to_practice: maximum 5 words from the story that were not understood; heard_as is what the recognizer wrote (or "" if skipped); tip_es explains how to pronounce it in simple Spanish, maximum 15 words, you may use Spanish-like spelling (for example "zinc" → "dzink").`;
+words_to_practice: maximum 5 words, chosen only from the list above; heard_as is what the recognizer wrote (or "" if skipped); tip_es explains how to pronounce it in simple Spanish, maximum 15 words, you may use Spanish-like spelling (for example "zinc" → "dzink").`;
 }
 function qaPrompt(level, story){
   return `Create 5 short listening exercises about this story for a Spanish-speaking student of English (CEFR ${level}):
@@ -1776,6 +1784,17 @@ function readingOps(){
   let last = -1; ops.forEach((o, i) => { if (o[0] === "ok") last = i; });
   return last < 0 ? ops : ops.slice(0, last + 1);
 }
+// Palabras de la historia que no coincidieron con lo que se escuchó (con lo que se oyó en su lugar).
+function readingMisses(){
+  const ops = readingOps(), out = [];
+  for (let i = 0; i < ops.length; i++){
+    if (ops[i][0] !== "miss") continue;
+    const next = ops[i + 1] && ops[i + 1][0] === "extra" ? ops[i + 1][1] : "";
+    const w = ops[i][1].replace(/^[^A-Za-z0-9']+|[^A-Za-z0-9']+$/g, ""), h = next.replace(/^[^A-Za-z0-9']+|[^A-Za-z0-9']+$/g, "");
+    if (w && norm(w) !== norm(h)) out.push({ word: w, heard: h });
+  }
+  return out.slice(0, 15);
+}
 function showReading(){
   const ops = readingOps();
   lvRender($("readLv"), S.reading.pct);
@@ -1809,7 +1828,10 @@ function showReading(){
   ops.forEach(([k, w]) => { const s = document.createElement("span"); s.className = k; s.textContent = w; host.append(s, document.createTextNode(" ")); });
   const r = S.reading.res;
   $("readFb").textContent = r ? (r.feedback_es || "") : "";
-  const words = r && Array.isArray(r.words_to_practice) ? r.words_to_practice.slice(0,5) : [];
+  // Solo se muestran palabras que de verdad no coincidieron (nunca una que sí se entendió igual).
+  const missed = new Set(readingMisses().map(m => norm(m.word)));
+  const words = (r && Array.isArray(r.words_to_practice) ? r.words_to_practice : [])
+    .filter(w => w && w.word && missed.has(norm(w.word)) && norm(w.word) !== norm(w.heard_as || "")).slice(0, 5);
   if (words.length) renderErrors($("readWords"), words.map(w => ({ original: w.word, correction: w.heard_as ? `se escuchó “${w.heard_as}”` : "no se escuchó", type: "pronunciación", rule_es: w.tip_es })));
   else $("readWords").innerHTML = "";
   $("readWords").hidden = !words.length;
@@ -1825,7 +1847,7 @@ async function evaluateReading(txt, shortMsg){
   S.reading.pct = Math.round(ok / total * 100); S.reading.attempts.push(S.reading.pct); save(); showReading();
   const sample = await sampleP; if (!sample) return busy(st, "");
   $("btnRead").disabled = true; busy(st, "La IA está revisando tu pronunciación…");
-  try { S.reading.res = await sample.json(readingPrompt(S.level, S.corrected, txt)); save(); showReading(); busy(st, ""); }
+  try { S.reading.res = await sample.json(readingPrompt(S.level, S.corrected, txt, readingMisses())); save(); showReading(); busy(st, ""); }
   catch(e){ fail(st, errMsg(e)); } finally { $("btnRead").disabled = false; }
 }
 function bestReading(){ const a = S.reading.attempts || []; return a.length ? Math.max(...a) : (S.reading.pct ?? 0); }
