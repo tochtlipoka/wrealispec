@@ -47,12 +47,18 @@ const LIMIT_DEFAULTS = {
   DAILY_AI_TOTAL: 1500,         // topes de todo el sitio por día (red de seguridad)
   DAILY_TTS_TOTAL: 1000,
   DAILY_SAMPLE_TOTAL: 2000,
+  DAILY_STT_PER_PERSON: 20,     // lecturas en voz alta convertidas a texto
+  DAILY_STT_TOTAL: 2000,
 };
 const LIMIT_NAMES = {
   ai: ["DAILY_AI_PER_PERSON", "DAILY_AI_TOTAL"],
   tts: ["DAILY_TTS_PER_PERSON", "DAILY_TTS_TOTAL"],
   sample: ["DAILY_SAMPLE_PER_PERSON", "DAILY_SAMPLE_TOTAL"],
+  stt: ["DAILY_STT_PER_PERSON", "DAILY_STT_TOTAL"],
 };
+// Voz a texto con Whisper en Cloudflare (Workers AI, enlazado como "AI"). No se guarda el audio.
+const STT_MODEL = "@cf/openai/whisper-large-v3-turbo";
+const STT_MAX_BASE64 = 9000000; // ~6.5 MB: unos 3 minutos de lectura en WAV de 16 kHz
 // Frase que se oye al probar cada voz.
 const SAMPLE_TEXT = "Hi! I'm the voice that will read your story. Let's practice together.";
 const KEEP_DAYS = 2; // los contadores viejos se borran solos
@@ -73,6 +79,11 @@ export default {
     let body;
     try { body = await request.json(); } catch (e) { return reply({ error: "bad_request" }, 400, cors); }
 
+    if (body.stt) {
+      const q = await useQuota(request, env, ctx, "stt");
+      if (q) return reply({ error: q }, 429, cors);
+      return stt(body.stt, env, cors);
+    }
     if (body.tts) {
       const isSample = body.tts.sample === true;
       const q = await useQuota(request, env, ctx, isSample ? "sample" : "tts");
@@ -172,6 +183,22 @@ async function tts(req, env, cors) {
     mp3 += atob(data.audioContent || "");
   }
   return reply({ audio: btoa(mp3) }, 200, cors);
+}
+
+// Convierte la lectura en voz alta del alumno en texto. El audio llega en base64 y no se guarda.
+async function stt(req, env, cors) {
+  if (!env.AI) return reply({ error: "stt_not_configured" }, 500, cors);
+  const audio = typeof req.audio === "string" ? req.audio : "";
+  if (!audio) return reply({ error: "stt_empty" }, 400, cors);
+  if (audio.length > STT_MAX_BASE64) return reply({ error: "stt_too_long" }, 400, cors);
+  let out;
+  try {
+    out = await env.AI.run(STT_MODEL, { audio, language: "en", task: "transcribe", vad_filter: true });
+  } catch (e) {
+    return reply({ error: "stt_error" }, 502, cors);
+  }
+  const text = String((out && out.text) || "").trim();
+  return reply({ text }, 200, cors);
 }
 
 // Historia completa en un solo audio, con marcas invisibles al inicio de cada oración.

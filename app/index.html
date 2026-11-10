@@ -263,6 +263,26 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
   .modal.pl .pl-card{max-width:none;border-radius:18px 18px 0 0;max-height:94dvh;padding:18px 16px max(18px,env(safe-area-inset-bottom,0px))}
   .pl-scroll{max-height:38dvh}
 }
+/* Fase 3: grabación */
+.rec{display:flex;gap:18px;align-items:center;padding:6px 0}
+.mic{width:76px;height:76px;border-radius:50%;border:0;background:var(--margin);cursor:pointer;display:grid;place-items:center;flex:none;
+  box-shadow:0 10px 24px -10px var(--margin)}
+.mic-dot{width:26px;height:26px;border-radius:50%;background:#fff;transition:border-radius .15s,width .15s,height .15s}
+.mic.on .mic-dot{width:24px;height:24px;border-radius:5px}
+.mic.on{animation:pulse 1.4s ease-out infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--margin) 45%,transparent)}100%{box-shadow:0 0 0 18px transparent}}
+.mic:disabled{opacity:.5;cursor:not-allowed}
+.rec-info{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+.rec-time{font-family:var(--f-mono);font-size:1.05rem;color:var(--ink-soft)}
+.meter{height:6px;border-radius:999px;background:var(--chip);overflow:hidden;max-width:260px}
+.meter span{display:block;height:100%;width:0;background:var(--ok);transition:width .08s}
+.rec-review{display:flex;flex-direction:column;gap:10px}
+.rec-review audio{width:100%}
+.rec-up{margin:0}
+.rec-up .linkbtn{font-size:inherit}
+.kbd-alt summary{cursor:pointer;color:var(--accent);font-weight:700;font-size:.92rem}
+.kbd-alt[open]{display:flex;flex-direction:column;gap:12px}
+.ai-note{border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:12px;background:var(--paper);padding:14px 16px;display:flex;flex-direction:column;gap:8px}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -351,6 +371,30 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
       </div>
       <span class="status" id="stG" role="status"></span>
       <p class="small muted" id="voiceNote"></p>
+    </div>
+  </div>
+
+  <div class="modal pl" id="recModal" hidden role="dialog" aria-modal="true" aria-labelledby="recTitle">
+    <div class="modal-card pl-card">
+      <div class="pl-head">
+        <div class="vc-txt"><span class="eyebrow">Fase 3 · Grábate</span><strong id="recTitle">Lee tu historia en voz alta</strong></div>
+        <button class="xbtn" id="recClose" aria-label="Cerrar">×</button>
+      </div>
+      <div class="pl-scroll"><div class="notebook" id="recStory"><span class="lbl">Tu historia</span><span id="recText"></span></div></div>
+      <div class="rec">
+        <button class="mic" id="recBtn" aria-label="Empezar a grabar"><span class="mic-dot" aria-hidden="true"></span></button>
+        <div class="rec-info">
+          <strong id="recState">Toca el micrófono y empieza a leer</strong>
+          <span class="rec-time" id="recTime">0:00</span>
+          <div class="meter" aria-hidden="true"><span id="recMeter"></span></div>
+        </div>
+      </div>
+      <div class="rec-review" id="recReview" hidden>
+        <audio id="recAudio" controls></audio>
+        <div class="row"><button class="btn" id="recSend">Evaluar mi lectura</button><button class="btn quiet" id="recAgain">Grabar otra vez</button></div>
+      </div>
+      <span class="status" id="recSt" role="status"></span>
+      <p class="small muted rec-up">¿Ya tienes tu lectura grabada (nota de voz, MP3)? <label class="linkbtn" for="recFile">Sube tu audio</label><input type="file" id="recFile" accept="audio/*,.m4a,.ogg,.opus,.mp3,.wav,.webm" hidden></p>
     </div>
   </div>
 
@@ -514,10 +558,19 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <div class="panel-head">
       <span class="eyebrow">Fase 3 · Grábate y te dicto</span>
       <h2>Lee tu historia y la IA te escucha</h2>
-      <p class="muted">Toca el recuadro de abajo y presiona el <strong>micrófono del teclado</strong> de tu celular (con el teclado en inglés), o en Windows presiona <strong>Windows + H</strong>. Lee tu historia completa en voz alta. El teclado escribe lo que entiende y la IA lo compara con tu historia.</p>
+      <p class="muted">Lee tu historia completa en voz alta. Te escucho, paso tu lectura a escrito y la comparo con tu historia para decirte qué palabras practicar.</p>
     </div>
-    <div class="field"><label for="readIn">Lo que el micrófono escuchó</label><textarea id="readIn" spellcheck="false" autocomplete="off" placeholder="Presiona el micrófono del teclado y lee tu historia…"></textarea></div>
-    <div class="row"><button class="btn" id="btnRead">Evaluar mi lectura</button><span class="status" id="st4" role="status"></span></div>
+    <div class="listen-cta">
+      <button class="btn big" id="btnOpenRec"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 1a2.5 2.5 0 0 0-2.5 2.5v4a2.5 2.5 0 0 0 5 0v-4A2.5 2.5 0 0 0 8 1ZM3.5 7a.75.75 0 0 1 1.5 0 3 3 0 0 0 6 0 .75.75 0 0 1 1.5 0 4.5 4.5 0 0 1-3.75 4.44V13h1.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5h1.5v-1.56A4.5 4.5 0 0 1 3.5 7Z"/></svg> Grabar mi lectura</button>
+      <span class="small muted">Tienes 3 intentos. También puedes subir un audio.</span>
+    </div>
+    <span class="status" id="st4" role="status"></span>
+    <details class="kbd-alt">
+      <summary>¿No puedes grabar? Usa el dictado del teclado</summary>
+      <p class="small muted">Toca el recuadro y presiona el <strong>micrófono del teclado</strong> de tu celular (con el teclado en inglés), o en Windows presiona <strong>Windows + H</strong>. Lee tu historia y presiona Evaluar.</p>
+      <div class="field"><label for="readIn">Lo que el micrófono escuchó</label><textarea id="readIn" spellcheck="false" autocomplete="off" placeholder="Presiona el micrófono del teclado y lee tu historia…"></textarea></div>
+      <div class="row"><button class="btn ghost" id="btnRead">Evaluar mi lectura</button></div>
+    </details>
     <div id="readRes" hidden class="field">
       <div class="lvl" id="readLv"></div>
       <p class="tries" id="readTries"></p>
@@ -525,6 +578,11 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
       <p class="small muted"><span style="color:var(--ok)">Verde</span>: se entendió. <span style="color:var(--margin)">Rojo ondulado</span>: no se entendió o te la saltaste. <span style="text-decoration:line-through">Tachado</span>: el micrófono escuchó otra palabra.</p>
       <p id="readFb"></p>
       <div class="errors" id="readWords"></div>
+      <div class="ai-note" id="readAiNote" hidden>
+        <strong>Una nota honesta</strong>
+        <p>Soy una inteligencia artificial y solo escucho el sonido de tu voz: no veo tu boca, tus gestos ni tu expresión, así que esta calificación solo mide qué tanto te entendí. Hay dos formas de mejorar: seguir practicando hasta llegar a <strong>«Muy bien»</strong>, o pedirle a alguien que domine el inglés que te escuche y te dé su opinión.</p>
+        <p><strong>Vas muy bien.</strong> El esfuerzo es el mejor camino para llegar a tu meta de hablar con fluidez.</p>
+      </div>
     </div>
     <p class="small muted">El ritmo y la entonación todavía no se califican; esta revisión mide qué tan claro se entiende lo que dices.</p>
     <div class="sendbox" id="sendBox" hidden>
@@ -655,7 +713,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.2 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.3 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -824,7 +882,7 @@ errors: maximum 5 important grammar or vocabulary mistakes in the retelling; rul
 feedback_es: 2 sentences in Spanish, in a warm, encouraging tone, first what was good, then one tip. Never use numbers or percentages.`;
 }
 function readingPrompt(level, story, heard){
-  return `You are a pronunciation coach for Wrealispec. A Spanish-speaking student (CEFR ${level}) read this story aloud into a phone's speech-to-text keyboard:
+  return `You are a pronunciation coach for Wrealispec. A Spanish-speaking student (CEFR ${level}) read this story aloud into a speech recognizer:
 """
 ${story}
 """
@@ -1721,7 +1779,13 @@ function readingOps(){
 function showReading(){
   const ops = readingOps();
   lvRender($("readLv"), S.reading.pct);
-  if (S.reading.pct < 25){ const n = document.createElement("p"); n.className = "small"; n.textContent = "Casi nada coincidió. Revisa que no haya ruido, que el micrófono esté cerca y que el teclado esté en inglés (ENG)."; $("readLv").append(n); }
+  const heard = document.createElement("p"); heard.className = "heard";
+  heard.textContent = S.reading.pct < 25 ? "Casi no pude entender tu lectura. Revisa que no haya ruido y que el micrófono esté cerca, y vuelve a intentarlo."
+    : S.reading.pct < 50 ? "Entendí menos de la mitad de tu lectura. No te apures: tienes 3 intentos."
+    : S.reading.pct < PASS ? "Entendí buena parte de tu lectura. Un intento más y lo logras."
+    : "Entendí tu lectura casi completa.";
+  $("readLv").append(heard);
+  $("readAiNote").hidden = S.reading.pct >= PASS;
   const tries = S.reading.attempts.length, best = bestReading();
   const box = $("sendBox");
   if (best >= PASS){
@@ -1751,9 +1815,11 @@ function showReading(){
   $("readWords").hidden = !words.length;
   $("readRes").hidden = false;
 }
-$("btnRead").onclick = async () => {
-  const st = $("st4"); const txt = $("readIn").value.trim();
-  if (countWords(txt) < 10) return fail(st, "Lee al menos unas oraciones con el micrófono del teclado.");
+$("btnRead").onclick = () => evaluateReading($("readIn").value.trim(), "Lee al menos unas oraciones con el micrófono del teclado.");
+async function evaluateReading(txt, shortMsg){
+  const st = $("st4");
+  if (countWords(txt) < 10) return fail(st, shortMsg);
+  $("readIn").value = txt;
   S.reading = { text: txt, pct: null, res: null, attempts: S.reading.attempts || [] };
   const ops = readingOps(); const ok = ops.filter(o => o[0] === "ok").length; const total = ops.filter(o => o[0] !== "extra").length || 1;
   S.reading.pct = Math.round(ok / total * 100); S.reading.attempts.push(S.reading.pct); save(); showReading();
@@ -1761,11 +1827,133 @@ $("btnRead").onclick = async () => {
   $("btnRead").disabled = true; busy(st, "La IA está revisando tu pronunciación…");
   try { S.reading.res = await sample.json(readingPrompt(S.level, S.corrected, txt)); save(); showReading(); busy(st, ""); }
   catch(e){ fail(st, errMsg(e)); } finally { $("btnRead").disabled = false; }
-};
+}
 function bestReading(){ const a = S.reading.attempts || []; return a.length ? Math.max(...a) : (S.reading.pct ?? 0); }
 $("btnSendMsg").onclick = () => copy(bestReading() >= PASS
   ? `Hola profe, le mando la grabación de mi historia "${S.topic}" para que escuche mi avance. ¡Gracias!`
   : `Hola profe, le mando la grabación de mi historia "${S.topic}". Lo intenté 3 veces y todavía me cuesta trabajo. ¿Me puede escuchar y darme su visto bueno? ¡Gracias!`, $("st4b"));
+
+/* ---------- Fase 3: grabar (o subir) la lectura en voz alta ----------
+   El audio se convierte en el navegador a WAV de 16 kHz (ligero y legible para cualquier formato:
+   notas de voz, MP3, M4A…), el Worker lo pasa a texto con Whisper y se compara con la historia. */
+const REC_MAX = 180;   // segundos máximos de grabación
+const UP_MAX = 240;    // segundos máximos de un audio subido
+let rec = null, recBlob = null;
+const STT_MSG = {
+  stt_not_configured:"La grabación todavía no está activada. Mientras, usa el dictado del teclado (abajo).",
+  daily_limit:"Llegaste al límite de lecturas de hoy. Mañana se renueva; mientras, sigue practicando con el modo eco.",
+  service_busy:"La grabación alcanzó su límite de hoy. Vuelve a intentarlo mañana.",
+  stt_too_long:"Tu audio es demasiado largo. Graba solo tu historia, de unos 3 minutos como máximo.",
+  network:"No hay conexión con el servidor. Revisa tu internet e inténtalo de nuevo.",
+  decode:"No pude abrir ese audio. Prueba con otro archivo (MP3, M4A, WAV o nota de voz).",
+  too_long_local:"Tu audio dura más de 4 minutos. Graba solo la lectura de tu historia.",
+};
+const fmtTime = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
+function recUI(state){
+  const btn = $("recBtn");
+  btn.classList.toggle("on", state === "rec");
+  btn.setAttribute("aria-label", state === "rec" ? "Terminar grabación" : "Empezar a grabar");
+  $("recState").textContent = state === "rec" ? "Grabando… lee tu historia" : state === "review" ? "Escucha tu grabación" : "Toca el micrófono y empieza a leer";
+  $("recReview").hidden = state !== "review";
+  if (state !== "rec") $("recMeter").style.width = "0";
+}
+function openRec(){
+  sentenceSpans($("recText"));
+  recBlob = null; recUI("idle"); $("recTime").textContent = "0:00"; $("recSt").textContent = ""; $("recSt").classList.remove("bad");
+  $("recModal").hidden = false; setTimeout(() => $("recBtn").focus(), 50);
+}
+function stopTracks(){
+  if (!rec) return;
+  clearInterval(rec.timer); try { rec.stream.getTracks().forEach(t => t.stop()); } catch(e){} if (rec.ctx && rec.ctx.state !== "closed"){ rec.ctx.close().catch(() => {}); }
+}
+function closeRec(){
+  if (rec && rec.mr && rec.mr.state === "recording"){ rec.discard = true; try { rec.mr.stop(); } catch(e){} }
+  stopTracks(); rec = null; $("recAudio").pause(); $("recModal").hidden = true; $("btnOpenRec").focus();
+}
+async function startRec(){
+  const st = $("recSt"); st.classList.remove("bad"); st.textContent = "";
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder)
+    return fail(st, "Tu navegador no permite grabar aquí. Sube tu audio o usa el dictado del teclado.");
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
+  catch(e){ return fail(st, "No pude usar tu micrófono. Revisa que el navegador tenga permiso, o sube tu audio."); }
+  const type = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"].find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t));
+  const mr = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
+  const chunks = []; rec = { stream, mr, chunks, t0: Date.now() };
+  mr.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+  mr.onstop = () => {
+    const discard = rec && rec.discard; stopTracks();
+    if (discard) return;
+    recBlob = new Blob(chunks, { type: mr.mimeType || type || "audio/webm" });
+    $("recAudio").src = URL.createObjectURL(recBlob); recUI("review");
+    setTimeout(() => $("recSend").focus(), 50);
+  };
+  // Medidor de volumen: confirma que el micrófono sí te está escuchando.
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext; const ctx = new AC(); const src = ctx.createMediaStreamSource(stream);
+    const an = ctx.createAnalyser(); an.fftSize = 512; src.connect(an); const buf = new Uint8Array(an.fftSize); rec.ctx = ctx;
+    (function loop(){ if (!rec || rec.mr !== mr || mr.state !== "recording") return; an.getByteTimeDomainData(buf);
+      let sum = 0; for (const v of buf){ const x = (v - 128) / 128; sum += x * x; }
+      $("recMeter").style.width = Math.min(100, Math.sqrt(sum / buf.length) * 400) + "%"; requestAnimationFrame(loop); })();
+  } catch(e){}
+  rec.timer = setInterval(() => {
+    const t = (Date.now() - rec.t0) / 1000; $("recTime").textContent = fmtTime(t);
+    if (t >= REC_MAX){ try { mr.stop(); } catch(e){} fail($("recSt"), "Llegaste a 3 minutos y se detuvo la grabación."); }
+  }, 250);
+  mr.start(); recUI("rec");
+}
+$("btnOpenRec").onclick = openRec;
+$("recClose").onclick = closeRec;
+$("recBtn").onclick = () => (rec && rec.mr && rec.mr.state === "recording") ? rec.mr.stop() : startRec();
+$("recAgain").onclick = () => { $("recAudio").pause(); recBlob = null; $("recTime").textContent = "0:00"; startRec(); };
+$("recFile").onchange = () => {
+  const f = $("recFile").files && $("recFile").files[0]; $("recFile").value = "";
+  if (!f) return;
+  if (rec && rec.mr && rec.mr.state === "recording"){ rec.discard = true; try { rec.mr.stop(); } catch(e){} }
+  recBlob = f; $("recAudio").src = URL.createObjectURL(f); $("recTime").textContent = f.name.slice(0, 40); recUI("review");
+  $("recState").textContent = "Escucha tu audio antes de enviarlo";
+};
+async function toWav16k(blob){
+  const AC = window.AudioContext || window.webkitAudioContext; const ctx = new AC();
+  let buf;
+  try { const ab = await blob.arrayBuffer(); buf = await new Promise((res, rej) => { const p = ctx.decodeAudioData(ab, res, rej); if (p && p.then) p.then(res, rej); }); }
+  catch(e){ throw new Error("decode"); } finally { if (ctx.state !== "closed") ctx.close().catch(() => {}); }
+  if (buf.duration > UP_MAX) throw new Error("too_long_local");
+  const rate = 16000, off = new OfflineAudioContext(1, Math.max(1, Math.ceil(buf.duration * rate)), rate);
+  const src = off.createBufferSource(); src.buffer = buf; src.connect(off.destination); src.start();
+  const out = (await off.startRendering()).getChannelData(0);
+  const bytes = new Uint8Array(44 + out.length * 2), dv = new DataView(bytes.buffer);
+  const w = (o, t) => { for (let i = 0; i < t.length; i++) bytes[o + i] = t.charCodeAt(i); };
+  w(0, "RIFF"); dv.setUint32(4, 36 + out.length * 2, true); w(8, "WAVE"); w(12, "fmt "); dv.setUint32(16, 16, true);
+  dv.setUint16(20, 1, true); dv.setUint16(22, 1, true); dv.setUint32(24, rate, true); dv.setUint32(28, rate * 2, true);
+  dv.setUint16(32, 2, true); dv.setUint16(34, 16, true); w(36, "data"); dv.setUint32(40, out.length * 2, true);
+  for (let i = 0; i < out.length; i++){ const x = Math.max(-1, Math.min(1, out[i])); dv.setInt16(44 + i * 2, x < 0 ? x * 0x8000 : x * 0x7fff, true); }
+  let bin = ""; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+$("recSend").onclick = async () => {
+  const st = $("recSt");
+  if (!recBlob) return;
+  if (!ttsOn) return fail(st, "La grabación funciona en wrealispec.com. Aquí usa el dictado del teclado.");
+  $("recSend").disabled = true; $("recAgain").disabled = true; $("recBtn").disabled = true;
+  busy(st, "Escuchando tu lectura…");
+  try {
+    const audio = await toWav16k(recBlob);
+    let r; try { r = await fetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ stt: { audio } }) }); }
+    catch(e){ throw new Error("network"); }
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || "stt_error");
+    const txt = String(d.text || "").trim();
+    if (countWords(txt) < 10) throw new Error("short");
+    busy(st, ""); closeRec();
+    await evaluateReading(txt, "No escuché suficiente texto.");
+    $("readRes").scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch(e){
+    fail(st, e.message === "short" ? "Casi no escuché nada. Acércate al micrófono, lee en voz alta y vuelve a grabar."
+      : STT_MSG[e.message] || "No pude escuchar tu lectura esta vez. Inténtalo de nuevo.");
+  } finally { $("recSend").disabled = false; $("recAgain").disabled = false; $("recBtn").disabled = false; }
+};
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("recModal").hidden) closeRec(); });
 
 function gradeLocal(it, ans){
   const opts = Array.isArray(it.options) ? it.options : [], key = (Array.isArray(it.answer) ? it.answer : []).map(Number);

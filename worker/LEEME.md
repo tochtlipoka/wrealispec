@@ -42,6 +42,15 @@ Límites por defecto (se reinician a medianoche de la Ciudad de México):
 
 Para cambiarlos sin tocar el código: Settings → Variables and Secrets → Add → tipo **Text** con el nombre de la tabla y el número nuevo.
 
+## Voz a texto (lectura en voz alta)
+
+La Fase 3 convierte la grabación del alumno en texto con Whisper, el modelo de voz a texto que corre dentro de Cloudflare.
+
+1. Worker `wrealispec-ai` → **Bindings** → **Add binding** → **Workers AI** → nombre de la variable `AI` → Add binding.
+2. Listo: no hay llave nueva. Cloudflare da una cuota gratis diaria (unos 200 minutos de audio al día) y después cobra centavos.
+
+Límite: `DAILY_STT_PER_PERSON` (20 lecturas por persona al día) y `DAILY_STT_TOTAL` (2000 en todo el sitio).
+
 ## Tope de gasto mensual
 
 - **Anthropic:** platform.claude.com → Settings → Workspaces → crea uno llamado `wrealispec`, crea la llave de la API dentro de ese workspace → pestaña **Limits** → **Change limit** (tope mensual en USD) y **Add notification** (aviso por correo al llegar a cierta cantidad).
