@@ -589,7 +589,7 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9 · actualizado el 8 nov 2026, 15:30 · prototipo para pruebas</footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.1 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -892,6 +892,9 @@ const ERR = {
   image_rejected:"No pude abrir esa foto. Prueba con otra en JPG o PNG.", images_unavailable:"Este visor no puede enviar fotos. Escribe o pega tu texto.",
   invalid_json:"La respuesta llegó incompleta. Inténtalo de nuevo.", refused:"La IA no pudo procesar ese texto.",
   empty_completion:"La IA no respondió. Inténtalo de nuevo.",
+  daily_limit:"Llegaste al límite de práctica con IA de hoy. ¡Buen trabajo! Mañana se renueva.",
+  service_busy:"La demo alcanzó su límite de uso de hoy. Vuelve a intentarlo mañana.",
+  limit_not_configured:"El servidor de la IA está en mantenimiento. Inténtalo más tarde.",
 };
 const errMsg = (e) => ERR[e && e.code] || "Algo falló en la conexión. Inténtalo de nuevo.";
 function busy(el, msg){ el.classList.remove("bad"); el.innerHTML = msg ? `<span class="spinner" aria-hidden="true"></span> ${msg}` : ""; }

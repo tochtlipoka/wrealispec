@@ -213,7 +213,7 @@ footer a{color:inherit}
       <div class="pilot">
         <h3 data-i18n="pilot.t"></h3>
         <p data-i18n="pilot.d"></p>
-        <a class="btn" href="https://hpopoca.com" target="_blank" rel="noopener" data-i18n="pilot.cta"></a>
+        <a class="btn" id="waPilot" href="https://wa.me/525530337547" target="_blank" rel="noopener" data-i18n="pilot.cta"></a>
       </div>
     </div>
     <p class="status" data-i18n="status"></p>
@@ -269,9 +269,10 @@ es: {
   "t.4":"Recibes un resumen de cada alumno, listo para tu videollamada.",
   "pilot.t":"Programa piloto",
   "pilot.d":"Buscamos profesores y escuelas de inglés que quieran probar el método con sus alumnos.",
-  "pilot.cta":"Contactar a Héctor",
+  "pilot.cta":"Escribir a Héctor por WhatsApp",
+  "pilot.wa":"Hola, Héctor. Soy profesor(a) de inglés y me interesa el programa piloto de Wrealispec.",
   "status":"Wrealispec está en fase piloto. En la demo ya puedes probar el método completo con la IA.",
-  "footer":"Creado por <a href=\"https://hpopoca.com\" target=\"_blank\" rel=\"noopener\">Héctor Popoca</a>",
+  "footer":"Creado por <a href=\"https://hpopoca.com\" target=\"_blank\" rel=\"noopener\">Héctor Popoca</a> · <a href=\"privacidad/\">Aviso de privacidad</a>",
 },
 pt: {
   "nav.demo":"Testar a demo",
@@ -313,9 +314,10 @@ pt: {
   "t.4":"Você recebe um resumo de cada aluno, pronto para a sua videochamada.",
   "pilot.t":"Programa piloto",
   "pilot.d":"Procuramos professores e escolas de inglês que queiram testar o método com os seus alunos.",
-  "pilot.cta":"Falar com Héctor",
+  "pilot.cta":"Falar com Héctor no WhatsApp",
+  "pilot.wa":"Olá, Héctor. Sou professor(a) de inglês e tenho interesse no programa piloto do Wrealispec.",
   "status":"Wrealispec está em fase piloto. Na demo você já pode testar o método completo com a IA.",
-  "footer":"Criado por <a href=\"https://hpopoca.com\" target=\"_blank\" rel=\"noopener\">Héctor Popoca</a>",
+  "footer":"Criado por <a href=\"https://hpopoca.com\" target=\"_blank\" rel=\"noopener\">Héctor Popoca</a> · <a href=\"privacidad/\">Aviso de privacidade</a>",
 },
 en: {
   "nav.demo":"Try the demo",
@@ -357,9 +359,10 @@ en: {
   "t.4":"You get a summary of each student, ready for your video call.",
   "pilot.t":"Pilot program",
   "pilot.d":"We're looking for English teachers and schools who want to try the method with their students.",
-  "pilot.cta":"Contact Héctor",
+  "pilot.cta":"Message Héctor on WhatsApp",
+  "pilot.wa":"Hi Héctor, I'm an English teacher and I'm interested in the Wrealispec pilot program.",
   "status":"Wrealispec is in its pilot phase. You can already try the full method with AI in the demo.",
-  "footer":"Created by <a href=\"https://hpopoca.com\" target=\"_blank\" rel=\"noopener\">Héctor Popoca</a>",
+  "footer":"Created by <a href=\"https://hpopoca.com\" target=\"_blank\" rel=\"noopener\">Héctor Popoca</a> · <a href=\"privacidad/\">Privacy notice</a>",
 }};
 const KEY = "wrealispec.lang";
 function pick(){
@@ -377,6 +380,8 @@ function apply(lang){
   document.querySelectorAll("[data-i18n-html]").forEach(el => { const v = d[el.dataset.i18nHtml]; if (v != null) el.innerHTML = v; });
   document.querySelectorAll("[data-lang]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
   document.title = "Wrealispec";
+  const wa = document.getElementById("waPilot");
+  if (wa) wa.href = "https://wa.me/525530337547?text=" + encodeURIComponent(d["pilot.wa"]);
 }
 document.querySelectorAll("[data-lang]").forEach(b => b.addEventListener("click", () => {
   try { localStorage.setItem(KEY, b.dataset.lang); } catch(e){}

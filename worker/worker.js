@@ -34,8 +34,22 @@ const TTS_VOICES = {
 };
 const TTS_MAX_CHARS = 3000;
 
+// ---------- Límite diario de uso (protege el gasto de IA y voz) ----------
+// Se cuenta por persona (dirección IP convertida en un código irreversible; la IP no se guarda)
+// y en total para todo el sitio. Los contadores viven en la base D1 enlazada como "DB" y se
+// reinician cada día a medianoche de la Ciudad de México. Se pueden cambiar sin tocar el código
+// con variables del Worker (Settings → Variables): DAILY_AI_PER_PERSON, DAILY_TTS_PER_PERSON,
+// DAILY_AI_TOTAL y DAILY_TTS_TOTAL.
+const LIMIT_DEFAULTS = {
+  DAILY_AI_PER_PERSON: 40,   // una clase completa usa ~10-15 llamadas
+  DAILY_TTS_PER_PERSON: 30,  // audios con voz natural de Google
+  DAILY_AI_TOTAL: 1500,      // tope de todo el sitio por día (red de seguridad)
+  DAILY_TTS_TOTAL: 1000,
+};
+const KEEP_DAYS = 2; // los contadores viejos se borran solos
+
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const origin = request.headers.get("Origin") || "";
     const allowed = ALLOWED_ORIGINS.includes(origin);
     const cors = {
@@ -50,13 +64,21 @@ export default {
     let body;
     try { body = await request.json(); } catch (e) { return reply({ error: "bad_request" }, 400, cors); }
 
-    if (body.tts) return tts(body.tts, env, cors);
+    if (body.tts) {
+      const q = await useQuota(request, env, ctx, "tts");
+      if (q) return reply({ error: q }, 429, cors);
+      return tts(body.tts, env, cors);
+    }
     if (!env.ANTHROPIC_API_KEY) return reply({ error: "not_configured" }, 500, cors);
 
     const prompt = typeof body.prompt === "string" ? body.prompt : "";
     if (!prompt || prompt.length > MAX_PROMPT_CHARS || !ALLOWED_PROMPT_STARTS.some((s) => prompt.startsWith(s))) {
       return reply({ error: "bad_request" }, 400, cors);
     }
+
+    // Se cuenta antes de llamar a la IA: si ya se llegó al límite, no se gasta nada.
+    const q = await useQuota(request, env, ctx, "ai");
+    if (q) return reply({ error: q }, 429, cors);
 
     const content = [];
     if (body.image) {
@@ -130,6 +152,56 @@ async function tts(req, env, cors) {
   if (!r.ok) return reply({ error: "tts_error", status: r.status }, 502, cors);
   const data = await r.json();
   return reply({ audio: data.audioContent || "" }, 200, cors);
+}
+
+// Suma 1 al contador de la persona y al total del día. Devuelve null si puede seguir,
+// o el código de error si ya llegó al límite. Sin base de datos enlazada, no deja pasar
+// (así nunca queda la IA abierta sin protección).
+async function useQuota(request, env, ctx, kind) {
+  if (!env.DB) return "limit_not_configured";
+  const lim = (name) => {
+    const v = parseInt(env[name], 10);
+    return Number.isFinite(v) && v >= 0 ? v : LIMIT_DEFAULTS[name];
+  };
+  const perPerson = lim(kind === "tts" ? "DAILY_TTS_PER_PERSON" : "DAILY_AI_PER_PERSON");
+  const total = lim(kind === "tts" ? "DAILY_TTS_TOTAL" : "DAILY_AI_TOTAL");
+
+  const day = mxDay(0);
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+  const who = await hash(`${ip}|${day}|${env.HASH_SALT || "wrealispec"}`);
+
+  const sql = `INSERT INTO usage (day, who, kind, n) VALUES (?1, ?2, ?3, 1)
+               ON CONFLICT(day, who, kind) DO UPDATE SET n = n + 1 RETURNING n`;
+  let mine, all;
+  try {
+    const [a, b] = await env.DB.batch([
+      env.DB.prepare(sql).bind(day, who, kind),
+      env.DB.prepare(sql).bind(day, "*", kind),
+    ]);
+    mine = a.results[0].n;
+    all = b.results[0].n;
+  } catch (e) {
+    return "limit_not_configured";
+  }
+
+  // De vez en cuando se borran los contadores de días anteriores.
+  if (Math.random() < 0.02 && ctx && ctx.waitUntil) {
+    ctx.waitUntil(env.DB.prepare("DELETE FROM usage WHERE day < ?1").bind(mxDay(KEEP_DAYS)).run().catch(() => {}));
+  }
+
+  if (mine > perPerson) return "daily_limit";
+  if (all > total) return "service_busy";
+  return null;
+}
+
+// Fecha (AAAA-MM-DD) en la Ciudad de México, que está en UTC-6 todo el año.
+function mxDay(daysAgo) {
+  return new Date(Date.now() - 6 * 3600e3 - daysAgo * 86400e3).toISOString().slice(0, 10);
+}
+
+async function hash(s) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return [...new Uint8Array(buf)].slice(0, 16).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function reply(obj, status, headers) {
