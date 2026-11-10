@@ -21,6 +21,12 @@ const ALLOWED_PROMPT_STARTS = [
 ];
 
 const MODEL = "claude-haiku-5-5";
+// Para pronunciación y pizarra se usa un modelo más preciso: explicar sonidos exige más cuidado.
+const MODEL_PRECISE = "claude-sonnet-5-5";
+const PRECISE_PROMPT_STARTS = [
+  "You are a pronunciation coach for Wrealispec",
+  "You are the whiteboard teacher of Wrealispec",
+];
 const MAX_TOKENS = 6000;
 const MAX_PROMPT_CHARS = 15000;
 const MAX_IMAGE_BASE64 = 7000000; // ~5 MB
@@ -118,7 +124,8 @@ export default {
     // Con json: true, la respuesta llega como un objeto ya estructurado (herramienta "respond"),
     // así no depende de que la IA escriba bien las comillas.
     const wantJson = body.json === true;
-    const payload = { model: MODEL, max_tokens: MAX_TOKENS, messages: [{ role: "user", content }] };
+    const model = PRECISE_PROMPT_STARTS.some((x) => prompt.startsWith(x)) ? MODEL_PRECISE : MODEL;
+    const payload = { model, max_tokens: MAX_TOKENS, messages: [{ role: "user", content }] };
     if (wantJson) {
       payload.tools = [{
         name: "respond",

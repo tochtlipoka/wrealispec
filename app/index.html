@@ -752,7 +752,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.5 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.6 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -940,8 +940,8 @@ Rules:
 Reply with only JSON:
 {"feedback_es":"","words_to_practice":[{"word":"","heard_as":"","tip_es":""}]}
 feedback_es: 2 sentences in Spanish, in a warm, encouraging tone, first what went well, then the main thing to practice. Never use numbers or percentages.
-Be accurate: never state syllable counts or rules you are not sure about; focus on the one sound that most likely caused the confusion.
-words_to_practice: maximum 5 words, chosen only from the list above; heard_as is what the recognizer wrote (or "" if skipped); tip_es: in simple Spanish, maximum 15 words: name the one sound to practice and give a Spanish-like spelling with syllables separated by hyphens and the stressed syllable in CAPITALS (for example «every» → «É-vri», «bus» → «BAS» con la «a» corta).`;
+Be accurate: never state syllable counts or rules you are not sure about; focus on the one sound that most likely caused the confusion. Never describe the position of the tongue, lips or teeth.
+words_to_practice: maximum 5 words, chosen only from the list above; heard_as is what the recognizer wrote (or "" if skipped); tip_es: in simple Spanish, maximum 15 words: name the one sound or letter to practice (as it appears in the word) and give a Spanish-like spelling with syllables separated by hyphens and the stressed syllable in CAPITALS (for example «every» → «É-vri», «bus» → «BAS» con la «a» corta).`;
 }
 function qaPrompt(level, story){
   return `Create 5 short listening exercises about this story for a Spanish-speaking student of English (CEFR ${level}):
@@ -1840,13 +1840,28 @@ function readingOps(){
   return last < 0 ? ops : ops.slice(0, last + 1);
 }
 // Palabras de la historia que no coincidieron con lo que se escuchó (con lo que se oyó en su lugar).
+function lev(a, b){
+  const m = a.length, n = b.length; if (!m || !n) return Math.max(m, n);
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++){ const cur = [i]; for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = cur; }
+  return prev[n];
+}
 function readingMisses(){
-  const ops = readingOps(), out = [];
-  for (let i = 0; i < ops.length; i++){
-    if (ops[i][0] !== "miss") continue;
-    const next = ops[i + 1] && ops[i + 1][0] === "extra" ? ops[i + 1][1] : "";
-    const w = ops[i][1].replace(/^[^A-Za-z0-9']+|[^A-Za-z0-9']+$/g, ""), h = next.replace(/^[^A-Za-z0-9']+|[^A-Za-z0-9']+$/g, "");
-    if (w && norm(w) !== norm(h)) out.push({ word: w, heard: h });
+  // En cada tramo donde la lectura no coincidió, cada palabra de la historia se empareja con
+  // la palabra escuchada que más se le parece (no solo con la que quedó al lado).
+  const ops = readingOps(), out = [], strip = (x) => x.replace(/^[^A-Za-z0-9']+|[^A-Za-z0-9']+$/g, "");
+  for (let i = 0; i < ops.length; ){
+    if (ops[i][0] === "ok"){ i++; continue; }
+    const miss = [], extra = [];
+    while (i < ops.length && ops[i][0] !== "ok"){ (ops[i][0] === "miss" ? miss : extra).push(strip(ops[i][1])); i++; }
+    const used = new Set();
+    miss.filter(Boolean).forEach(w => {
+      let best = -1, score = 1;
+      extra.forEach((h, k) => { if (!h || used.has(k)) return; const a = norm(w), b = norm(h); const d = lev(a, b) / Math.max(a.length, b.length, 1); if (d < score){ score = d; best = k; } });
+      const heard = best >= 0 && score <= 0.6 ? extra[best] : "";
+      if (best >= 0 && heard) used.add(best);
+      if (norm(w) !== norm(heard)) out.push({ word: w, heard });
+    });
   }
   return out.slice(0, 15);
 }
@@ -2060,7 +2075,7 @@ Sentence from the student's story: "${sentence}"
 Reply with only JSON:
 {"title_es":"","steps":[{"say_es":"","board":[{"t":"","k":"","hl":""}],"en":"","slow":false}]}
 Rules:
-- Be accurate. Never state syllable counts or rules you are not sure about. Focus on the one or two sounds that most likely caused the confusion.
+- Be accurate. Never state syllable counts or rules you are not sure about. Focus on the one or two sounds that most likely caused the confusion. Never describe the position of the tongue, lips or teeth: the student learns by listening (slowly, then normally) and repeating.
 - title_es: maximum 6 words in Spanish (for example «Cómo se dice every»).
 - say_es: warm, simple Mexican Spanish, 1 or 2 short sentences. A Spanish voice reads it, so never write English words in say_es: say «esta palabra», «el primer sonido», etc.
 - board: 0 to 2 lines per step, maximum 42 characters each. k: right = the word or the sentence; wrong = what was heard, only if it is a different word; note = a very short tip in Spanish about the sound; example = a Spanish-like spelling with syllables separated by hyphens and the stressed syllable in CAPITALS (for example «É-vri»). hl: an exact part of t to highlight, or "".
