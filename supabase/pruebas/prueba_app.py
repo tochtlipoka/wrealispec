@@ -30,7 +30,9 @@ with sync_playwright() as p:
     pg.click("#acTabUp"); ok("pestaña crear cuenta muestra nombre", pg.is_visible("#acName") and pg.input_value("#acName") == "Ana")
     pg.fill("#acEmail", "ana@x.com"); pg.fill("#acPass", "123"); pg.click("#acGo"); pg.wait_for_timeout(200)
     ok("valida contraseña corta", "8 caracteres" in pg.inner_text("#acSt"))
-    pg.fill("#acPass", "secreta123"); pg.click("#acGo"); pg.wait_for_timeout(2500)
+    pg.fill("#acPass", "secreta123"); pg.fill("#acPass2", "secreta12"); pg.click("#acGo"); pg.wait_for_timeout(300)
+    ok("pide que las dos contraseñas coincidan", "no coinciden" in pg.inner_text("#acSt") and db() is None or "no coinciden" in pg.inner_text("#acSt"))
+    pg.fill("#acPass2", "secreta123"); ok("avisa cuando coinciden", "coinciden" in pg.inner_text("#acMatch")); pg.click("#acGo"); pg.wait_for_timeout(2500)
     d = db(); h = d["historias"]
     ok("crea cuenta y pasa a vista con sesión", pg.is_visible("#acIn") and "ana@x.com" in pg.inner_text("#acWho"))
     ok("importa las 2 historias del navegador", sorted(x["cliente_id"] for x in h) == ["100", "111"])
@@ -60,6 +62,7 @@ with sync_playwright() as p:
     # Entrar de nuevo con contraseña equivocada y luego bien
     ok("tras cerrar sesión aparece la bienvenida con «Ya tengo cuenta»", pg.is_visible("#welcome") and pg.is_visible("#wAcct"))
     pg.click("#wAcct"); pg.wait_for_timeout(300); pg.fill("#acEmail", "ana@x.com"); pg.fill("#acPass", "malamala1"); pg.click("#acGo"); pg.wait_for_timeout(300)
+    ok("al entrar no pide repetir contraseña", not pg.is_visible("#acPass2"))
     ok("contraseña incorrecta avisa en español", "incorrectos" in pg.inner_text("#acSt"))
     pg.fill("#acPass", "secreta123"); pg.click("#acGo"); pg.wait_for_timeout(2500)
     ok("al volver a entrar trae sus historias", "My city" in pg.text_content("#hist") and len(db()["historias"]) == 2)

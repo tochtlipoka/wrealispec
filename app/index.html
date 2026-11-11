@@ -279,6 +279,9 @@ details[open] > .pillsum::after{transform:rotate(180deg)}
 .ac-eye svg{width:19px;height:19px}
 .ac-hint{font-size:.82rem;color:var(--ink-soft)}
 #acSt:empty,#acJoinSt:empty{display:none}
+.ac-hint.ok{color:var(--ok);font-weight:700}
+.ac-hint.no{color:var(--margin);font-weight:700}
+
 .ac-meter{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:2px}
 .ac-meter i{height:4px;border-radius:2px;background:var(--rule);transition:background .2s}
 .ac-meter[data-n="1"] i:nth-child(-n+1){background:var(--margin)}
@@ -553,6 +556,9 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
               <div class="ac-in pw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input type="password" id="acPass" autocomplete="current-password" minlength="8" placeholder="Mínimo 8 caracteres"><button type="button" class="ac-eye" id="acEye" aria-label="Mostrar contraseña" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
               <div class="ac-meter" id="acMeter" data-n="0" hidden aria-hidden="true"><i></i><i></i><i></i><i></i></div>
               <span class="ac-hint" id="acPassHint" hidden>Usa 8 o más caracteres; mezcla letras y números para que sea fuerte.</span></div>
+            <div class="ac-f" id="acPass2F" hidden><label for="acPass2">Repite tu contraseña</label>
+              <div class="ac-in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><input type="password" id="acPass2" autocomplete="new-password" placeholder="Escríbela otra vez"></div>
+              <span class="ac-hint" id="acMatch" aria-live="polite"></span></div>
             <button class="btn ac-go" id="acGo" type="submit">Entrar</button>
             <span class="status" id="acSt" role="status"></span>
             <div class="ac-alt"><button type="button" class="linkbtn" id="acCancel">Seguir sin cuenta</button>
@@ -1132,7 +1138,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.10.1 · actualizado el 11 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.10.2 · actualizado el 11 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -3304,6 +3310,7 @@ function setAcMode(m){
   $("acTitle").innerHTML = m === "up" ? "Empieza tu <em>cuaderno</em>" : "Bienvenido <em>de vuelta</em>";
   $("acSub").textContent = m === "up" ? "Crea tu cuenta en un minuto. Lo que ya hiciste en este navegador se sube solo." : "Entra para seguir justo donde te quedaste.";
   $("acMeter").hidden = m !== "up"; $("acPassHint").hidden = m !== "up"; acStrength();
+  $("acPass2F").hidden = m !== "up"; acMatch();
   $("acPass").autocomplete = m === "up" ? "new-password" : "current-password";
   $("acSt").textContent = "";
   if (m === "up" && !$("acName").value) $("acName").value = store.name || "";
@@ -3318,14 +3325,20 @@ function openAcct(mode){
 function closeAcct(){ $("acctModal").hidden = true; }
 $("btnAcct").onclick = () => openAcct();
 $("acCancel").onclick = closeAcct; $("acClose").onclick = closeAcct; $("acX").onclick = closeAcct; $("acX2").onclick = closeAcct;
-$("acEye").onclick = () => { const show = $("acPass").type === "password"; $("acPass").type = show ? "text" : "password";
+$("acEye").onclick = () => { const show = $("acPass").type === "password"; $("acPass").type = show ? "text" : "password"; $("acPass2").type = $("acPass").type;
   $("acEye").setAttribute("aria-pressed", show); $("acEye").setAttribute("aria-label", show ? "Ocultar contraseña" : "Mostrar contraseña"); $("acPass").focus(); };
 function acStrength(){
   const v = $("acPass").value; let n = 0;
   if (v.length >= 8) n++; if (v.length >= 12) n++; if (/[a-zA-Z]/.test(v) && /\d/.test(v)) n++; if (/[^a-zA-Z0-9]/.test(v) || /[a-z]/.test(v) && /[A-Z]/.test(v)) n++;
   $("acMeter").dataset.n = v ? Math.max(1, Math.min(4, n)) : 0;
 }
-$("acPass").addEventListener("input", () => { acStrength(); $("acPass").removeAttribute("aria-invalid"); });
+function acMatch(){
+  const a = $("acPass").value, b = $("acPass2").value, h = $("acMatch");
+  h.className = "ac-hint" + (!b ? "" : a === b ? " ok" : " no");
+  h.textContent = !b ? "" : a === b ? "✓ Las contraseñas coinciden" : "Todavía no coinciden";
+}
+$("acPass").addEventListener("input", () => { acStrength(); acMatch(); $("acPass").removeAttribute("aria-invalid"); });
+$("acPass2").addEventListener("input", () => { acMatch(); $("acPass2").removeAttribute("aria-invalid"); });
 ["acEmail","acName"].forEach(id => $(id).addEventListener("input", () => $(id).removeAttribute("aria-invalid")));
 $("acctModal").addEventListener("click", (e) => { if (e.target === $("acctModal")) closeAcct(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("acctModal").hidden) closeAcct(); });
@@ -3349,6 +3362,7 @@ $("acForm").addEventListener("submit", async (e) => {
   if (acMode === "up" && !name) { $("acName").setAttribute("aria-invalid","true"); $("acName").focus(); return fail($("acSt"), "Escribe tu nombre."); }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { $("acEmail").setAttribute("aria-invalid","true"); $("acEmail").focus(); return fail($("acSt"), "Escribe un correo válido."); }
   if (pass.length < 8) { $("acPass").setAttribute("aria-invalid","true"); $("acPass").focus(); return fail($("acSt"), "La contraseña necesita al menos 8 caracteres."); }
+  if (acMode === "up" && $("acPass2").value !== pass) { $("acPass2").setAttribute("aria-invalid","true"); $("acPass2").focus(); return fail($("acSt"), "Las dos contraseñas no coinciden. Escríbelas igual."); }
   $("acGo").disabled = true; busy($("acSt"), acMode === "up" ? "Creando tu cuenta…" : "Entrando…");
   try {
     const c = await getSb();
@@ -3361,7 +3375,7 @@ $("acForm").addEventListener("submit", async (e) => {
       const { error } = await c.auth.signInWithPassword({ email, password: pass });
       if (error) throw error;
     }
-    $("acPass").value = ""; $("acSt").textContent = "";
+    $("acPass").value = ""; $("acPass2").value = ""; acMatch(); $("acSt").textContent = "";
     // afterLogin() llega solo por onAuthStateChange
   } catch (err) { fail($("acSt"), authError(err)); }
   finally { $("acGo").disabled = false; }
