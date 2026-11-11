@@ -72,6 +72,8 @@ input[type=range]{accent-color:var(--accent)}
 .btn{font:inherit;font-weight:700;border-radius:10px;padding:10px 16px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer;display:inline-flex;align-items:center;gap:8px}
 .btn.ghost{background:transparent;color:var(--accent)}
 .btn.quiet{border-color:var(--rule);background:transparent;color:var(--ink)}
+.btn.green{border-color:var(--ok);background:var(--ok);color:var(--sheet)}
+.btn.green:hover{filter:brightness(1.08)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 
 /* Ruled notebook paper for the student's text */
@@ -507,7 +509,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
       </div>
       <div class="pl-foot">
         <div class="field pl-rate"><label for="rate">Velocidad <span id="rateVal" class="muted"></span></label><input type="range" id="rate" min="0.6" max="1.15" step="0.05" value="0.85"></div>
-        <button class="btn quiet" id="btnMp3">Descargar MP3</button>
+        <button class="btn green" id="btnMp3">Descargar MP3</button>
       </div>
       <span class="status" id="stG" role="status"></span>
       <p class="small muted" id="voiceNote"></p>
@@ -1008,7 +1010,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.24 · actualizado el 11 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.25 · actualizado el 11 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
