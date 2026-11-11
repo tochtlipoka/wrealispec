@@ -1,36 +1,29 @@
-// Wrealispec · servidor intermedio para la IA (Cloudflare Worker)
-// Guarda en secreto la llave de Claude (ANTHROPIC_API_KEY) y la de Google para la voz (GOOGLE_TTS_KEY),
-// y solo acepta las tareas de Wrealispec que vienen de wrealispec.com.
+// Wrealispec · servidor intermedio para la IA (Cloudflare Worker) · v2
+// Guarda en secreto la llave de Claude (ANTHROPIC_API_KEY) y la de Google para la voz (GOOGLE_TTS_KEY).
+//
+// Desde la v2 (nov 2026) las instrucciones de la IA viven AQUÍ, no en el navegador.
+// La app solo manda el nombre de la tarea y los datos crudos del alumno, por ejemplo:
+//   { "task": "corregir", "data": { "topic": "...", "level": "A2", "text": "..." }, "json": true }
+// El Worker revisa cada dato (tipo y tamaño), arma la instrucción completa y llama a Claude.
+// Así nadie puede usar este servidor para pedirle a la IA algo que no sea Wrealispec.
 
 const ALLOWED_ORIGINS = [
   "https://wrealispec.com",
   "https://www.wrealispec.com",
-  "https://tochtlipoka.github.io",
-  // Mientras se activa HTTPS en GitHub Pages:
-  "http://wrealispec.com",
-  "http://www.wrealispec.com",
-];
-
-// Solo se aceptan las instrucciones fijas de Wrealispec (corrección, lectura, ejercicios, retell).
-const ALLOWED_PROMPT_STARTS = [
-  "You are the writing corrector of Wrealispec",
-  "You are a pronunciation coach for Wrealispec",
-  "Create 5 short listening exercises about this story",
-  "You are an English tutor for Wrealispec",
-  "You are the whiteboard teacher of Wrealispec",
 ];
 
 const MODEL = "claude-haiku-5-5";
 // Para pronunciación y pizarra se usa un modelo más preciso: explicar sonidos exige más cuidado.
 const MODEL_PRECISE = "claude-sonnet-5-5";
-const PRECISE_PROMPT_STARTS = [
-  "You are a pronunciation coach for Wrealispec",
-  "You are the whiteboard teacher of Wrealispec",
-];
-const MAX_TOKENS = 6000;
-const MAX_PROMPT_CHARS = 15000;
+const MAX_PROMPT_CHARS = 20000;  // instrucción ya armada (plantilla + datos del alumno)
 const MAX_IMAGE_BASE64 = 7000000; // ~5 MB
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+// Regla que se agrega al final de todas las instrucciones (antes la ponía la app).
+const JSON_RULE = "\n\nIMPORTANT: reply with valid JSON only. Inside text values never use double quotes; use «» or single quotes instead. Write all Spanish in Mexican Spanish, the way people speak in Mexico (for example «papas», not «patatas»; «ustedes», not «vosotros»; «computadora», not «ordenador»; «celular», not «móvil»).";
+
+// Palabras meta por nivel (las historias de la IA son ~40% más largas).
+const LEVELS = { A1:[40,60], A2:[60,100], B1:[100,150], B2:[150,220], C1:[220,300] };
 
 // Voz natural de Google (Text-to-Speech). La llave va en el secreto GOOGLE_TTS_KEY.
 const TTS_VOICES = {
@@ -71,6 +64,299 @@ const STT_MAX_BASE64 = 9000000; // ~6.5 MB: unos 3 minutos de lectura en WAV de 
 const SAMPLE_TEXT = "Hi! I'm the voice that will read your story. Let's practice together.";
 const KEEP_DAYS = 2; // los contadores viejos se borran solos
 
+// ======================================================================
+//  Plantillas de las instrucciones de la IA (copiadas tal cual de la app v0.9.22)
+// ======================================================================
+function asgBlock(a){
+  if (!a) return "";
+  const parts = [];
+  if (a.structure) parts.push(`use this structure: ${a.structure}`);
+  if (a.verbs && a.verbs.length) parts.push(`use these verbs: ${a.verbs.join(", ")}`);
+  if (a.adjectives && a.adjectives.length) parts.push(`use these adjectives: ${a.adjectives.join(", ")}`);
+  if (a.needQuestion) parts.push("include at least one question");
+  return parts.length ? "\n\nThe teacher asked the student to: " + parts.join("; ") + "." : "";
+}
+function aiStoryPrompt({ topic, level, asg, name }){
+  // Las historias de la IA son ~40% más largas que la meta del alumno, para que tengan más que estudiar.
+  const [a, b] = (LEVELS[level] || [100, 150]).map(n => Math.round(n * 1.4 / 5) * 5);
+  return `You are the writing corrector of Wrealispec. This time, instead of correcting, you write a short original story for the student to study.
+Student name: ${name || "(unknown)"}. Student level (CEFR): ${level}. Topic: "${topic}".${asgBlock(asg)}
+
+Rules:
+1. story: an original, natural English story of ${a} to ${b} words about the topic, in first person, as if the student wrote it, at level ${level}.${asg ? " Use every requirement the teacher asked for." : ""} Write times like "6:30 am" (without periods).
+2. title: a short title in English.
+3. glossary: 5 to 8 useful words or phrases from the story with their meaning in Spanish ("en", "es").
+4. intro_es: 1 warm sentence in Spanish presenting the story to the student. Never use numbers or grades.
+5. teacher_questions: 3 simple follow-up questions in English a teacher can ask about this story.
+6. useful_phrases: 4 short English sentences to explain the story, each with "en" and "es".
+7. emojis: exactly 3 emojis that illustrate the main moments of the story (places, objects or actions), in story order, as one string with no spaces. Do not use faces.
+
+Reply with only JSON in this shape:
+{"title":"","story":"","glossary":[{"en":"","es":""}],"intro_es":"","teacher_questions":["","",""],"useful_phrases":[{"en":"","es":""}],"emojis":""}`;
+}
+function clarBlock(clar){
+  if (!clar || !clar.length) return "";
+  return "\n\nBefore this correction, the student explained what they meant in some parts (they may answer in Spanish or Portuguese). The student's explanation ALWAYS wins over your own guess, even if you thought they meant something else. Use these meanings when you correct and keep the student's words where possible. Never replace the student's idea with a different or more generic one. If the student explains an idea with a metaphor or a personal expression (for example \"que mi inglés llegue hasta el cielo\"), keep that meaning and use the closest NATURAL English expression a native speaker would say (for example \"take my English to the next level\" or \"the sky's the limit\"), not a literal translation. In the errors list, explain each confusion and, for metaphors, say in Spanish how that idea is naturally expressed in English:\n" +
+    clar.map((c, i) => `${i+1}. "${c.quote}" → the student meant: ${c.meaning}`).join("\n");
+}
+function clarifyPrompt({ topic, level, text, name }){
+  return `You are the writing corrector of Wrealispec, an English method for Spanish- and Portuguese-speaking adults. Before correcting, you read the student's text to make sure you understand what they meant.
+Student name: ${name || "(unknown)"}. Student level (CEFR): ${level}. Topic given by the teacher: "${topic}".
+${text ? `Here is the student's text:\n"""\n${text}\n"""` : `The attached image is a photo of the student's notebook page.`}
+
+Tasks:
+1. transcription: ${text ? "copy the text above exactly." : "copy exactly what the student wrote, including every mistake. Do NOT correct anything here. If a word is unreadable, write [?]."}
+2. not_english: true only if the text is mostly not in English or is not a real attempt (random letters, almost empty).
+3. off_topic: true only if the text clearly does not talk about the topic.
+4. questions: sentences whose MEANING is unclear, not simple grammar mistakes. For example a word that looks confused with a similar word (sky / skill), a sentence that can mean two different things, or an idea that does not make sense. Pay special attention to false friends that Spanish speakers often confuse, because the sentence can look correct but mean something else: actually (en realidad) vs. currently (actualmente), embarrassed vs. pregnant (embarazada), assist vs. attend (asistir), library vs. bookstore (librería), carpet vs. folder (carpeta), realize vs. carry out (realizar), lost my mind vs. got lost (perderse), sensible vs. sensitive (sensible), exit vs. success (éxito), career vs. degree (carrera). Ask about every sentence that really needs it (usually 0 to 5, never more than 10); use an empty list if everything is understandable. For each one: "quote" (the exact words from the transcription), "guess_en" (your best guess of what they meant, written as a correct English sentence, or "" if you cannot guess), "question_es" (a short, friendly question in Spanish, for example: "¿Quisiste decir «my skills» (mis habilidades)? «The sky» significa «el cielo»." or "¿Exactamente qué quisiste decir aquí?").
+5. greeting_es: 1 or 2 warm sentences in Spanish. Greet the student by name if you know it, say something specific and positive about their idea, and if there are questions, say you want to ask a few things before giving your feedback. Never use numbers or grades.
+6. note_es: if not_english or off_topic is true, one kind sentence in Spanish explaining it; otherwise "".
+
+Reply with only JSON in this shape:
+{"transcription":"","not_english":false,"off_topic":false,"questions":[{"quote":"","guess_en":"","question_es":""}],"greeting_es":"","note_es":""}`;
+}
+function correctionPrompt({ topic, level, text, clar, asg }){
+  return `You are the writing corrector of Wrealispec, an English method for Spanish-speaking adults. The student handwrote a short story in a notebook.
+Student level (CEFR): ${level}. Topic given by the teacher: "${topic}".
+${text ? `Here is the student's text, already transcribed and confirmed by the student:\n"""\n${text}\n"""` : `The attached image is a photo of the student's notebook page.`}${clarBlock(clar)}${asgBlock(asg)}
+
+Rules:
+1. transcription: ${text ? "return an empty string (the app already has the text)." : "copy exactly what the student wrote, including every mistake. Do NOT correct anything here. If a word is unreadable, write [?]."}
+2. corrected: rewrite the text so it is correct, natural English. Keep the student's ideas, order and voice. Change only what is needed. Do not add new ideas. Use vocabulary at most one level above ${level}. Write times like "6:30 am" (without periods). Also fix capital letters (months, days, nationalities, languages, names and "I").
+3. errors: the most important mistakes (maximum 8). Prioritize repeated mistakes and mistakes that change the meaning. For each one: "original" (exact words from the transcription), "correction", "type" (grammar | vocabulary | spelling | word_order | punctuation), "rule_es" (short explanation in simple Spanish, maximum 20 words).
+4. strengths_es: 2 specific things the student did well, in Spanish.
+5. feedback_es: 2 sentences in Spanish, in a warm, encouraging tone like a friendly teacher. Write all Spanish in Mexican Spanish, the way people speak in Mexico (for example «papas», not «patatas»; «ustedes», not «vosotros»; «computadora», not «ordenador»; «celular», not «móvil»). First what was good, then the one thing to focus on before the next class. Never use numbers or grades.
+6. word_count: number of words in the transcription.
+7. teacher_questions: 3 simple follow-up questions in English, at level ${level}, that a teacher can ask in a video call about this story to start a conversation.
+8. useful_phrases: 4 short English sentences the student can use to explain this story, each with "en" and "es".
+10. emojis: exactly 3 emojis that illustrate the main moments of the story (places, objects or actions), in story order, as one string with no spaces. Do not use faces.
+9. assignment_check: only if the teacher gave requirements above; one entry per requirement (the structure, each word to use, the question): "item" (the requirement, short), "ok" (true if the student used it correctly), "note_es" (warm, maximum 15 words, in Spanish). If there are no requirements, use an empty list.
+
+Reply with only JSON in this shape:
+{"transcription":"","corrected":"","errors":[{"original":"","correction":"","type":"","rule_es":""}],"strengths_es":["",""],"feedback_es":"","word_count":0,"teacher_questions":["","",""],"useful_phrases":[{"en":"","es":""}],"assignment_check":[{"item":"","ok":true,"note_es":""}],"emojis":""}`;
+}
+function retellPrompt(level, story, retell){
+  return `You are an English tutor for Wrealispec. The student (CEFR ${level}) studied this story many times:
+"""
+${story}
+"""
+Now, without looking, the student explained the story in their own words:
+"""
+${retell}
+"""
+Evaluate the retelling. It does not need to match word for word. Reply with only JSON:
+{"coverage_pct":0,"ideas_missing_es":[""],"errors":[{"original":"","correction":"","rule_es":""}],"feedback_es":""}
+coverage_pct: percentage (0-100) of the story's main ideas the student included.
+ideas_missing_es: main ideas missing, in Spanish, maximum 4 (empty list if none).
+errors: maximum 5 important grammar or vocabulary mistakes in the retelling; rule_es in simple Spanish, maximum 20 words.
+feedback_es: 2 sentences in Spanish, in a warm, encouraging tone, first what was good, then one tip. Never use numbers or percentages.`;
+}
+function readingPrompt(level, story, heard, misses){
+  const list = misses.length ? misses.map(m => `- "${m.word}" → ${m.heard ? `heard as "${m.heard}"` : "not heard"}`).join("\n") : "(none)";
+  return `You are a pronunciation coach for Wrealispec. A Spanish-speaking student (CEFR ${level}) read this story aloud into a speech recognizer:
+"""
+${story}
+"""
+This is what the speech recognizer wrote:
+"""
+${heard}
+"""
+These are the ONLY words of the story that did not match what the recognizer wrote:
+${list}
+Rules:
+- Comment only on the words in that list. Never mention any other word, sound or example that is not in the story.
+- Skip names of people or places and Spanish words (for example names or Mexican dishes): the recognizer often spells them differently, so they are not pronunciation mistakes.
+- Ignore differences in punctuation, capital letters and numbers written as digits.
+- If no word in the list is a real mistake, words_to_practice must be [].
+Reply with only JSON:
+{"feedback_es":"","words_to_practice":[{"word":"","heard_as":"","tip_es":""}]}
+feedback_es: 2 sentences in Spanish, in a warm, encouraging tone, first what went well, then the main thing to practice. Never use numbers or percentages.
+Be accurate: never state syllable counts or rules you are not sure about; focus on the one sound that most likely caused the confusion. Never describe the position of the tongue, lips or teeth.
+words_to_practice: maximum 5 words, chosen only from the list above; heard_as is what the recognizer wrote (or "" if skipped); tip_es: in simple Spanish, maximum 15 words: name the one sound or letter to practice (as it appears in the word) and give a Spanish-like spelling with syllables separated by hyphens and the stressed syllable in CAPITALS (for example «every» → «É-vri», «bus» → «BAS» con la «a» corta).`;
+}
+function qaPrompt(level, story){
+  return `Create 5 short listening exercises about this story for a Spanish-speaking student of English (CEFR ${level}):
+"""
+${story}
+"""
+The student HEARS each prompt read aloud. Use exactly this order so the rhythm changes:
+1. "multiple_choice": a question about a fact in the story with 3 short options; "answer" is a list with the index (0 to 2) of the correct option.
+2. "dictation": one sentence copied exactly from the story (8 to 14 words) in "prompt"; the student writes exactly what they hear. No options.
+3. "multi_select": a question with 4 short options where exactly 2 are correct; "answer" lists the indexes of the correct options.
+4. "open": a why or how question about the story; the student answers with a short sentence.
+5. "opinion": a personal question connected to the story's topic.
+Each prompt under 20 words, at level ${level}. Options in English. Never call it a test or exam. Reply with only JSON:
+{"items":[{"type":"","prompt":"","label_es":"","options":[],"answer":[]}]}
+label_es: a short instruction in Spanish, for example "Elige la respuesta correcta", "Escribe exactamente lo que escuchas", "Elige todas las correctas", "Responde la pregunta".`;
+}
+function qaEvalPrompt(level, story, items, answers){
+  const pairs = items.map((it, i) => `${i+1}. [${it.type}] ${it.prompt}\nStudent answer: ${answers[i] || "(no answer)"}`).join("\n\n");
+  return `You are an English tutor for Wrealispec. The student (CEFR ${level}) listened to these exercises about this story and answered in writing.
+Story:
+"""
+${story}
+"""
+Exercises and answers:
+${pairs}
+
+Evaluate each answer. "ok" is true when the content is right (for "opinion": when it answers the question and is understandable), even with small grammar mistakes. Reply with only JSON:
+{"results":[{"ok":true,"better_en":"","feedback_es":""}],"summary_es":""}
+better_en: a correct, natural model answer in English at the student's level.
+feedback_es: maximum 20 words in Spanish; mention one grammar mistake if there is one.
+summary_es: 1 sentence in Spanish, warm and encouraging, about how the student did overall. Never use numbers or scores.`;
+}
+
+function boardPrompt(level, story, er){
+  return `You are the whiteboard teacher of Wrealispec. Explain ONE mistake to a Spanish-speaking student of English (CEFR ${level}) as a short animated whiteboard lesson: 4 to 6 steps, about 40 seconds in total.
+The student's corrected story (use it for examples):
+"""
+${story}
+"""
+The mistake: "${er.original}" → "${er.correction}" (type: ${er.type || "grammar"}). Short rule already given: ${er.rule_es || ""}
+Reply with only JSON:
+{"title_es":"","steps":[{"say_es":"","board":[{"t":"","k":"","hl":""}],"en":""}]}
+Rules:
+- title_es: the topic in Spanish, maximum 6 words (for example «El plural con s»).
+- say_es: what the teacher says in this step, in warm, simple Mexican Spanish, 1 or 2 short sentences. A Spanish voice will read it, so never write English words in say_es: refer to them as «esta palabra», «la s final», «el verbo», etc.
+- board: 0 to 2 lines that appear on the board in this step, maximum 42 characters each. k is one of: wrong (the student's mistake, shown crossed out), right (the correct form), note (a very short rule in Spanish), example (another English example). hl: an exact part of t to highlight (for example the added letter or word), or "".
+- en: an English sentence (maximum 12 words) that an English voice says after say_es, to model the correct form; "" if not needed.
+- Order: 1) show the mistake; 2) the rule; 3) the correct form; 4) one or two examples, from the student's story when possible; last step: short encouragement, with the full correct sentence in en.`;
+}
+// La oración de la historia que contiene la palabra la elige la app (ya sabe partir oraciones).
+function boardPronPrompt(level, w, sentence){
+  return `You are the whiteboard teacher of Wrealispec. Teach a Spanish-speaking student of English (CEFR ${level}) how to pronounce ONE word, as a short animated whiteboard lesson: 4 or 5 steps, about 35 seconds in total.
+Word: "${w.word}". When the student read it aloud, the speech recognizer ${w.heard_as ? `understood "${w.heard_as}"` : "did not understand it"}.
+Sentence from the student's story: "${sentence}"
+Reply with only JSON:
+{"title_es":"","steps":[{"say_es":"","board":[{"t":"","k":"","hl":""}],"en":"","slow":false}]}
+Rules:
+- Be accurate. Never state syllable counts or rules you are not sure about. Focus on the one or two sounds that most likely caused the confusion. Never describe the position of the tongue, lips or teeth: the student learns by listening (slowly, then normally) and repeating.
+- title_es: maximum 6 words in Spanish (for example «Cómo se dice every»).
+- say_es: warm, simple Mexican Spanish, 1 or 2 short sentences. A Spanish voice reads it, so never write English words in say_es: say «esta palabra», «el primer sonido», etc.
+- board: 0 to 2 lines per step, maximum 42 characters each. k: right = the word or the sentence; wrong = what was heard, only if it is a different word; note = a very short tip in Spanish about the sound; example = a Spanish-like spelling with syllables separated by hyphens and the stressed syllable in CAPITALS (for example «É-vri»). hl: an exact part of t to highlight, or "".
+- en: what an English voice says after say_es (the word, or the sentence, maximum 12 words); "" if nothing. slow: true to play it slowly.
+- Order: 1) the word, and what was heard; 2) the sound to practice, with the Spanish-like spelling; 3) the word said slowly (slow: true) and then at normal speed (slow: false); 4) the word inside the sentence from the story; last step: short encouragement.`;
+}
+
+function chatPrompt({ level, name, story, questions, turns, finish }){
+  const transcript = turns.map(t => `${t.who === "ai" ? "Tutor" : "Student"}: ${t.text}`).join("\n") || "(no messages yet)";
+  return `You are an English tutor for Wrealispec having a short conversation with a student (CEFR ${level}) about the student's story.
+Student name: ${name || "(unknown)"}.
+Story:
+"""
+${story}
+"""
+Questions a teacher could ask: ${questions.join(" | ")}
+Conversation so far:
+${transcript}
+
+Rules:
+- Use simple English at the student's level, 1 to 3 short sentences per turn.
+- First turn: greet the student by name and ask them to explain their story in their own words.
+- Then ask ONE question at a time (about 5 questions in total), reacting naturally to what the student said.
+- If the student makes an important mistake, repeat their idea correctly in your reply, without lecturing.
+- If the student writes in Spanish, answer kindly in English and encourage them to try in English.
+${finish ? "- The student wants to finish now: say goodbye and set done to true.\n" : ""}- When the student has answered about 5 questions, say goodbye and set done to true.
+Reply with only JSON:
+{"reply":"","hint_es":"","hint_words":[],"done":false,"feedback":null}
+hint_es: a short Spanish translation of your reply.
+hint_words: 6 to 10 English words or very short chunks (1 to 3 words each) that would help the student answer your question, taken from the story when possible. Never a full sentence and never the full answer; include one or two useful words that are not strictly needed. [] when done is true.
+When done is true, feedback is {"fluency":0,"grammar":0,"vocabulary":0,"comment_es":"","corrections":[{"original":"","correction":"","rule_es":""}]}: scores from 0 to 100 (they are never shown as numbers), comment_es is 2 warm sentences in Spanish (what went well, then one tip), corrections are maximum 4 from the student's messages, rule_es maximum 20 words.`;
+}
+
+function vocabPrompt({ level, topic, structs, prev }){
+  return `You are an English tutor for Wrealispec. Suggest vocabulary for a student's next short story.
+Student level: CEFR ${level}.
+Topic or trigger question: "${topic}"
+Structures to practice: ${structs.length ? structs.join("; ") : "(any)"}
+Reply with only JSON: {"verbs":[],"adjectives":[]}
+- verbs: 5 or 6 useful verbs for this topic, written in the form the student should use with the structures (for example "went" for past simple, "have visited" for present perfect).
+- adjectives: 5 or 6 useful adjectives for this topic.
+- Words must match the student's level. ${prev.length ? `Do not repeat: ${prev.join(", ")}.` : ""}`;
+}
+
+// ======================================================================
+//  Revisión de los datos que manda la app. Si algo no tiene el tipo o el
+//  tamaño esperado, la solicitud se rechaza (no se recorta en silencio).
+// ======================================================================
+class BadInput extends Error {}
+const TEXT = 6000; // historia o texto del alumno (C1 pide máx. 300 palabras: sobra espacio)
+const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+const obj = (v) => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
+function str(v, max, field){
+  if (v === undefined || v === null) return "";
+  if (typeof v === "number" || typeof v === "boolean") v = String(v);
+  if (typeof v !== "string" || v.length > max) throw new BadInput(field);
+  return v;
+}
+function list(v, maxItems, each, field){
+  if (v === undefined || v === null) return [];
+  if (!Array.isArray(v) || v.length > maxItems) throw new BadInput(field);
+  return v.map(each);
+}
+const lvl = (v) => (typeof v === "string" && has(LEVELS, v) ? v : "A2");
+const words = (v, n, max, field) => list(v, n, (x) => str(x, max, field), field);
+function assignment(v){
+  if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+  return {
+    structure: str(v.structure, 300, "asg"),
+    verbs: words(v.verbs, 20, 60, "asg"),
+    adjectives: words(v.adjectives, 20, 60, "asg"),
+    needQuestion: v.needQuestion === true,
+  };
+}
+function needText(t, field){ if (!t.trim()) throw new BadInput(field); return t; }
+
+// Cada tarea: cómo se arma su instrucción, si acepta foto, qué modelo usa y cuánto puede responder.
+const TASKS = {
+  aclarar: { image: true, tokens: 6000, build: (d, img) => clarifyPrompt({
+    topic: str(d.topic, 300, "topic"), level: lvl(d.level), name: str(d.name, 80, "name"),
+    text: img ? "" : needText(str(d.text, TEXT, "text"), "text"),
+  }) },
+  corregir: { image: true, tokens: 6000, build: (d, img) => correctionPrompt({
+    topic: str(d.topic, 300, "topic"), level: lvl(d.level),
+    text: img ? "" : needText(str(d.text, TEXT, "text"), "text"),
+    clar: list(d.clar, 12, (c) => ({ quote: str(obj(c).quote, 400, "clar"), meaning: str(obj(c).meaning, 600, "clar") }), "clar"),
+    asg: assignment(d.asg),
+  }) },
+  historia_ia: { tokens: 6000, build: (d) => aiStoryPrompt({
+    topic: str(d.topic, 300, "topic"), level: lvl(d.level), asg: assignment(d.asg), name: str(d.name, 80, "name"),
+  }) },
+  evaluar_lectura: { precise: true, tokens: 3000, build: (d) => readingPrompt(
+    lvl(d.level), needText(str(d.story, TEXT, "story"), "story"), str(d.heard, 8000, "heard"),
+    list(d.misses, 400, (m) => ({ word: str(obj(m).word, 80, "misses"), heard: str(obj(m).heard, 80, "misses") }), "misses"),
+  ) },
+  volver_a_contar: { tokens: 3000, build: (d) => retellPrompt(
+    lvl(d.level), needText(str(d.story, TEXT, "story"), "story"), needText(str(d.retell, 4000, "retell"), "retell"),
+  ) },
+  ejercicios: { tokens: 3000, build: (d) => qaPrompt(lvl(d.level), needText(str(d.story, TEXT, "story"), "story")) },
+  evaluar_ejercicios: { tokens: 3000, build: (d) => qaEvalPrompt(
+    lvl(d.level), needText(str(d.story, TEXT, "story"), "story"),
+    list(d.items, 5, (it) => ({ type: str(obj(it).type, 30, "items"), prompt: str(obj(it).prompt, 400, "items") }), "items"),
+    list(d.answers, 5, (a) => (Array.isArray(a) ? words(a, 6, 10, "answers").join(",") : str(a, 800, "answers")), "answers"),
+  ) },
+  pizarra_error: { precise: true, tokens: 3000, build: (d) => {
+    const e = obj(d.error);
+    return boardPrompt(lvl(d.level), needText(str(d.story, TEXT, "story"), "story"), {
+      original: needText(str(e.original, 400, "error"), "error"), correction: str(e.correction, 400, "error"),
+      type: str(e.type, 30, "error"), rule_es: str(e.rule_es, 400, "error"),
+    });
+  } },
+  pizarra_pronunciacion: { precise: true, tokens: 3000, build: (d) => boardPronPrompt(lvl(d.level), {
+    word: needText(str(d.word, 80, "word"), "word"), heard_as: str(d.heard_as, 80, "heard_as"),
+  }, str(d.sentence, 800, "sentence")) },
+  conversacion: { tokens: 3000, build: (d) => chatPrompt({
+    level: lvl(d.level), name: str(d.name, 80, "name"), story: needText(str(d.story, TEXT, "story"), "story"),
+    questions: words(d.questions, 6, 400, "questions"),
+    turns: list(d.turns, 30, (t) => ({ who: obj(t).who === "ai" ? "ai" : "me", text: str(obj(t).text, 800, "turns") }), "turns"),
+    finish: d.finish === true,
+  }) },
+  vocabulario: { tokens: 1500, build: (d) => vocabPrompt({
+    level: lvl(d.level), topic: needText(str(d.topic, 300, "topic"), "topic"),
+    structs: words(d.structs, 8, 200, "structs"), prev: words(d.prev, 40, 60, "prev"),
+  }) },
+};
+
 export default {
   async fetch(request, env, ctx) {
     const origin = request.headers.get("Origin") || "";
@@ -86,6 +372,7 @@ export default {
     if (request.method !== "POST" || !allowed) return reply({ error: "forbidden" }, 403, cors);
     let body;
     try { body = await request.json(); } catch (e) { return reply({ error: "bad_request" }, 400, cors); }
+    if (!body || typeof body !== "object") return reply({ error: "bad_request" }, 400, cors);
 
     if (body.stt) {
       const q = await useQuota(request, env, ctx, "stt");
@@ -100,32 +387,49 @@ export default {
       if (Array.isArray(body.tts.sentences)) return ttsMarked(body.tts, env, cors);
       return tts(body.tts, env, cors);
     }
+
+    // Instrucciones de la corrección, para la sección «para profesores» de la app. No usa la IA ni cuota.
+    if (body.task === "instrucciones") {
+      return reply({ text: correctionPrompt({ topic: "{tema}", level: "{nivel}" }) + JSON_RULE }, 200, cors);
+    }
+
+    // ---------- Tareas de la IA ----------
+    const name = typeof body.task === "string" ? body.task : "";
+    const task = has(TASKS, name) ? TASKS[name] : null;
+    if (!task) return reply({ error: "bad_request" }, 400, cors);
+    if (body.prompt !== undefined) return reply({ error: "bad_request" }, 400, cors); // el formato viejo ya no se acepta
     if (!env.ANTHROPIC_API_KEY) return reply({ error: "not_configured" }, 500, cors);
 
-    const prompt = typeof body.prompt === "string" ? body.prompt : "";
-    if (!prompt || prompt.length > MAX_PROMPT_CHARS || !ALLOWED_PROMPT_STARTS.some((s) => prompt.startsWith(s))) {
-      return reply({ error: "bad_request" }, 400, cors);
+    const hasImage = body.image !== undefined && body.image !== null;
+    if (hasImage) {
+      const { media_type, data } = obj(body.image);
+      if (!task.image || !IMAGE_TYPES.includes(media_type) || typeof data !== "string" || data.length > MAX_IMAGE_BASE64) {
+        return reply({ error: "image_rejected" }, 400, cors);
+      }
     }
+
+    let prompt;
+    try {
+      prompt = task.build(obj(body.data), hasImage) + JSON_RULE;
+    } catch (e) {
+      if (e instanceof BadInput) return reply({ error: "bad_request", field: e.message }, 400, cors);
+      throw e;
+    }
+    if (prompt.length > MAX_PROMPT_CHARS) return reply({ error: "too_long" }, 400, cors);
 
     // Se cuenta antes de llamar a la IA: si ya se llegó al límite, no se gasta nada.
     const q = await useQuota(request, env, ctx, "ai");
     if (q) return reply({ error: q }, 429, cors);
 
     const content = [];
-    if (body.image) {
-      const { media_type, data } = body.image;
-      if (!IMAGE_TYPES.includes(media_type) || typeof data !== "string" || data.length > MAX_IMAGE_BASE64) {
-        return reply({ error: "image_rejected" }, 400, cors);
-      }
-      content.push({ type: "image", source: { type: "base64", media_type, data } });
-    }
+    if (hasImage) content.push({ type: "image", source: { type: "base64", media_type: body.image.media_type, data: body.image.data } });
     content.push({ type: "text", text: prompt });
 
     // Con json: true, la respuesta llega como un objeto ya estructurado (herramienta "respond"),
     // así no depende de que la IA escriba bien las comillas.
     const wantJson = body.json === true;
-    const model = PRECISE_PROMPT_STARTS.some((x) => prompt.startsWith(x)) ? MODEL_PRECISE : MODEL;
-    const payload = { model, max_tokens: MAX_TOKENS, messages: [{ role: "user", content }] };
+    const model = task.precise ? MODEL_PRECISE : MODEL;
+    const payload = { model, max_tokens: task.tokens, messages: [{ role: "user", content }] };
     if (wantJson) {
       payload.tools = [{
         name: "respond",
@@ -135,14 +439,14 @@ export default {
       payload.tool_choice = { type: "tool", name: "respond" };
     }
 
-    const callClaude = (body) => fetch("https://api.anthropic.com/v1/messages", {
+    const callClaude = (b) => fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "x-api-key": env.ANTHROPIC_API_KEY,
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(b),
     });
     let upstream;
     try {
@@ -169,6 +473,10 @@ export default {
   },
 };
 
+// ======================================================================
+//  Voz (Google Text-to-Speech), voz a texto (Whisper) y límite diario de uso
+//  (sin cambios respecto a la v1)
+// ======================================================================
 // Convierte la historia en MP3 con una voz natural de Google. Devuelve el audio en base64.
 async function tts(req, env, cors) {
   if (!env.GOOGLE_TTS_KEY) return reply({ error: "tts_not_configured" }, 500, cors);

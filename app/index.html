@@ -995,7 +995,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.22 · actualizado el 10 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.23 · actualizado el 11 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -1080,145 +1080,8 @@ let S = store.current;
 
 /* ---------- Fixed AI instructions ---------- */
 function splitList(t){ return String(t || "").split(/[,;\n]+/).map(x => x.trim()).filter(Boolean); }
-function asgBlock(a){
-  if (!a) return "";
-  const parts = [];
-  if (a.structure) parts.push(`use this structure: ${a.structure}`);
-  if (a.verbs && a.verbs.length) parts.push(`use these verbs: ${a.verbs.join(", ")}`);
-  if (a.adjectives && a.adjectives.length) parts.push(`use these adjectives: ${a.adjectives.join(", ")}`);
-  if (a.needQuestion) parts.push("include at least one question");
-  return parts.length ? "\n\nThe teacher asked the student to: " + parts.join("; ") + "." : "";
-}
-function aiStoryPrompt({ topic, level, asg, name }){
-  // Las historias de la IA son ~40% más largas que la meta del alumno, para que tengan más que estudiar.
-  const [a, b] = (LEVELS[level] || [100, 150]).map(n => Math.round(n * 1.4 / 5) * 5);
-  return `You are the writing corrector of Wrealispec. This time, instead of correcting, you write a short original story for the student to study.
-Student name: ${name || "(unknown)"}. Student level (CEFR): ${level}. Topic: "${topic}".${asgBlock(asg)}
-
-Rules:
-1. story: an original, natural English story of ${a} to ${b} words about the topic, in first person, as if the student wrote it, at level ${level}.${asg ? " Use every requirement the teacher asked for." : ""} Write times like "6:30 am" (without periods).
-2. title: a short title in English.
-3. glossary: 5 to 8 useful words or phrases from the story with their meaning in Spanish ("en", "es").
-4. intro_es: 1 warm sentence in Spanish presenting the story to the student. Never use numbers or grades.
-5. teacher_questions: 3 simple follow-up questions in English a teacher can ask about this story.
-6. useful_phrases: 4 short English sentences to explain the story, each with "en" and "es".
-7. emojis: exactly 3 emojis that illustrate the main moments of the story (places, objects or actions), in story order, as one string with no spaces. Do not use faces.
-
-Reply with only JSON in this shape:
-{"title":"","story":"","glossary":[{"en":"","es":""}],"intro_es":"","teacher_questions":["","",""],"useful_phrases":[{"en":"","es":""}],"emojis":""}`;
-}
-function clarBlock(clar){
-  if (!clar || !clar.length) return "";
-  return "\n\nBefore this correction, the student explained what they meant in some parts (they may answer in Spanish or Portuguese). The student's explanation ALWAYS wins over your own guess, even if you thought they meant something else. Use these meanings when you correct and keep the student's words where possible. Never replace the student's idea with a different or more generic one. If the student explains an idea with a metaphor or a personal expression (for example \"que mi inglés llegue hasta el cielo\"), keep that meaning and use the closest NATURAL English expression a native speaker would say (for example \"take my English to the next level\" or \"the sky's the limit\"), not a literal translation. In the errors list, explain each confusion and, for metaphors, say in Spanish how that idea is naturally expressed in English:\n" +
-    clar.map((c, i) => `${i+1}. "${c.quote}" → the student meant: ${c.meaning}`).join("\n");
-}
-function clarifyPrompt({ topic, level, text, name }){
-  return `You are the writing corrector of Wrealispec, an English method for Spanish- and Portuguese-speaking adults. Before correcting, you read the student's text to make sure you understand what they meant.
-Student name: ${name || "(unknown)"}. Student level (CEFR): ${level}. Topic given by the teacher: "${topic}".
-${text ? `Here is the student's text:\n"""\n${text}\n"""` : `The attached image is a photo of the student's notebook page.`}
-
-Tasks:
-1. transcription: ${text ? "copy the text above exactly." : "copy exactly what the student wrote, including every mistake. Do NOT correct anything here. If a word is unreadable, write [?]."}
-2. not_english: true only if the text is mostly not in English or is not a real attempt (random letters, almost empty).
-3. off_topic: true only if the text clearly does not talk about the topic.
-4. questions: sentences whose MEANING is unclear, not simple grammar mistakes. For example a word that looks confused with a similar word (sky / skill), a sentence that can mean two different things, or an idea that does not make sense. Pay special attention to false friends that Spanish speakers often confuse, because the sentence can look correct but mean something else: actually (en realidad) vs. currently (actualmente), embarrassed vs. pregnant (embarazada), assist vs. attend (asistir), library vs. bookstore (librería), carpet vs. folder (carpeta), realize vs. carry out (realizar), lost my mind vs. got lost (perderse), sensible vs. sensitive (sensible), exit vs. success (éxito), career vs. degree (carrera). Ask about every sentence that really needs it (usually 0 to 5, never more than 10); use an empty list if everything is understandable. For each one: "quote" (the exact words from the transcription), "guess_en" (your best guess of what they meant, written as a correct English sentence, or "" if you cannot guess), "question_es" (a short, friendly question in Spanish, for example: "¿Quisiste decir «my skills» (mis habilidades)? «The sky» significa «el cielo»." or "¿Exactamente qué quisiste decir aquí?").
-5. greeting_es: 1 or 2 warm sentences in Spanish. Greet the student by name if you know it, say something specific and positive about their idea, and if there are questions, say you want to ask a few things before giving your feedback. Never use numbers or grades.
-6. note_es: if not_english or off_topic is true, one kind sentence in Spanish explaining it; otherwise "".
-
-Reply with only JSON in this shape:
-{"transcription":"","not_english":false,"off_topic":false,"questions":[{"quote":"","guess_en":"","question_es":""}],"greeting_es":"","note_es":""}`;
-}
-function correctionPrompt({ topic, level, text, clar, asg }){
-  return `You are the writing corrector of Wrealispec, an English method for Spanish-speaking adults. The student handwrote a short story in a notebook.
-Student level (CEFR): ${level}. Topic given by the teacher: "${topic}".
-${text ? `Here is the student's text, already transcribed and confirmed by the student:\n"""\n${text}\n"""` : `The attached image is a photo of the student's notebook page.`}${clarBlock(clar)}${asgBlock(asg)}
-
-Rules:
-1. transcription: ${text ? "return an empty string (the app already has the text)." : "copy exactly what the student wrote, including every mistake. Do NOT correct anything here. If a word is unreadable, write [?]."}
-2. corrected: rewrite the text so it is correct, natural English. Keep the student's ideas, order and voice. Change only what is needed. Do not add new ideas. Use vocabulary at most one level above ${level}. Write times like "6:30 am" (without periods). Also fix capital letters (months, days, nationalities, languages, names and "I").
-3. errors: the most important mistakes (maximum 8). Prioritize repeated mistakes and mistakes that change the meaning. For each one: "original" (exact words from the transcription), "correction", "type" (grammar | vocabulary | spelling | word_order | punctuation), "rule_es" (short explanation in simple Spanish, maximum 20 words).
-4. strengths_es: 2 specific things the student did well, in Spanish.
-5. feedback_es: 2 sentences in Spanish, in a warm, encouraging tone like a friendly teacher. Write all Spanish in Mexican Spanish, the way people speak in Mexico (for example «papas», not «patatas»; «ustedes», not «vosotros»; «computadora», not «ordenador»; «celular», not «móvil»). First what was good, then the one thing to focus on before the next class. Never use numbers or grades.
-6. word_count: number of words in the transcription.
-7. teacher_questions: 3 simple follow-up questions in English, at level ${level}, that a teacher can ask in a video call about this story to start a conversation.
-8. useful_phrases: 4 short English sentences the student can use to explain this story, each with "en" and "es".
-10. emojis: exactly 3 emojis that illustrate the main moments of the story (places, objects or actions), in story order, as one string with no spaces. Do not use faces.
-9. assignment_check: only if the teacher gave requirements above; one entry per requirement (the structure, each word to use, the question): "item" (the requirement, short), "ok" (true if the student used it correctly), "note_es" (warm, maximum 15 words, in Spanish). If there are no requirements, use an empty list.
-
-Reply with only JSON in this shape:
-{"transcription":"","corrected":"","errors":[{"original":"","correction":"","type":"","rule_es":""}],"strengths_es":["",""],"feedback_es":"","word_count":0,"teacher_questions":["","",""],"useful_phrases":[{"en":"","es":""}],"assignment_check":[{"item":"","ok":true,"note_es":""}],"emojis":""}`;
-}
-function retellPrompt(level, story, retell){
-  return `You are an English tutor for Wrealispec. The student (CEFR ${level}) studied this story many times:
-"""
-${story}
-"""
-Now, without looking, the student explained the story in their own words:
-"""
-${retell}
-"""
-Evaluate the retelling. It does not need to match word for word. Reply with only JSON:
-{"coverage_pct":0,"ideas_missing_es":[""],"errors":[{"original":"","correction":"","rule_es":""}],"feedback_es":""}
-coverage_pct: percentage (0-100) of the story's main ideas the student included.
-ideas_missing_es: main ideas missing, in Spanish, maximum 4 (empty list if none).
-errors: maximum 5 important grammar or vocabulary mistakes in the retelling; rule_es in simple Spanish, maximum 20 words.
-feedback_es: 2 sentences in Spanish, in a warm, encouraging tone, first what was good, then one tip. Never use numbers or percentages.`;
-}
-function readingPrompt(level, story, heard, misses){
-  const list = misses.length ? misses.map(m => `- "${m.word}" → ${m.heard ? `heard as "${m.heard}"` : "not heard"}`).join("\n") : "(none)";
-  return `You are a pronunciation coach for Wrealispec. A Spanish-speaking student (CEFR ${level}) read this story aloud into a speech recognizer:
-"""
-${story}
-"""
-This is what the speech recognizer wrote:
-"""
-${heard}
-"""
-These are the ONLY words of the story that did not match what the recognizer wrote:
-${list}
-Rules:
-- Comment only on the words in that list. Never mention any other word, sound or example that is not in the story.
-- Skip names of people or places and Spanish words (for example names or Mexican dishes): the recognizer often spells them differently, so they are not pronunciation mistakes.
-- Ignore differences in punctuation, capital letters and numbers written as digits.
-- If no word in the list is a real mistake, words_to_practice must be [].
-Reply with only JSON:
-{"feedback_es":"","words_to_practice":[{"word":"","heard_as":"","tip_es":""}]}
-feedback_es: 2 sentences in Spanish, in a warm, encouraging tone, first what went well, then the main thing to practice. Never use numbers or percentages.
-Be accurate: never state syllable counts or rules you are not sure about; focus on the one sound that most likely caused the confusion. Never describe the position of the tongue, lips or teeth.
-words_to_practice: maximum 5 words, chosen only from the list above; heard_as is what the recognizer wrote (or "" if skipped); tip_es: in simple Spanish, maximum 15 words: name the one sound or letter to practice (as it appears in the word) and give a Spanish-like spelling with syllables separated by hyphens and the stressed syllable in CAPITALS (for example «every» → «É-vri», «bus» → «BAS» con la «a» corta).`;
-}
-function qaPrompt(level, story){
-  return `Create 5 short listening exercises about this story for a Spanish-speaking student of English (CEFR ${level}):
-"""
-${story}
-"""
-The student HEARS each prompt read aloud. Use exactly this order so the rhythm changes:
-1. "multiple_choice": a question about a fact in the story with 3 short options; "answer" is a list with the index (0 to 2) of the correct option.
-2. "dictation": one sentence copied exactly from the story (8 to 14 words) in "prompt"; the student writes exactly what they hear. No options.
-3. "multi_select": a question with 4 short options where exactly 2 are correct; "answer" lists the indexes of the correct options.
-4. "open": a why or how question about the story; the student answers with a short sentence.
-5. "opinion": a personal question connected to the story's topic.
-Each prompt under 20 words, at level ${level}. Options in English. Never call it a test or exam. Reply with only JSON:
-{"items":[{"type":"","prompt":"","label_es":"","options":[],"answer":[]}]}
-label_es: a short instruction in Spanish, for example "Elige la respuesta correcta", "Escribe exactamente lo que escuchas", "Elige todas las correctas", "Responde la pregunta".`;
-}
-function qaEvalPrompt(level, story, items, answers){
-  const pairs = items.map((it, i) => `${i+1}. [${it.type}] ${it.prompt}\nStudent answer: ${answers[i] || "(no answer)"}`).join("\n\n");
-  return `You are an English tutor for Wrealispec. The student (CEFR ${level}) listened to these exercises about this story and answered in writing.
-Story:
-"""
-${story}
-"""
-Exercises and answers:
-${pairs}
-
-Evaluate each answer. "ok" is true when the content is right (for "opinion": when it answers the question and is understandable), even with small grammar mistakes. Reply with only JSON:
-{"results":[{"ok":true,"better_en":"","feedback_es":""}],"summary_es":""}
-better_en: a correct, natural model answer in English at the student's level.
-feedback_es: maximum 20 words in Spanish; mention one grammar mistake if there is one.
-summary_es: 1 sentence in Spanish, warm and encouraging, about how the student did overall. Never use numbers or scores.`;
-}
-$("promptView").textContent = correctionPrompt({ topic:"{tema}", level:"{nivel}" });
+// Las instrucciones de la IA viven en el servidor (worker/worker.js). La app solo manda la tarea y los datos.
+$("promptView").textContent = "Cargando…";
 
 /* ---------- Claude (sample capability) ---------- */
 /* ---------- IA en línea: servidor intermedio (Cloudflare Worker) con la API de Claude ---------- */
@@ -1238,8 +1101,8 @@ async function toImagePayload(file){
 }
 function workerSample(){
   if (!AI_URL) return null;
-  const call = async (prompt, opts = {}, asJson = false) => {
-    const body = { prompt };
+  const call = async (task, data, opts = {}, asJson = false) => {
+    const body = { task, data };
     if (asJson) body.json = true;
     if (opts.images && opts.images[0]) body.image = await toImagePayload(opts.images[0]);
     let r;
@@ -1249,9 +1112,8 @@ function workerSample(){
     if (!r.ok) throw { code: d.error || "upstream_error" };
     return d;
   };
-  const s = async (prompt, opts) => ({ text: (await call(prompt, opts)).text || "", truncated: false });
+  const s = {};
   const parse = (t) => { const m = String(t).match(/\{[\s\S]*\}/); if (!m) return null; try { return JSON.parse(m[0]); } catch(e){ return null; } };
-  const JSON_RULE = "\n\nIMPORTANT: reply with valid JSON only. Inside text values never use double quotes; use «» or single quotes instead. Write all Spanish in Mexican Spanish, the way people speak in Mexico (for example «papas», not «patatas»; «ustedes», not «vosotros»; «computadora», not «ordenador»; «celular», not «móvil»).";
   // A veces la IA manda listas como texto ("[{...}]") o envuelve todo en otra llave
   // ({"response": {...}}): aquí se arregla para que la app siempre reciba la forma esperada.
   const fixJson = (o) => {
@@ -1263,12 +1125,12 @@ function workerSample(){
     keys.forEach(k => { let v = o[k]; if (typeof v === "string" && /^\s*[\[{]/.test(v)){ try { v = JSON.parse(v); } catch(e){} } out[k] = v; });
     return out;
   };
-  s.json = async (prompt, opts = {}) => {
+  s.json = async (task, data, opts = {}) => {
     // Si la respuesta llega cortada, mal formada o sin los campos esperados, se intenta una vez más.
     const ok = (v) => v && typeof v === "object" && (!opts.need || opts.need.every(k => v[k] !== undefined && v[k] !== null)) && (!opts.check || opts.check(v));
     for (let attempt = 0; attempt < 2; attempt++){
       // 1.er intento: respuesta estructurada; 2.º: texto libre (a veces la IA se equivoca en un modo y no en el otro).
-      const d = await call(prompt + JSON_RULE, opts, attempt === 0);
+      const d = await call(task, data, opts, attempt === 0);
       let v = d.json && typeof d.json === "object" ? fixJson(d.json) : fixJson(parse(d.text || ""));
       if (ok(v)) return v;
       try { window.__wrealispecLast = d; console.warn("Wrealispec: respuesta de la IA que no se pudo leer", d); } catch(e){}
@@ -1278,7 +1140,11 @@ function workerSample(){
   s.limits = async () => ({ images: true });
   return s;
 }
-const sampleP = (window.claude && window.claude.use) ? window.claude.use("sample") : Promise.resolve(workerSample());
+const sampleP = Promise.resolve(workerSample());
+// Instrucciones fijas de la corrección (sección «para profesores»): las da el servidor, sin usar la IA.
+if (AI_URL) fetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ task:"instrucciones" }) })
+  .then(r => r.json()).then(d => { $("promptView").textContent = d.text || ""; })
+  .catch(() => { $("promptView").textContent = "No se pudieron cargar las instrucciones en este momento."; });
 let canImages = false;
 let inputMode = "type";
 try { inputMode = localStorage.getItem("wrealispec.input") === "photo" ? "photo" : "type"; } catch(e){}
@@ -1324,6 +1190,7 @@ const ERR = {
   daily_limit:"Llegaste al límite de práctica con IA de hoy. ¡Buen trabajo! Mañana se renueva.",
   service_busy:"La demo alcanzó su límite de uso de hoy. Vuelve a intentarlo mañana.",
   limit_not_configured:"El servidor de la IA está en mantenimiento. Inténtalo más tarde.",
+  too_long:"El texto es demasiado largo para revisarlo de una vez. Hazlo más corto e inténtalo de nuevo.",
 };
 const errMsg = (e) => ERR[e && e.code] || "Algo falló en la conexión. Inténtalo de nuevo.";
 function busy(el, msg){ el.classList.remove("bad"); el.innerHTML = msg ? `<span class="spinner" aria-hidden="true"></span> ${msg}` : ""; }
@@ -1405,7 +1272,7 @@ async function runCorrection(textOverride, statusEl, btn, clar){
   btn.disabled = true; busy(statusEl, useImage ? "Leyendo tu cuaderno y corrigiendo… (puede tardar un minuto)" : "Corrigiendo tu texto…");
   try {
     const opts = useImage ? { images:[photoFile] } : {};
-    const r = await sample.json(correctionPrompt({ topic: S.topic, level: S.level, text: useImage ? "" : text, clar, asg: S.assignment }), opts);
+    const r = await sample.json("corregir", { topic: S.topic, level: S.level, text: useImage ? "" : text, clar, asg: S.assignment }, opts);
     if (!r || typeof r.corrected !== "string" || !r.corrected.trim()) throw { code:"invalid_json" };
     const fresh = blank(S.topic, S.level);
     Object.assign(S, fresh, {
@@ -1446,7 +1313,7 @@ async function startAnalysis(){
   btn.disabled = true; $("clarify").hidden = true;
   busy(st, useImage ? "Leyendo tu cuaderno… (puede tardar un minuto)" : "Leyendo tu historia…");
   try {
-    const r = await sample.json(clarifyPrompt({ topic: S.topic, level: S.level, name: store.name || "", text: useImage ? "" : text }), useImage ? { images:[photoFile] } : {});
+    const r = await sample.json("aclarar", { topic: S.topic, level: S.level, name: store.name || "", text: useImage ? "" : text }, useImage ? { images:[photoFile] } : {});
     const transcription = String((r && r.transcription) || text || "").trim();
     if (!transcription) throw { code:"invalid_json" };
     busy(st, "");
@@ -1481,7 +1348,7 @@ $("trGo").onclick = async () => {
   const sample = await sampleP; if (!sample) return;
   btn.disabled = true; busy(st, "Volviendo a leer tu texto…");
   try {
-    const r2 = await sample.json(clarifyPrompt({ topic: S.topic, level: S.level, name: store.name || "", text: edited }));
+    const r2 = await sample.json("aclarar", { topic: S.topic, level: S.level, name: store.name || "", text: edited });
     busy(st, ""); $("trModal").hidden = true; afterAnalysis(r2, edited, true);
   } catch(e){ fail(st, errMsg(e)); }
   finally { btn.disabled = false; }
@@ -1538,7 +1405,7 @@ $("btnAiStory").onclick = async () => {
   if (!sample) return fail(st, "La IA todavía no está conectada en esta versión en línea. Llega en la siguiente versión.");
   btn.disabled = true; busy(st, "Escribiendo una historia para ti…");
   try {
-    const r = await sample.json(aiStoryPrompt({ topic: S.topic, level: S.level, asg: S.assignment, name: store.name || "" }), { cache:false });
+    const r = await sample.json("historia_ia", { topic: S.topic, level: S.level, asg: S.assignment, name: store.name || "" }, { cache:false });
     if (!r || typeof r.story !== "string" || !r.story.trim()) throw { code:"invalid_json" };
     const fresh = blank(S.topic, S.level);
     Object.assign(S, fresh, {
@@ -2203,7 +2070,7 @@ async function evaluateReading(txt, shortMsg, stEl){
   S.reading.pct = Math.round(ok / total * 100); S.reading.attempts.push(S.reading.pct); save(); showReading();
   const sample = await sampleP; if (!sample) return busy(st, "");
   $("btnRead").disabled = true; busy(st, "La IA está revisando tu pronunciación…");
-  try { S.reading.res = await sample.json(readingPrompt(S.level, S.corrected, txt, readingMisses()), { need:["feedback_es"] }); save(); showReading(); busy(st, ""); }
+  try { S.reading.res = await sample.json("evaluar_lectura", { level: S.level, story: S.corrected, heard: txt, misses: readingMisses() }, { need:["feedback_es"] }); save(); showReading(); busy(st, ""); }
   catch(e){ fail(st, errMsg(e)); } finally { $("btnRead").disabled = false; }
 }
 function bestReading(){ const a = S.reading.attempts || []; return a.length ? Math.max(...a) : (S.reading.pct ?? 0); }
@@ -2264,7 +2131,7 @@ $("btnShareRec").onclick = async () => {
    El audio se convierte en el navegador a WAV de 16 kHz (ligero y legible para cualquier formato:
    notas de voz, MP3, M4A…), el Worker lo pasa a texto con Whisper y se compara con la historia. */
 const REC_MAX = 180;   // segundos máximos de grabación
-const UP_MAX = 240;    // segundos máximos de un audio subido
+const UP_MAX = 200;    // segundos máximos de un audio subido
 let rec = null, recBlob = null;
 const STT_MSG = {
   stt_not_configured:"La grabación todavía no está activada. Mientras, usa el dictado del teclado (abajo).",
@@ -2273,7 +2140,7 @@ const STT_MSG = {
   stt_too_long:"Tu audio es demasiado largo. Graba solo tu historia, de unos 3 minutos como máximo.",
   network:"No hay conexión con el servidor. Revisa tu internet e inténtalo de nuevo.",
   decode:"No pude abrir ese audio. Prueba con otro archivo (MP3, M4A, WAV o nota de voz).",
-  too_long_local:"Tu audio dura más de 4 minutos. Graba solo la lectura de tu historia.",
+  too_long_local:"Tu audio dura más de 3 minutos y 20 segundos. Graba solo la lectura de tu historia.",
 };
 const fmtTime = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
 function recUI(state){
@@ -2404,37 +2271,6 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("recM
    Claude escribe el guion (qué se dice y qué aparece en la pizarra); Google pone la voz en
    español para explicar y en inglés para los ejemplos; las marcas de tiempo sincronizan todo.
    El guion se guarda en la historia, así que abrir la misma pizarra otra vez no vuelve a usar la IA. */
-function boardPrompt(level, story, er){
-  return `You are the whiteboard teacher of Wrealispec. Explain ONE mistake to a Spanish-speaking student of English (CEFR ${level}) as a short animated whiteboard lesson: 4 to 6 steps, about 40 seconds in total.
-The student's corrected story (use it for examples):
-"""
-${story}
-"""
-The mistake: "${er.original}" → "${er.correction}" (type: ${er.type || "grammar"}). Short rule already given: ${er.rule_es || ""}
-Reply with only JSON:
-{"title_es":"","steps":[{"say_es":"","board":[{"t":"","k":"","hl":""}],"en":""}]}
-Rules:
-- title_es: the topic in Spanish, maximum 6 words (for example «El plural con s»).
-- say_es: what the teacher says in this step, in warm, simple Mexican Spanish, 1 or 2 short sentences. A Spanish voice will read it, so never write English words in say_es: refer to them as «esta palabra», «la s final», «el verbo», etc.
-- board: 0 to 2 lines that appear on the board in this step, maximum 42 characters each. k is one of: wrong (the student's mistake, shown crossed out), right (the correct form), note (a very short rule in Spanish), example (another English example). hl: an exact part of t to highlight (for example the added letter or word), or "".
-- en: an English sentence (maximum 12 words) that an English voice says after say_es, to model the correct form; "" if not needed.
-- Order: 1) show the mistake; 2) the rule; 3) the correct form; 4) one or two examples, from the student's story when possible; last step: short encouragement, with the full correct sentence in en.`;
-}
-function boardPronPrompt(level, story, w){
-  const sentence = splitSentences(story).find(x => new RegExp(`\\b${w.word.replace(/[^A-Za-z']/g, "")}\\b`, "i").test(x)) || "";
-  return `You are the whiteboard teacher of Wrealispec. Teach a Spanish-speaking student of English (CEFR ${level}) how to pronounce ONE word, as a short animated whiteboard lesson: 4 or 5 steps, about 35 seconds in total.
-Word: "${w.word}". When the student read it aloud, the speech recognizer ${w.heard_as ? `understood "${w.heard_as}"` : "did not understand it"}.
-Sentence from the student's story: "${sentence}"
-Reply with only JSON:
-{"title_es":"","steps":[{"say_es":"","board":[{"t":"","k":"","hl":""}],"en":"","slow":false}]}
-Rules:
-- Be accurate. Never state syllable counts or rules you are not sure about. Focus on the one or two sounds that most likely caused the confusion. Never describe the position of the tongue, lips or teeth: the student learns by listening (slowly, then normally) and repeating.
-- title_es: maximum 6 words in Spanish (for example «Cómo se dice every»).
-- say_es: warm, simple Mexican Spanish, 1 or 2 short sentences. A Spanish voice reads it, so never write English words in say_es: say «esta palabra», «el primer sonido», etc.
-- board: 0 to 2 lines per step, maximum 42 characters each. k: right = the word or the sentence; wrong = what was heard, only if it is a different word; note = a very short tip in Spanish about the sound; example = a Spanish-like spelling with syllables separated by hyphens and the stressed syllable in CAPITALS (for example «É-vri»). hl: an exact part of t to highlight, or "".
-- en: what an English voice says after say_es (the word, or the sentence, maximum 12 words); "" if nothing. slow: true to play it slowly.
-- Order: 1) the word, and what was heard; 2) the sound to practice, with the Spanish-like spelling; 3) the word said slowly (slow: true) and then at normal speed (slow: false); 4) the word inside the sentence from the story; last step: short encouragement.`;
-}
 let bd = null, bdKey = "";
 const bdAudio = {};   // audios ya preparados en esta visita, por error
 function cleanBoard(r){
@@ -2525,16 +2361,19 @@ async function bdPlay(){
 }
 function openBoard(i){
   const er = S.errors[i]; if (!er) return;
-  startBoard("w" + i, er, () => boardPrompt(S.level, S.corrected, er));
+  startBoard("w" + i, er, () => ["pizarra_error", { level: S.level, story: S.corrected,
+    error: { original: er.original, correction: er.correction, type: er.type || "grammar", rule_es: er.rule_es || "" } }]);
 }
 function openPronBoard(w){
   if (!w || !w.word) return;
   S.reading.boards = S.reading.boards || {};
   const k = norm(w.word), holder = S.reading.boards[k] || (S.reading.boards[k] = {});
-  startBoard("p" + k, holder, () => boardPronPrompt(S.level, S.corrected, w));
+  // La oración de la historia donde aparece la palabra, para el ejemplo de la pizarra.
+  const sentence = splitSentences(S.corrected).find(x => new RegExp(`\\b${w.word.replace(/[^A-Za-z']/g, "")}\\b`, "i").test(x)) || "";
+  startBoard("p" + k, holder, () => ["pizarra_pronunciacion", { level: S.level, word: w.word, heard_as: w.heard_as || "", sentence }]);
 }
 // holder es donde se guarda el guion (el error o la palabra), para no volver a pedirlo a la IA.
-async function startBoard(key, holder, makePrompt){
+async function startBoard(key, holder, makeReq){
   bdKey = key; bd = holder.board ? cleanBoard(holder.board) : null;
   $("bdEyebrow").textContent = key[0] === "p" ? "Pizarra · cómo se pronuncia" : "Pizarra · tu error explicado";
   $("bdTitle").textContent = bd ? bd.title : "Preparando tu pizarra…";
@@ -2547,7 +2386,7 @@ async function startBoard(key, holder, makePrompt){
     if (!sample){ $("bdLines").innerHTML = ""; return fail($("bdSt"), "La pizarra funciona en wrealispec.com con la IA activada."); }
     try {
       busy($("bdSt"), "La IA está preparando tu pizarra…");
-      const r = await sample.json(makePrompt());
+      const r = await sample.json(...makeReq());
       bd = cleanBoard(r); if (!bd) throw { code:"invalid_json" };
       holder.board = { title_es: bd.title, steps: bd.steps.map(x => ({ say_es: x.say, en: x.en, slow: x.slow, board: x.board })) }; save();
       busy($("bdSt"), "");
@@ -2716,7 +2555,7 @@ async function createQa(){
   if (!sample) return fail(st, "Demostración: los ejercicios con IA se activan en la siguiente versión.");
   $("qaNew").disabled = true; $("btnQa").disabled = true; busy(st, "Preparando tus retos…");
   try {
-    const r = await sample.json(qaPrompt(S.level, S.corrected), { cache:false, check: (v) => qaItems(v).length >= 3 });
+    const r = await sample.json("ejercicios", { level: S.level, story: S.corrected }, { cache:false, check: (v) => qaItems(v).length >= 3 });
     const items = qaItems(r).slice(0,5);
     if (!items.length) throw { code:"invalid_json" };
     S.qa = { items, answers: [], res: null }; save(); busy(st, ""); $("qaPrev").hidden = false; openQa(0);
@@ -2738,7 +2577,8 @@ $("btnQaCheck").onclick = async () => {
       if (!sample){ toAsk.forEach(i => { results[i] = { ok:false, better_en:"", feedback_es:"Esta respuesta la revisa la IA, que todavía no está conectada en esta versión." }; }); }
       else {
         busy(st, "Revisando tus respuestas…");
-        const r = await sample.json(qaEvalPrompt(S.level, S.corrected, toAsk.map(i => items[i]), toAsk.map(i => answers[i])), { cache:false });
+        const r = await sample.json("evaluar_ejercicios", { level: S.level, story: S.corrected,
+          items: toAsk.map(i => ({ type: items[i].type, prompt: items[i].prompt })), answers: toAsk.map(i => answers[i]) }, { cache:false });
         const rr = Array.isArray(r && r.results) ? r.results : [];
         toAsk.forEach((i, k) => { results[i] = rr[k] || { ok:false, better_en:"", feedback_es:"" }; });
         summary = (r && r.summary_es) || "";
@@ -2788,7 +2628,7 @@ $("btnRetell").onclick = async () => {
   if (countWords(txt) < 15) return fail(st, "Escribe al menos 15 palabras para poder revisarla.");
   const sample = await sampleP; if (!sample) return fail(st, "Demostración: la revisión con IA se activa en la siguiente versión.");
   $("btnRetell").disabled = true; busy(st, "Revisando tu versión…");
-  try { const r = await sample.json(retellPrompt(S.level, S.corrected, txt)); S.retell = { text: txt, res: r }; save(); showRetell(r); busy(st, ""); rtMode(true); }
+  try { const r = await sample.json("volver_a_contar", { level: S.level, story: S.corrected, retell: txt }); S.retell = { text: txt, res: r }; save(); showRetell(r); busy(st, ""); rtMode(true); }
   catch(e){ fail(st, errMsg(e)); } finally { $("btnRetell").disabled = false; }
 };
 
@@ -2864,30 +2704,9 @@ function setPlan(m){
 document.querySelectorAll("[data-plan]").forEach(b => b.addEventListener("click", () => setPlan(b.dataset.plan)));
 
 /* ---------- Conversación con la IA (planes IA y Pro) ---------- */
-function chatPrompt(finish){
-  const transcript = S.chat.turns.map(t => `${t.who === "ai" ? "Tutor" : "Student"}: ${t.text}`).join("\n") || "(no messages yet)";
-  return `You are an English tutor for Wrealispec having a short conversation with a student (CEFR ${S.level}) about the student's story.
-Student name: ${store.name || "(unknown)"}.
-Story:
-"""
-${S.corrected}
-"""
-Questions a teacher could ask: ${(S.teacher_questions || []).join(" | ")}
-Conversation so far:
-${transcript}
-
-Rules:
-- Use simple English at the student's level, 1 to 3 short sentences per turn.
-- First turn: greet the student by name and ask them to explain their story in their own words.
-- Then ask ONE question at a time (about 5 questions in total), reacting naturally to what the student said.
-- If the student makes an important mistake, repeat their idea correctly in your reply, without lecturing.
-- If the student writes in Spanish, answer kindly in English and encourage them to try in English.
-${finish ? "- The student wants to finish now: say goodbye and set done to true.\n" : ""}- When the student has answered about 5 questions, say goodbye and set done to true.
-Reply with only JSON:
-{"reply":"","hint_es":"","hint_words":[],"done":false,"feedback":null}
-hint_es: a short Spanish translation of your reply.
-hint_words: 6 to 10 English words or very short chunks (1 to 3 words each) that would help the student answer your question, taken from the story when possible. Never a full sentence and never the full answer; include one or two useful words that are not strictly needed. [] when done is true.
-When done is true, feedback is {"fluency":0,"grammar":0,"vocabulary":0,"comment_es":"","corrections":[{"original":"","correction":"","rule_es":""}]}: scores from 0 to 100 (they are never shown as numbers), comment_es is 2 warm sentences in Spanish (what went well, then one tip), corrections are maximum 4 from the student's messages, rule_es maximum 20 words.`;
+function chatData(finish){
+  return { level: S.level, name: store.name || "", story: S.corrected, questions: S.teacher_questions || [],
+    turns: S.chat.turns.map(t => ({ who: t.who === "ai" ? "ai" : "me", text: t.text })), finish: !!finish };
 }
 function renderChat(){
   $("chatCardAv").innerHTML = avatar(VOICE_CARDS[S.voice] ? S.voice : "us-f");
@@ -2933,7 +2752,7 @@ async function chatTurn(finish, statusEl){
   if (!sample) return fail(statusEl, "La conversación con la IA llega cuando la IA esté conectada en esta versión en línea.");
   ["btnChatStart","btnChatSend","btnChatEnd","chatMic"].forEach(id => $(id).disabled = true); busy(statusEl, "Tu tutor está pensando…"); $("chatMicState").textContent = "Tu tutor está pensando…";
   try {
-    const r = await sample.json(chatPrompt(finish), { cache:false });
+    const r = await sample.json("conversacion", chatData(finish), { cache:false });
     if (!r || typeof r.reply !== "string") throw { code:"invalid_json" };
     const hw = (Array.isArray(r.hint_words) ? r.hint_words : []).map(x => String(x || "").trim()).filter(Boolean).slice(0, 10);
     S.chat.turns.push({ who:"ai", text: r.reply.trim(), hint: String(r.hint_es || ""), words: hw });
@@ -3133,14 +2952,7 @@ async function nwSuggest(){
   $("nwRegen").disabled = true; $("nwGo").disabled = true; busy(st, "La IA está eligiendo tu vocabulario…");
   try {
     const prev = [...nw.verbs, ...nw.adj];
-    const r = await sample.json(`You are an English tutor for Wrealispec. Suggest vocabulary for a student's next short story.
-Student level: CEFR ${nwLevel()}.
-Topic or trigger question: "${nwTopic()}"
-Structures to practice: ${nw.structs.length ? nw.structs.join("; ") : "(any)"}
-Reply with only JSON: {"verbs":[],"adjectives":[]}
-- verbs: 5 or 6 useful verbs for this topic, written in the form the student should use with the structures (for example "went" for past simple, "have visited" for present perfect).
-- adjectives: 5 or 6 useful adjectives for this topic.
-- Words must match the student's level. ${prev.length ? `Do not repeat: ${prev.join(", ")}.` : ""}`, { cache:false, need:["verbs"] });
+    const r = await sample.json("vocabulario", { level: nwLevel(), topic: nwTopic(), structs: nw.structs, prev }, { cache:false, need:["verbs"] });
     const clean = (a) => (Array.isArray(a) ? a : []).map(x => String(x || "").trim()).filter(Boolean).slice(0, 6);
     nw.verbs = clean(r.verbs); nw.adj = clean(r.adjectives); nw.off = new Set(); nwRenderVoc(); busy(st, "");
   } catch(e){ fail(st, errMsg(e)); }
