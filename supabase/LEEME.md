@@ -1,0 +1,79 @@
+# Wrealispec · Capa 3: usuarios y datos (Supabase)
+
+La app (capa 1) sigue hablando con el Worker (capa 2) para la IA. Supabase (capa 3) guarda cuentas, roles, grupos, tareas e historias. El Worker sigue siendo la única puerta a la IA.
+
+## Qué hay en esta carpeta
+
+| Archivo | Qué es |
+|---|---|
+| `schema.sql` | Esquema completo: 7 tablas, reglas por fila (RLS) y la función para unirse a un grupo con código. Se puede correr varias veces sin romper nada. |
+| `pruebas/imitar-supabase.sql` | Imita en un Postgres local lo que Supabase trae de fábrica (roles `anon` y `authenticated`, `auth.uid()`). |
+| `pruebas/reglas.sql` | 25 pruebas de las reglas: quién ve y quién cambia qué. |
+
+## Las 7 tablas
+
+| Tabla | Para qué |
+|---|---|
+| `perfiles` | Una fila por cuenta: nombre, nivel (A1–C2) y plan. Se crea sola al registrarse. |
+| `escuelas` | Escuela o maestro independiente (un maestro independiente es su propia escuela). |
+| `membresias` | Quién es alumno, maestro o dirección en cada escuela. |
+| `grupos` | Grupos de cada maestro, con un código de 8 letras/números para invitar alumnos. |
+| `inscripciones` | Qué alumnos están en qué grupo. |
+| `tareas` | Tema asignado por el maestro (pregunta detonadora y requisitos) con fecha opcional. |
+| `historias` | Cada historia del alumno; `datos` guarda el objeto completo de la app. |
+
+## Quién ve qué
+
+| | Alumno | Maestro | Dirección | Sin cuenta |
+|---|---|---|---|---|
+| Sus historias | Ve y cambia | — | — | Nada |
+| Historias de sus alumnos | — | Solo ve | Ve las de su escuela | Nada |
+| Tareas | Ve las de sus grupos | Crea y cambia en sus grupos | Ve las de su escuela | Nada |
+| Plan del perfil | No lo puede cambiar | No | No | Nada |
+| Rol de maestro o dirección | No se lo puede dar | No | No | Nada |
+
+## Alta del proyecto (una sola vez, lo hace Héctor)
+
+1. Entrar a supabase.com con la cuenta de GitHub `tochtlipoka` → **New project**.
+   - Nombre: `wrealispec`.
+   - Contraseña de la base: generarla y guardarla en tu gestor de contraseñas (no se comparte con nadie, tampoco con Claude).
+   - Región: la de Estados Unidos más cercana a México (East US o West US).
+   - Plan: Free.
+2. **SQL Editor → New query** → pegar todo `schema.sql` → **Run**. Debe terminar con «Success. No rows returned».
+3. **Authentication → URL Configuration**:
+   - Site URL: `https://wrealispec.com/app/`
+   - Redirect URLs: `https://wrealispec.com/app/` y `https://www.wrealispec.com/app/`
+4. **Project Settings → API**: copiar y mandarle a Claude **solo** estos dos datos (son públicos, van dentro de la app):
+   - Project URL (`https://xxxx.supabase.co`)
+   - Publishable key / anon key
+   
+   **Nunca** compartir la `service_role` / secret key: esa salta todas las reglas.
+
+## Tareas de administrador (SQL Editor)
+
+Crear la escuela del piloto (o la de un maestro independiente):
+
+```sql
+insert into public.escuelas (nombre) values ('Piloto Wrealispec') returning id;
+```
+
+Dar rol de maestro a alguien que ya se registró (cambiar el correo y el id de la escuela):
+
+```sql
+insert into public.membresias (escuela_id, usuario_id, rol)
+select 'ID-DE-LA-ESCUELA', id, 'maestro' from auth.users where email = 'maestra@correo.com';
+```
+
+Lo mismo con `'direccion'` para una dirección. Para cambiar el plan de un alumno:
+
+```sql
+update public.perfiles set plan = 'pro' where id = (select id from auth.users where email = 'alumno@correo.com');
+```
+
+## Probar las reglas en local
+
+```bash
+psql -f supabase/pruebas/imitar-supabase.sql
+psql -f supabase/schema.sql
+psql -f supabase/pruebas/reglas.sql   # cada línea debe decir PASA
+```
