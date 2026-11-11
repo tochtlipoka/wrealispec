@@ -4,7 +4,7 @@ Este Worker guarda en secreto la llave de la API de Claude y la de Google (voz),
 
 ## Despliegue automático desde GitHub
 
-El Worker se despliega solo cuando un cambio llega a la rama `main` (Cloudflare Workers Builds). Ya no se copia y pega el código en Cloudflare.
+El Worker se despliega solo cuando un cambio llega a la rama `main` (Cloudflare Workers Builds). Ya no se copia y pega el código en Cloudflare. Conectado el 11 de noviembre de 2026.
 
 - Configuración: `wrangler.jsonc` en esta carpeta (nombre del Worker, base D1 `DB`, Workers AI `AI`, `keep_vars`).
 - En Cloudflare: `wrealispec-ai` → Settings → Build → repositorio `tochtlipoka/wrealispec`, rama `main`, Root directory `worker`, Build command vacío, Deploy command `npx wrangler deploy`.
