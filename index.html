@@ -131,7 +131,6 @@ footer a{color:inherit}
     <div class="nav-r">
       <div class="langs" role="group" aria-label="Idioma / Language">
         <button data-lang="es" aria-pressed="false">ES</button>
-        <button data-lang="pt" aria-pressed="false">PT</button>
         <button data-lang="en" aria-pressed="false">EN</button>
       </div>
       <a class="btn sm" href="app/" data-i18n="nav.demo">Probar la demo</a>
@@ -274,51 +273,6 @@ es: {
   "status":"Wrealispec está en fase piloto. En la demo ya puedes probar el método completo con la IA.",
   "footer":"Creado por <a href=\"https://hpopoca.com\" target=\"_blank\" rel=\"noopener\">Héctor Popoca</a> · <a href=\"privacidad/\">Aviso de privacidad</a>",
 },
-pt: {
-  "nav.demo":"Testar a demo",
-  "hero.eyebrow":"Método de inglês com IA e professor",
-  "hero.title":"Aprenda inglês com <em>a sua própria história</em>.",
-  "hero.lead":"Você escreve à mão, a IA corrige, você escuta a sua história, lê em voz alta e termina conversando com o seu professor. A cada aula, um tema novo.",
-  "hero.cta1":"Testar a demo",
-  "hero.cta2":"Você é professor ou escola?",
-  "hero.say":"Escreve-se <strong>Wrealispec</strong> e se diz <strong>“realispec”</strong>: o W é mudo, como em <em>write</em>.",
-  "hero.tag":"Corrigido pela IA",
-  "skills.title":"Cinco habilidades em uma palavra",
-  "skills.sub":"Cada letra de Wrealispec é uma habilidade, e a última é a mais importante.",
-  "skills.w":"Você escreve a sua história à mão, no caderno.",
-  "skills.r":"Você lê o texto corrigido até entender cada palavra.",
-  "skills.l":"Você escuta como a sua história soa em inglês natural.",
-  "skills.s":"Você lê em voz alta e a IA escuta.",
-  "skills.c":"Speaking é falar para o ar. Conversation é trocar ideias com o seu professor.",
-  "phases.title":"Quatro fases entre uma aula e outra",
-  "phases.sub":"A IA prepara você entre as aulas. O professor faz você conversar.",
-  "p1.t":"Escreva e eu corrijo","p1.d":"Você envia a foto do caderno. A IA devolve o texto corrigido e explica os seus erros principais no seu idioma.",
-  "p2.t":"Escute e repita","p2.d":"Você escuta a sua história inteira ou no modo eco, frase por frase, e repete com o mesmo ritmo.",
-  "p3.t":"Grave-se e eu dito","p3.d":"A IA escuta a sua leitura e mostra quais palavras praticar. Depois você responde exercícios de escuta sobre a sua história.",
-  "p4.t":"Vamos conversar","p4.d":"Videochamada com o seu professor: você explica a sua história, responde perguntas e recebe o novo tema.",
-  "lv.title":"Sem notas que desanimam",
-  "lv.sub":"Em vez de números, níveis que motivam você a continuar:",
-  "lv.1":"Ainda falta","lv.2":"Um pouco mais","lv.3":"Quase lá","lv.4":"Muito bem","lv.5":"Excelente!",
-  "lv.note":"E se em três tentativas você não chegar lá, o seu professor escuta e reconhece o seu esforço.",
-  "plans.title":"Escolha como aprender",
-  "plans.sub":"Mude de plano quando quiser: se em um mês você preferir praticar por conta própria, tudo bem, e você volta quando quiser.",
-  "plan1.name":"Autodidata","plan1.price":"US$ 10 / mês","plan1.d":"Fases 1 a 3 com a IA: correção da sua história, áudio, leitura em voz alta e desafios de escuta.",
-  "plan2.name":"IA","plan2.price":"US$ 30 / mês","plan2.d":"Tudo do Autodidata, mais a Fase 4 com a IA: ela pede que você explique a sua história, faz perguntas e dá feedback.",
-  "plan3.name":"Pro","plan3.price":"US$ 99 / mês","plan3.tag":"Maior avanço","plan3.d":"Tudo o que vem antes, mais 6 aulas de uma hora com o seu professor, o feedback dele, a sua tarefa, a agenda e o projeto do mês.",
-  "plans.note":"Semanas 1 e 3: uma aula. Semanas 2 e 4: duas aulas.",
-  "t.title":"Para professores e escolas",
-  "t.sub":"Wrealispec transforma uma aula de uma hora em dias de prática guiada entre uma aula e outra.",
-  "t.1":"A IA faz o trabalho pesado entre as aulas: corrige, gera o áudio e acompanha o progresso.",
-  "t.2":"Os seus alunos chegam preparados, e a aula fica para conversar.",
-  "t.3":"Você oferece dias de prática entre as aulas, não só uma hora: isso aumenta o valor do que você ensina.",
-  "t.4":"Você recebe um resumo de cada aluno, pronto para a sua videochamada.",
-  "pilot.t":"Programa piloto",
-  "pilot.d":"Procuramos professores e escolas de inglês que queiram testar o método com os seus alunos.",
-  "pilot.cta":"Falar com Héctor no WhatsApp",
-  "pilot.wa":"Olá, Héctor. Sou professor(a) de inglês e tenho interesse no programa piloto do Wrealispec.",
-  "status":"Wrealispec está em fase piloto. Na demo você já pode testar o método completo com a IA.",
-  "footer":"Criado por <a href=\"https://hpopoca.com\" target=\"_blank\" rel=\"noopener\">Héctor Popoca</a> · <a href=\"privacidad/\">Aviso de privacidade</a>",
-},
 en: {
   "nav.demo":"Try the demo",
   "hero.eyebrow":"An English method with AI and a teacher",
@@ -368,7 +322,6 @@ const KEY = "wrealispec.lang";
 function pick(){
   try { const s = localStorage.getItem(KEY); if (T[s]) return s; } catch(e){}
   const n = (navigator.languages && navigator.languages[0]) || navigator.language || "es";
-  if (/^pt/i.test(n)) return "pt";
   if (/^es/i.test(n)) return "es";
   if (/^en/i.test(n)) return "en";
   return "es";

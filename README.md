@@ -11,6 +11,6 @@ Prototipo del método Wrealispec en 4 fases:
 3. **Grábate y te dicto**: lees en voz alta, escuchas y respondes ejercicios sobre tu historia.
 4. **Conversemos**: conversas con tu profesor.
 
-Página en línea: https://wrealispec.com (antesala en ES · PT · EN) · Demo: https://wrealispec.com/app/
+Página en línea: https://wrealispec.com (antesala en ES · EN) · Demo: https://wrealispec.com/app/
 
 La IA (Claude Haiku 5.5 y Sonnet 5.5) funciona a través del Worker de Cloudflare en `worker/`, que guarda las llaves y las instrucciones de la IA. La app solo le manda la tarea y los datos (ver `worker/LEEME.md`).
