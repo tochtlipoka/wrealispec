@@ -49,6 +49,13 @@ La app (capa 1) sigue hablando con el Worker (capa 2) para la IA. Supabase (capa
    
    **Nunca** compartir la `service_role` / secret key: esa salta todas las reglas.
 
+## Proyecto actual
+
+- Proyecto `wrealispec` en la organización `hpopoca` (plan Free), región East US (North Virginia).
+- URL: `https://bbepraefoojognseuxzq.supabase.co`. La app usa la publishable key (pública a propósito).
+- Inicio de sesión del piloto: correo y contraseña, con **Confirm email apagado** (el correo gratuito de Supabase solo envía a miembros de la organización). Para el lanzamiento: correo propio (p. ej. Resend con wrealispec.com) para confirmar cuentas y recuperar contraseñas, y «Entrar con Google».
+- Si alguien olvida su contraseña durante el piloto: Authentication → Users → el usuario → cambiarla.
+
 ## Tareas de administrador (SQL Editor)
 
 Crear la escuela del piloto (o la de un maestro independiente):
@@ -64,7 +71,17 @@ insert into public.membresias (escuela_id, usuario_id, rol)
 select 'ID-DE-LA-ESCUELA', id, 'maestro' from auth.users where email = 'maestra@correo.com';
 ```
 
-Lo mismo con `'direccion'` para una dirección. Para cambiar el plan de un alumno:
+Lo mismo con `'direccion'` para una dirección.
+
+Crear un grupo para un maestro (el código es el que les comparte a sus alumnos; 6 a 12 letras o números en mayúscula):
+
+```sql
+insert into public.grupos (escuela_id, maestro_id, nombre, codigo)
+select 'ID-DE-LA-ESCUELA', id, 'Grupo A2 lunes', 'CARLA123' from auth.users where email = 'maestra@correo.com'
+returning codigo;
+```
+
+El alumno lo usa en la app: botón de su nombre (arriba a la derecha) → «Unirme». Para cambiar el plan de un alumno:
 
 ```sql
 update public.perfiles set plan = 'pro' where id = (select id from auth.users where email = 'alumno@correo.com');

@@ -242,6 +242,16 @@ details[open] > .pillsum::after{transform:rotate(180deg)}
 .cl-q{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1}
 .cl-yes[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:var(--sheet)}
 .seg button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+/* Cuenta (capa 3: Supabase) */
+.acct{display:inline-flex;align-items:center;gap:8px;margin-left:auto}
+.acct .dot{width:8px;height:8px;border-radius:50%;background:var(--rule);flex-shrink:0}
+.acct .dot.on{background:var(--ok)}
+.acct .dot.wait{background:var(--hl);box-shadow:0 0 0 1px var(--ink-soft) inset}
+.acct .dot.off{background:var(--margin)}
+.acct-groups{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.acct-groups li{border:1px solid var(--rule);border-radius:10px;padding:8px 12px;font-size:.92rem}
+.acct-groups li b{display:block}
+.acct-sep{border:0;border-top:1px solid var(--rule);margin:2px 0}
 .steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:4px}
 .steps li::marker{font-family:var(--f-mono);color:var(--margin)}
 .wcount{font-family:var(--f-mono);font-size:.82rem;color:var(--ink-soft)}
@@ -442,6 +452,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
       <span class="skill" data-sk="S">Speak</span>
       <span class="skill" data-sk="C">Conversation</span>
     </div>
+    <div class="acct"><button type="button" class="linkbtn" id="btnAcct" aria-haspopup="dialog"><span class="dot" id="acctDot" aria-hidden="true"></span><span id="acctLbl">Entrar</span></button></div>
   </header>
 
   <ol class="rail" id="rail"></ol>
@@ -456,7 +467,49 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
         <select id="wLevel" hidden><option value="A1">A1 · Principiante</option><option value="A2">A2 · Básico</option><option value="B1">B1 · Intermedio</option><option value="B2">B2 · Intermedio alto</option><option value="C1">C1 · Avanzado</option></select>
         <div class="lvl-pick" data-for="wLevel" role="radiogroup" aria-label="Tu nivel"></div>
         <span class="small muted">Si no lo sabes, elige A2. Lo puedes cambiar después.</span></div>
-      <div class="row"><button class="btn" id="wGo">Empezar</button><span class="status" id="wSt" role="status"></span></div>
+      <div class="row"><button class="btn" id="wGo">Empezar</button><button type="button" class="linkbtn" id="wAcct">Ya tengo cuenta</button><span class="status" id="wSt" role="status"></span></div>
+    </div>
+  </div>
+
+  <div class="modal" id="acctModal" hidden role="dialog" aria-modal="true" aria-labelledby="acTitle">
+    <div class="modal-card">
+      <div id="acOut">
+        <div class="field">
+          <span class="eyebrow">Tu cuenta</span>
+          <h2 id="acTitle">Guarda tu avance en la nube</h2>
+          <p class="muted small">Con cuenta, tus historias se guardan en el servidor, las ves desde cualquier dispositivo y tu maestro puede revisarlas. Sin cuenta, todo se queda solo en este navegador.</p>
+        </div>
+        <div class="seg" role="tablist" aria-label="Entrar o crear cuenta" style="margin-top:14px">
+          <button role="tab" id="acTabIn" aria-selected="true" data-ac="in">Entrar</button>
+          <button role="tab" id="acTabUp" aria-selected="false" data-ac="up">Crear cuenta</button>
+        </div>
+        <form id="acForm" class="field" style="margin-top:14px;gap:12px" novalidate>
+          <div class="field" id="acNameF" hidden><label for="acName">Tu nombre</label><input type="text" id="acName" autocomplete="name" maxlength="80" placeholder="Ej. Héctor"></div>
+          <div class="field"><label for="acEmail">Correo</label><input type="email" id="acEmail" autocomplete="email" inputmode="email" placeholder="tu@correo.com"></div>
+          <div class="field"><label for="acPass">Contraseña</label><input type="password" id="acPass" autocomplete="current-password" minlength="8" placeholder="Mínimo 8 caracteres"></div>
+          <div class="row"><button class="btn" id="acGo" type="submit">Entrar</button><button type="button" class="linkbtn" id="acCancel">Seguir sin cuenta</button></div>
+          <span class="status" id="acSt" role="status"></span>
+          <span class="small muted" id="acForgot">¿Olvidaste tu contraseña? Escríbenos por <a href="https://wa.me/5215530337547?text=Hola%2C%20olvid%C3%A9%20mi%20contrase%C3%B1a%20de%20Wrealispec" target="_blank" rel="noopener" style="color:var(--accent)">WhatsApp</a> y te ayudamos a recuperarla.</span>
+        </form>
+      </div>
+      <div id="acIn" hidden class="field" style="gap:14px">
+        <div class="field">
+          <span class="eyebrow">Tu cuenta</span>
+          <h2 id="acHello">Hola</h2>
+          <p class="muted small" id="acWho"></p>
+          <span class="status" id="acSync" role="status"></span>
+        </div>
+        <hr class="acct-sep">
+        <div class="field">
+          <h3>Mis grupos</h3>
+          <ul class="acct-groups" id="acGroups"></ul>
+          <label for="acCode" class="small muted">¿Tu maestro te dio un código? Escríbelo aquí.</label>
+          <div class="row"><input type="text" id="acCode" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Ej. CARLA123" style="flex:1;min-width:140px;text-transform:uppercase"><button class="btn ghost" id="acJoin" type="button">Unirme</button></div>
+          <span class="status" id="acJoinSt" role="status"></span>
+        </div>
+        <hr class="acct-sep">
+        <div class="row"><button class="btn" id="acClose" type="button">Listo</button><button type="button" class="linkbtn" id="acOutBtn">Cerrar sesión</button></div>
+      </div>
     </div>
   </div>
 
@@ -1010,7 +1063,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.25 · actualizado el 11 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.10.0 · actualizado el 11 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -1088,7 +1141,7 @@ function normalize(s){
 
 /* ---------- Storage (per-viewer convenience only) ---------- */
 function load(){ try { const v = JSON.parse(localStorage.getItem(KEY) || "null"); if (v && v.current) return v; } catch(e){} return null; }
-function save(){ try { localStorage.setItem(KEY, JSON.stringify(store)); } catch(e){} }
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(store)); } catch(e){} cloudLater(); }
 let store = load() || { current: structuredClone(SAMPLE), history: [] };
 store.current = normalize(store.current); store.history = (store.history || []).map(normalize);
 let S = store.current;
@@ -3129,6 +3182,228 @@ function renderAll(){
     document.querySelector(".brand").append(t);
   }
 }
+/* ---------- Cuenta y nube (capa 3: Supabase) ----------
+   La app sigue funcionando sin cuenta (modo invitado, solo en este navegador).
+   Con cuenta, cada historia se guarda también en Supabase. Las reglas por fila
+   (supabase/schema.sql) deciden quién ve qué; esta llave es pública a propósito. */
+var SB_URL = "https://bbepraefoojognseuxzq.supabase.co";
+var SB_KEY = "sb_publishable_vFDN2oFjvLsRHNEtxsSRXg_wRgi37rU";
+var SB_CDN = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js";
+var SB_TOKEN_KEY = "sb-bbepraefoojognseuxzq-auth-token";
+var sb = null, sbLoading = null, me = null, cloudTimer = null, cloudBusy = false, cloudAgain = false, cloudState = "guest";
+var acMode = "in";
+
+function getSb(){
+  if (sb) return Promise.resolve(sb);
+  if (!sbLoading) sbLoading = loadScript(SB_CDN).then(() => {
+    sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+    sb.auth.onAuthStateChange((ev, session) => {
+      const u = session && session.user ? session.user : null;
+      // Supabase pide no esperar otras llamadas dentro de este aviso: se difiere un instante.
+      setTimeout(() => {
+        if (u && (!me || me.id !== u.id)) { me = u; afterLogin(); }
+        else if (!u && me) { me = null; setCloud("guest"); renderAcct(); }
+      }, 0);
+    });
+    return sb;
+  }).catch((e) => { sbLoading = null; throw e; });
+  return sbLoading;
+}
+function hasSavedSession(){ try { return !!localStorage.getItem(SB_TOKEN_KEY); } catch(e){ return false; } }
+
+function setCloud(st, msg){
+  cloudState = st;
+  const dot = $("acctDot"); dot.className = "dot" + (st === "ok" ? " on" : st === "saving" ? " wait" : st === "error" ? " off" : "");
+  const txt = { guest: "Sin cuenta: tu trabajo se guarda solo en este navegador.", saving: "Guardando en tu cuenta…", ok: "Todo guardado en tu cuenta.",
+                error: msg || "No se pudo guardar en tu cuenta. Tu trabajo sigue en este navegador; lo vuelvo a intentar solo." }[st] || "";
+  $("btnAcct").title = txt; $("acSync").textContent = txt; $("acSync").classList.toggle("bad", st === "error");
+}
+function firstName(){ const n = (store.name || (me && me.user_metadata && me.user_metadata.nombre) || "").trim(); return n.split(/\s+/)[0] || ""; }
+function renderAcct(){
+  $("acctLbl").textContent = me ? (firstName() || "Mi cuenta") : "Entrar";
+  $("acOut").hidden = !!me; $("acIn").hidden = !me;
+  if (me){ $("acHello").textContent = firstName() ? `Hola, ${firstName()}` : "Tu cuenta"; $("acWho").textContent = `Sesión iniciada con ${me.email}.`; }
+}
+
+/* ---- Abrir, entrar, crear cuenta ---- */
+function setAcMode(m){
+  acMode = m;
+  $("acTabIn").setAttribute("aria-selected", m === "in"); $("acTabUp").setAttribute("aria-selected", m === "up");
+  $("acNameF").hidden = m !== "up"; $("acForgot").hidden = m !== "in";
+  $("acGo").textContent = m === "up" ? "Crear mi cuenta" : "Entrar";
+  $("acPass").autocomplete = m === "up" ? "new-password" : "current-password";
+  $("acSt").textContent = "";
+  if (m === "up" && !$("acName").value) $("acName").value = store.name || "";
+}
+document.querySelectorAll("[data-ac]").forEach(b => b.addEventListener("click", () => setAcMode(b.dataset.ac)));
+function openAcct(mode){
+  renderAcct(); if (!me) setAcMode(mode || acMode);
+  $("acctModal").hidden = false;
+  if (me) loadGroups(); else setTimeout(() => (acMode === "up" ? $("acName") : $("acEmail")).focus(), 50);
+  getSb().catch(() => fail($("acSt"), "No pude conectar con el servidor de cuentas. Revisa tu internet y vuelve a intentar."));
+}
+function closeAcct(){ $("acctModal").hidden = true; }
+$("btnAcct").onclick = () => openAcct();
+$("acCancel").onclick = closeAcct; $("acClose").onclick = closeAcct;
+$("acctModal").addEventListener("click", (e) => { if (e.target === $("acctModal")) closeAcct(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("acctModal").hidden) closeAcct(); });
+$("wAcct").onclick = () => { $("welcome").hidden = true; openAcct("in"); };
+
+function authError(e){
+  const m = String((e && (e.code || e.message)) || "").toLowerCase();
+  if (/invalid.*(credentials|login)/.test(m)) return "Correo o contraseña incorrectos.";
+  if (/already.*(registered|exists)|user_already_exists/.test(m)) return "Ese correo ya tiene cuenta. Usa «Entrar».";
+  if (/email_not_confirmed|not confirmed/.test(m)) return "Falta confirmar tu correo. Revisa tu bandeja de entrada.";
+  if (/weak_password|password.*(short|weak|at least)/.test(m)) return "La contraseña es muy débil: usa al menos 8 caracteres, mezclando letras y números.";
+  if (/rate|too many|429/.test(m)) return "Demasiados intentos seguidos. Espera un minuto y vuelve a probar.";
+  if (/invalid.*email|email_address_invalid/.test(m)) return "Ese correo no es válido.";
+  if (/signup.*disabled/.test(m)) return "El registro está cerrado por ahora.";
+  if (/fetch|network|load failed/.test(m)) return "Sin conexión con el servidor. Revisa tu internet.";
+  return "No se pudo completar. Intenta de nuevo en un momento.";
+}
+$("acForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = $("acEmail").value.trim(), pass = $("acPass").value, name = $("acName").value.trim();
+  if (acMode === "up" && !name) { $("acName").focus(); return fail($("acSt"), "Escribe tu nombre."); }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { $("acEmail").focus(); return fail($("acSt"), "Escribe un correo válido."); }
+  if (pass.length < 8) { $("acPass").focus(); return fail($("acSt"), "La contraseña necesita al menos 8 caracteres."); }
+  $("acGo").disabled = true; busy($("acSt"), acMode === "up" ? "Creando tu cuenta…" : "Entrando…");
+  try {
+    const c = await getSb();
+    if (acMode === "up"){
+      const { data, error } = await c.auth.signUp({ email, password: pass, options: { data: { nombre: name }, emailRedirectTo: location.origin + location.pathname } });
+      if (error) throw error;
+      if (!data.session) { $("acSt").classList.remove("bad"); $("acSt").textContent = "Listo. Te mandamos un correo para confirmar tu cuenta; ábrelo y luego entra aquí."; return; }
+      if (!store.name) { store.name = name; renderHello(); }
+    } else {
+      const { error } = await c.auth.signInWithPassword({ email, password: pass });
+      if (error) throw error;
+    }
+    $("acPass").value = ""; $("acSt").textContent = "";
+    // afterLogin() llega solo por onAuthStateChange
+  } catch (err) { fail($("acSt"), authError(err)); }
+  finally { $("acGo").disabled = false; }
+});
+$("acOutBtn").onclick = async () => {
+  $("acOutBtn").disabled = true; setCloud("saving");
+  try { await cloudNow(); } catch(e){}
+  try { await sb.auth.signOut(); } catch(e){}
+  // En una computadora compartida, la siguiente persona no debe ver tus historias: se limpian de este navegador (siguen en tu cuenta).
+  try { [KEY, REC_KEY, AUDIO_KEY].forEach(k => localStorage.removeItem(k)); } catch(e){}
+  location.reload();
+};
+
+/* ---- Grupos ---- */
+async function loadGroups(){
+  const ul = $("acGroups"); ul.innerHTML = `<li class="muted">Cargando…</li>`;
+  try {
+    const { data, error } = await sb.from("inscripciones").select("grupos(nombre, maestro:perfiles(nombre))");
+    if (error) throw error;
+    ul.innerHTML = "";
+    if (!data.length) { ul.innerHTML = `<li class="muted">Todavía no estás en ningún grupo.</li>`; return; }
+    data.forEach(r => { const li = document.createElement("li"); const g = r.grupos || {};
+      li.innerHTML = "<b></b><span class='muted'></span>"; li.querySelector("b").textContent = g.nombre || "Grupo";
+      li.querySelector("span").textContent = g.maestro && g.maestro.nombre ? `Maestro: ${g.maestro.nombre}` : ""; ul.append(li); });
+  } catch(e){ ul.innerHTML = `<li class="muted">No pude cargar tus grupos.</li>`; }
+}
+$("acJoin").onclick = async () => {
+  const code = $("acCode").value.trim().toUpperCase();
+  if (!/^[A-Z0-9]{6,12}$/.test(code)) { $("acCode").focus(); return fail($("acJoinSt"), "El código tiene de 6 a 12 letras o números."); }
+  $("acJoin").disabled = true; busy($("acJoinSt"), "Buscando el grupo…");
+  try {
+    const { data, error } = await sb.rpc("unirse_a_grupo", { p_codigo: code });
+    if (error) throw error;
+    const g = (data && data[0]) || {};
+    $("acJoinSt").classList.remove("bad"); $("acJoinSt").textContent = `Listo: ya estás en ${g.grupo || "el grupo"}${g.maestro ? ` con ${g.maestro}` : ""}.`;
+    $("acCode").value = ""; loadGroups();
+  } catch(e){ fail($("acJoinSt"), /codigo_invalido/.test(String(e && e.message)) ? "Ese código no existe o el grupo ya cerró. Revísalo con tu maestro." : "No se pudo. Intenta de nuevo en un momento."); }
+  finally { $("acJoin").disabled = false; }
+};
+$("acCode").addEventListener("keydown", (e) => { if (e.key === "Enter") $("acJoin").click(); });
+
+/* ---- Sincronización de historias ---- */
+function hasWork(x){ return x && !x.example && (x.corrected || (x.transcription || "").trim()); }
+function rowFor(x, actual){
+  const lv = ["A1","A2","B1","B2","C1","C2"].includes(x.level) ? x.level : null;
+  return { cliente_id: String(x.id).slice(0, 40), tema: String(x.topic || "").slice(0, 300), nivel: lv,
+           paso: Math.max(0, Math.min(10, x.step | 0)), actual, datos: x };
+}
+function cloudLater(){
+  if (!me || !sb) return;
+  clearTimeout(cloudTimer); cloudTimer = setTimeout(() => cloudNow().catch(() => {}), 1500);
+}
+async function cloudNow(){
+  clearTimeout(cloudTimer);
+  if (!me || !sb || !hasWork(S)) return;
+  if (cloudBusy) { cloudAgain = true; return; }
+  cloudBusy = true; setCloud("saving");
+  try {
+    const row = rowFor(S, true);
+    if (JSON.stringify(row.datos).length > 290000) throw new Error("demasiado_grande");
+    // Solo una historia puede ser la "actual": primero se desmarca la anterior.
+    let r = await sb.from("historias").update({ actual: false }).eq("actual", true).neq("cliente_id", row.cliente_id);
+    if (r.error) throw r.error;
+    r = await sb.from("historias").upsert(row, { onConflict: "alumno_id,cliente_id" });
+    if (r.error) throw r.error;
+    setCloud("ok");
+  } catch(e){
+    setCloud("error", String(e && e.message) === "demasiado_grande" ? "Esta historia es demasiado grande para guardarla en tu cuenta; sigue en este navegador." : "");
+    clearTimeout(cloudTimer); cloudTimer = setTimeout(() => cloudNow().catch(() => {}), 30000);
+  } finally {
+    cloudBusy = false;
+    if (cloudAgain) { cloudAgain = false; cloudLater(); }
+  }
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && cloudTimer) cloudNow().catch(() => {}); });
+
+async function afterLogin(){
+  renderAcct(); setCloud("saving");
+  if (!$("acctModal").hidden) { renderAcct(); loadGroups(); }
+  if (!$("welcome").hidden) $("welcome").hidden = true;
+  try {
+    // 1. Perfil: el nombre de la cuenta manda; si la cuenta no tiene, se usa el de este navegador.
+    const pf = await sb.from("perfiles").select("nombre, nivel").eq("id", me.id).maybeSingle();
+    if (pf.error) throw pf.error;
+    if (pf.data && pf.data.nombre) store.name = pf.data.nombre;
+    else if (store.name) await sb.from("perfiles").update({ nombre: store.name.slice(0, 80) }).eq("id", me.id);
+    renderHello(); renderAcct();
+
+    // 2. Historias en la cuenta.
+    const rem = await sb.from("historias").select("cliente_id, actual, datos, actualizado").eq("alumno_id", me.id).order("actualizado", { ascending: false }).limit(80);
+    if (rem.error) throw rem.error;
+    const remote = rem.data || [], inCloud = new Set(remote.map(x => x.cliente_id));
+
+    // 3. Primera vez en este navegador: se suben las historias que solo existen aquí.
+    const local = [store.current, ...store.history].filter(hasWork);
+    const toImport = local.filter(x => !inCloud.has(String(x.id)));
+    if (toImport.length){
+      const ins = await sb.from("historias").insert(toImport.map(x => rowFor(x, false)));
+      if (ins.error) throw ins.error;
+    }
+
+    // 4. Se arma el cuaderno con todo: lo de la cuenta más lo importado.
+    const all = new Map();
+    toImport.forEach(x => all.set(String(x.id), x));
+    remote.forEach(x => { if (!all.has(x.cliente_id) && x.datos && typeof x.datos === "object") all.set(x.cliente_id, normalize(x.datos)); });
+    const localCur = hasWork(store.current) && toImport.includes(store.current) ? store.current : null;
+    const remCur = remote.find(x => x.actual);
+    const cur = localCur || (remCur && all.get(remCur.cliente_id)) || (hasWork(store.current) ? store.current : null);
+    if (cur){
+      store.current = cur; S = cur;
+      store.history = [...all.values()].filter(x => String(x.id) !== String(cur.id) && x.corrected).slice(0, 50);
+      try { localStorage.setItem(KEY, JSON.stringify(store)); } catch(e){}
+      renderAll(); go(S.corrected ? S.step : 0);
+    }
+    await cloudNow();
+    if (cloudState !== "error") setCloud("ok");
+  } catch(e){
+    setCloud("error", "Entraste, pero no pude traer tus historias. Tu trabajo sigue en este navegador; recarga la página para reintentar.");
+  }
+}
+
+setCloud("guest"); renderAcct();
+if (hasSavedSession()) getSb().catch(() => setCloud("error", "No pude conectar con tu cuenta. Tu trabajo sigue en este navegador."));
+
 renderAll();
 go(S.corrected ? S.step : 0);
 if (!store.name) openWelcome();

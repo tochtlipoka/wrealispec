@@ -58,7 +58,7 @@ footer{padding-block:8px 40px;font-size:.9rem;color:var(--ink-soft)}
   <article>
     <span class="eyebrow">Aviso de privacidad integral</span>
     <h1>Tu historia es tuya.</h1>
-    <p class="muted">Última actualización: 10 de noviembre de 2026 (se agregó la grabación de lectura en voz alta)</p>
+    <p class="muted">Última actualización: 11 de noviembre de 2026 (se agregaron las cuentas opcionales y el guardado en la nube)</p>
 
     <div class="box">
       <p><strong>En pocas palabras:</strong> Wrealispec no te pide crear una cuenta, no usa cookies de rastreo ni publicidad, y guarda tu progreso solo en tu propio dispositivo. Tus textos se envían a la inteligencia artificial únicamente para corregirlos y crear tus ejercicios, y no se venden ni se usan para otra cosa.</p>
@@ -73,8 +73,9 @@ footer{padding-block:8px 40px;font-size:.9rem;color:var(--ink-soft)}
     <h2>2. Qué datos usamos</h2>
     <ul>
       <li><strong>Lo que escribes o fotografías para practicar:</strong> tus historias en inglés (escritas o en foto de tu cuaderno) y tus respuestas en la conversación con la IA.</li>
-      <li><strong>Tu voz, cuando lees en voz alta:</strong> la grabación que haces en la aplicación o el audio que subes. Se usa solo para pasar tu lectura a texto y compararla con tu historia. Wrealispec no guarda la grabación: se procesa en el momento y se descarta. El texto resultante se queda en tu dispositivo.</li>
-      <li><strong>Tu nombre o apodo y tu nivel de inglés:</strong> los escribes al entrar, se quedan guardados en tu dispositivo y no se envían a nuestro servidor.</li>
+      <li><strong>Tu voz, cuando lees en voz alta:</strong> la grabación que haces en la aplicación o el audio que subes. Se usa solo para pasar tu lectura a texto y compararla con tu historia. Wrealispec no guarda la grabación: se procesa en el momento y se descarta. El texto resultante se queda en tu dispositivo y, si tienes cuenta, dentro de tu historia guardada en ella.</li>
+      <li><strong>Tu nombre o apodo y tu nivel de inglés:</strong> los escribes al entrar. Sin cuenta, se quedan solo en tu dispositivo.</li>
+      <li><strong>Si creas una cuenta (es opcional):</strong> tu correo electrónico, tu contraseña (guardada cifrada; nadie, ni Wrealispec, puede leerla), tu nombre, tus historias con sus correcciones y avances, y los grupos de tus maestros a los que te unes con código.</li>
       <li><strong>Tu dirección IP:</strong> se usa al momento para aplicar el límite diario de práctica. Antes de guardarla se convierte en un código irreversible (no se puede volver a obtener la IP a partir de él), y ese código se borra en un máximo de dos días.</li>
     </ul>
     <p>Wrealispec no te pide datos personales sensibles. Como tus historias son libres, te recomendamos <strong>no incluir</strong> información de salud, religión, datos financieros, contraseñas ni datos de otras personas que puedan identificarlas.</p>
@@ -86,11 +87,14 @@ footer{padding-block:8px 40px;font-size:.9rem;color:var(--ink-soft)}
       <li>Crear el audio de tu historia, los ejercicios de escucha y la conversación de práctica.</li>
       <li>Pasar a texto tu lectura en voz alta y compararla con tu texto corregido.</li>
       <li>Aplicar límites de uso diario para que el servicio sea sostenible y evitar abusos.</li>
+      <li>Si tienes cuenta: guardar tu avance para que lo veas desde cualquier dispositivo y que el maestro de tu grupo pueda revisar tus historias.</li>
     </ul>
     <p>Hoy no usamos tus datos para finalidades secundarias (publicidad, mercadotecnia, perfiles de comportamiento ni venta de datos). Si algún día quisiéramos hacerlo, te lo pediríamos antes y podrías negarte sin perder el servicio.</p>
 
     <h2>4. Dónde se guardan</h2>
-    <p>Tu progreso (historias, correcciones, nombre, nivel y preferencias) se guarda en el almacenamiento local de tu navegador. Wrealispec no tiene una base de datos con tus historias. Si borras los datos del navegador o cambias de dispositivo, ese progreso se pierde. No usamos cookies.</p>
+    <p><strong>Sin cuenta:</strong> tu progreso (historias, correcciones, nombre, nivel y preferencias) se guarda solo en el almacenamiento local de tu navegador. Si borras los datos del navegador o cambias de dispositivo, ese progreso se pierde.</p>
+    <p><strong>Con cuenta:</strong> además de tu navegador, tu progreso se guarda en una base de datos de Wrealispec alojada en Supabase (servidores en Estados Unidos). Cada persona solo puede ver lo suyo; el maestro de un grupo al que te uniste puede <em>leer</em> tus historias, pero no cambiarlas, y la dirección de esa escuela, si existe, también puede leerlas. Al cerrar sesión, tus historias se borran de ese navegador y siguen en tu cuenta. Las grabaciones de voz nunca se guardan en la base.</p>
+    <p>No usamos cookies. La sesión de tu cuenta se recuerda con el almacenamiento local de tu navegador.</p>
 
     <h2>5. Con quién se comparten</h2>
     <p>Para que la aplicación funcione, algunos datos pasan por proveedores que los procesan por cuenta de Wrealispec y solo para la finalidad indicada. Algunos están fuera de México (principalmente en Estados Unidos):</p>
@@ -100,6 +104,8 @@ footer{padding-block:8px 40px;font-size:.9rem;color:var(--ink-soft)}
         <tr><td>Anthropic (Claude)</td><td>Tu texto o la foto de tu cuaderno, tu lectura transcrita y tus respuestas</td><td>Corregir, generar ejercicios y conversar contigo. Según sus términos comerciales, no usa los datos de la API para entrenar sus modelos.</td></tr>
         <tr><td>Google Cloud (Text-to-Speech)</td><td>El texto corregido de tu historia</td><td>Convertirlo en audio con voz natural</td></tr>
         <tr><td>Cloudflare</td><td>Tu solicitud, tu dirección IP y, cuando lees en voz alta, tu grabación</td><td>Hacer funcionar el servidor intermedio y el límite de uso, y pasar tu grabación a texto (Workers AI)</td></tr>
+        <tr><td>Supabase</td><td>Si creas cuenta: tu correo, contraseña cifrada, nombre, nivel, historias, grupos y tu dirección IP al entrar</td><td>Guardar tu cuenta y tu avance, y controlar quién puede verlo</td></tr>
+        <tr><td>jsDelivr</td><td>Tu dirección IP, solo si usas una cuenta</td><td>Descargar la herramienta para conectarse a tu cuenta</td></tr>
         <tr><td>GitHub Pages</td><td>Tu dirección IP y datos técnicos del navegador</td><td>Alojar las páginas de wrealispec.com</td></tr>
         <tr><td>Google Fonts</td><td>Tu dirección IP</td><td>Cargar los tipos de letra de la página</td></tr>
       </tbody>
@@ -107,7 +113,7 @@ footer{padding-block:8px 40px;font-size:.9rem;color:var(--ink-soft)}
     <p>No vendemos ni rentamos tus datos. Solo los entregaríamos a una autoridad si una ley o una orden judicial lo exigiera.</p>
 
     <h2>6. Tus derechos ARCO y cómo revocar tu consentimiento</h2>
-    <p>Tienes derecho a <strong>A</strong>cceder a tus datos, <strong>R</strong>ectificarlos, <strong>C</strong>ancelarlos u <strong>O</strong>ponerte a su uso, así como a revocar tu consentimiento. Como tu progreso vive en tu dispositivo, puedes borrarlo tú mismo en cualquier momento desde la configuración de tu navegador.</p>
+    <p>Tienes derecho a <strong>A</strong>cceder a tus datos, <strong>R</strong>ectificarlos, <strong>C</strong>ancelarlos u <strong>O</strong>ponerte a su uso, así como a revocar tu consentimiento. Sin cuenta, tu progreso vive en tu dispositivo y puedes borrarlo tú mismo en cualquier momento desde la configuración de tu navegador. Con cuenta, puedes pedirnos por WhatsApp que corrijamos tus datos o que borremos tu cuenta con todas tus historias.</p>
     <p>Para cualquier otra solicitud, escríbenos por WhatsApp indicando tu nombre, qué derecho quieres ejercer y, si aplica, qué dato. Te responderemos en un plazo máximo de 20 días hábiles y, si procede, lo haremos efectivo dentro de los 15 días hábiles siguientes.</p>
 
     <h2>7. Menores de edad</h2>
