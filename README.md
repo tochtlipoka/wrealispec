@@ -13,4 +13,4 @@ Prototipo del método Wrealispec en 4 fases:
 
 Página en línea: https://wrealispec.com (antesala en ES · PT · EN) · Demo: https://wrealispec.com/app/
 
-La IA (Claude Haiku 5.5) funciona a través del Worker de Cloudflare en `worker/`.
+La IA (Claude Haiku 5.5 y Sonnet 5.5) funciona a través del Worker de Cloudflare en `worker/`, que guarda las llaves y las instrucciones de la IA. La app solo le manda la tarea y los datos (ver `worker/LEEME.md`).

@@ -2,6 +2,33 @@
 
 Este Worker guarda en secreto la llave de la API de Claude y la de Google (voz), solo acepta las tareas de Wrealispec que llegan desde wrealispec.com y limita cuánto puede usar cada persona al día.
 
+## Tareas de la IA (v2, nov 2026)
+
+Las instrucciones de la IA viven en `worker.js`, no en la app. La app manda solo el nombre de la tarea y los datos del alumno:
+
+```json
+{ "task": "corregir", "data": { "topic": "…", "level": "B1", "text": "…" }, "json": true }
+```
+
+| Tarea | Para qué | Modelo |
+|---|---|---|
+| `aclarar` | Lee el texto o la foto y pregunta lo que no se entiende | Haiku |
+| `corregir` | Corrige la historia (texto o foto) | Haiku |
+| `historia_ia` | Escribe una historia para estudiar | Haiku |
+| `evaluar_lectura` | Retroalimentación de la lectura en voz alta | Sonnet |
+| `volver_a_contar` | Revisa la historia contada con sus palabras | Haiku |
+| `ejercicios` | Crea los 5 retos de escucha | Haiku |
+| `evaluar_ejercicios` | Revisa las respuestas abiertas de los retos | Haiku |
+| `pizarra_error` | Guion de la pizarra para un error | Sonnet |
+| `pizarra_pronunciacion` | Guion de la pizarra para una palabra | Sonnet |
+| `conversacion` | Un turno de la conversación con el tutor | Haiku |
+| `vocabulario` | Verbos y adjetivos para el siguiente reto | Haiku |
+| `instrucciones` | Devuelve la instrucción de corrección para la sección «para profesores» (no usa la IA ni cuota) | — |
+
+Cada dato se revisa (tipo y tamaño máximo). Si algo no cumple, se responde `bad_request` sin llamar a la IA. El formato viejo (`prompt` libre) ya no se acepta. Para cambiar cómo corrige o evalúa la IA, se edita la plantilla en `worker.js` y se vuelve a desplegar el Worker; la app no se toca.
+
+Solo se aceptan solicitudes desde `https://wrealispec.com` y `https://www.wrealispec.com`.
+
 ## Instalación (una sola vez)
 
 1. Cloudflare → Workers & Pages → Create → Hello World → nombre `wrealispec-ai` → Deploy.
