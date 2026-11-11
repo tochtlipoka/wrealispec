@@ -139,7 +139,7 @@ details pre{font-family:var(--f-mono);font-size:.8rem;white-space:pre-wrap;overf
 .tag{font-family:var(--f-mono);font-size:.72rem;padding:3px 8px;border-radius:999px;background:var(--chip);color:var(--ink-soft)}
 .example{font-family:var(--f-mono);font-size:.72rem;padding:3px 8px;border-radius:6px;background:var(--hl);color:var(--ink)}
 footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
-.seg{display:inline-flex;border:1px solid var(--rule);border-radius:10px;overflow:hidden;align-self:flex-start}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:10px;overflow:hidden;align-self:flex-start;flex-shrink:0}
 .seg button{font:inherit;font-weight:700;padding:9px 18px;border:0;background:transparent;color:var(--ink-soft);cursor:pointer}
 .seg button[aria-checked="true"]{background:var(--accent);color:var(--accent-ink)}
 .err .chk{grid-column:1 / -1;font-weight:400;font-size:.88rem;display:flex;gap:8px;align-items:center;cursor:pointer;color:var(--ink-soft)}
@@ -156,6 +156,19 @@ footer{color:var(--ink-soft);font-size:.85rem;text-align:center}
 .qa textarea{min-height:64px}
 .qa .res{font-size:.92rem;border-left:3px solid var(--ok);padding-left:10px}
 .qa .res.no{border-left-color:var(--margin)}
+.opts label.o-ok{color:var(--ok);font-weight:700}
+.opts label.o-bad{color:var(--margin)}
+.opts label.o-bad > span:not(.o-tag){text-decoration:line-through}
+.opts label.o-miss{color:var(--ok);font-weight:700}
+.opts .o-tag{font-size:.78rem;font-weight:700;text-decoration:none;display:inline-block;padding:1px 8px;border-radius:999px;background:var(--chip);color:var(--ink)}
+.qa-brk{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.qa-brk button{font:inherit;text-align:left;width:100%;display:flex;gap:10px;align-items:flex-start;background:var(--sheet);color:var(--ink);border:1px solid var(--rule);border-left:4px solid var(--ok);border-radius:10px;padding:10px 12px;cursor:pointer}
+.qa-brk button.no{border-left-color:var(--margin)}
+.qa-brk button.pend{border-left-color:#D9B320}
+.qa-brk button:hover{border-color:var(--accent)}
+.qa-brk .bk-n{font-family:var(--f-mono);font-weight:700;white-space:nowrap}
+.qa-brk .bk-t{display:flex;flex-direction:column;gap:2px}
+.qa-brk .bk-d{color:var(--ink-soft);font-size:.92rem}
 .rates{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 @media (max-width:620px){.rates{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .tfcard{border:1px solid var(--rule);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--paper)}
@@ -581,7 +594,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
       <div class="qa-top"><div class="dots" id="qaDots" aria-hidden="true"></div><button type="button" class="linkbtn" id="qaNew">Crear retos nuevos</button></div>
       <span class="status" id="stQaM" role="status"></span>
       <ol class="qa qa-one" id="qaList"></ol>
-      <div id="qaResM" hidden class="field qa-resm"><div class="lvl" id="qaLvM"></div><p class="muted" id="qaSumM"></p></div>
+      <div id="qaResM" hidden class="field qa-resm"><div class="lvl" id="qaLvM"></div><p class="muted" id="qaSumM"></p><ul class="qa-brk" id="qaBrkM"></ul></div>
       <div class="row qa-nav">
         <button class="btn quiet" id="qaPrev">Anterior</button>
         <button class="btn" id="qaNext">Siguiente</button>
@@ -910,7 +923,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
       <p class="muted">5 retos cortos sobre tu historia: elige la respuesta correcta, escribe lo que escuchas o contesta la pregunta. Escucha cada uno sin leerlo.</p>
     </div>
     <div class="row"><button class="btn" id="btnQaOpen" hidden>Hacer mis retos</button><button class="btn" id="btnQa">Crear retos</button><span class="status" id="stQa" role="status"></span></div>
-    <div id="qaRes" hidden class="field"><div class="lvl" id="qaLv"></div><p class="muted" id="qaSum"></p></div>
+    <div id="qaRes" hidden class="field"><div class="lvl" id="qaLv"></div><p class="muted" id="qaSum"></p><ul class="qa-brk" id="qaBrk"></ul></div>
     <hr style="border:0;border-top:1px solid var(--rule);width:100%;margin:6px 0">
     <div class="panel-head">
       <h2>Vuelve a contar tu historia</h2>
@@ -995,7 +1008,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.23 · actualizado el 11 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.9.24 · actualizado el 11 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -1434,11 +1447,11 @@ const LV = [
 const PASS = 75;
 function lvIdx(p){ let k = 0; LV.forEach((l, i) => { if (p >= l.min) k = i; }); return k; }
 function lvLabel(p){ return LV[lvIdx(p)].label; }
-function lvRender(host, pct){
+function lvRender(host, pct, msgOverride){
   const i = lvIdx(pct); host.className = `lvl l${i}`; host.innerHTML = "";
   const top = document.createElement("div"); top.className = "lv-top";
   const lab = document.createElement("span"); lab.className = "lv-label"; lab.textContent = LV[i].label;
-  const msg = document.createElement("span"); msg.className = "lv-msg"; msg.textContent = LV[i].msg;
+  const msg = document.createElement("span"); msg.className = "lv-msg"; msg.textContent = msgOverride || LV[i].msg;
   top.append(lab, msg);
   const bar = document.createElement("div"); bar.className = "lv-bar"; bar.setAttribute("aria-hidden","true");
   const names = document.createElement("div"); names.className = "lv-names"; names.setAttribute("aria-hidden","true");
@@ -2452,7 +2465,16 @@ function renderQa(){
           save();
         };
         const t = document.createElement("span"); t.textContent = o;
-        l.append(inp, t); box.append(l);
+        l.append(inp, t);
+        if (res[i]){
+          // Después de revisar: qué opción era correcta, cuál elegiste mal y cuál te faltó marcar.
+          const key = (Array.isArray(it.answer) ? it.answer : []).map(Number), right = key.includes(k), picked = inp.checked;
+          const tag = (txt) => { const g = document.createElement("span"); g.className = "o-tag"; g.textContent = txt; l.append(g); };
+          if (right && picked){ l.className = "o-ok"; tag("✓ Correcta"); }
+          else if (picked){ l.className = "o-bad"; tag("✗ Esta no"); }
+          else if (right){ l.className = "o-miss"; tag(it.type === "multi_select" ? "← Te faltó esta" : "← Esta era la correcta"); }
+        }
+        box.append(l);
       });
       li.append(box);
     } else {
@@ -2462,8 +2484,8 @@ function renderQa(){
       li.append(ta);
     }
     if (res[i]){
-      const r = document.createElement("div"); r.className = "res" + (res[i].ok ? "" : " no");
-      const v = document.createElement("strong"); v.textContent = res[i].ok ? "✓ ¡Bien! " : "↻ Casi. ";
+      const r = document.createElement("div"); r.className = "res" + (res[i].ok && !res[i].pending ? "" : " no");
+      const v = document.createElement("strong"); v.textContent = res[i].pending ? "… Sin revisar. " : res[i].empty ? "○ Sin contestar. " : res[i].ok ? "✓ ¡Bien! " : "↻ Casi. ";
       const fb = document.createElement("span"); fb.textContent = res[i].feedback_es || "";
       const be = document.createElement("div"); be.className = "muted";
       be.textContent = res[i].better_en ? `${it.type === "dictation" ? "Oración" : it.type === "multiple_choice" || it.type === "multi_select" ? "Correcta" : "Modelo"}: ${res[i].better_en}` : "";
@@ -2475,12 +2497,61 @@ function renderQa(){
   $("btnQaOpen").hidden = true;
   $("btnQa").textContent = !has ? "Crear retos" : res.length ? "Ver mis respuestas" : "Hacer mis retos";
   if (res.length){
-    const ok = res.filter(r => r && r.ok).length, pct = Math.round(ok / (S.qa.items.length || 1) * 100);
-    lvRender($("qaLv"), pct); $("qaSum").textContent = S.qa.res.summary_es || "";
-    lvRender($("qaLvM"), pct); $("qaSumM").textContent = S.qa.res.summary_es || "";
+    const pct = qaPct(), msg = qaMsg();
+    lvRender($("qaLv"), pct, msg); $("qaSum").textContent = S.qa.res.summary_es || "";
+    lvRender($("qaLvM"), pct, msg); $("qaSumM").textContent = S.qa.res.summary_es || "";
+    qaBreakdown($("qaBrk"), (i) => openQa(i)); qaBreakdown($("qaBrkM"), (i) => { qaStep = i; qaShow(); });
     $("qaRes").hidden = false;
   } else $("qaRes").hidden = true;
   if (!$("qaModal").hidden) qaShow();
+}
+/* Resumen de los retos: qué estuvo bien y qué faltó en cada uno. Las respuestas que la IA no alcanzó
+   a revisar (pending) no cuentan como error. */
+function qaPct(){
+  const r = (S.qa.res && S.qa.res.results) || [], done = S.qa.items.filter((_, i) => r[i] && !r[i].pending).length;
+  return done ? Math.round(r.filter(x => x && x.ok && !x.pending).length / done * 100) : 0;
+}
+function qaMsg(){
+  const r = (S.qa.res && S.qa.res.results) || [], n = S.qa.items.length;
+  const ok = r.filter(x => x && x.ok).length, empty = S.qa.items.filter((_, i) => r[i] && r[i].empty).length;
+  if (r.some(x => x && x.pending)) return "Hubo respuestas que no alcancé a revisar. Toca «Revisar otra vez».";
+  if (empty) return empty === 1 ? "Te faltó contestar un reto. Abajo ves cuál." : "Te faltaron retos por contestar. Abajo ves cuáles.";
+  if (ok === n) return "¡Todos tus retos quedaron bien!";
+  return "Abajo ves qué estuvo bien y qué te faltó en cada reto. Toca uno para revisarlo.";
+}
+function qaDetail(it, ans, r){
+  const opts = Array.isArray(it.options) ? it.options : [], key = (Array.isArray(it.answer) ? it.answer : []).map(Number);
+  if (r.pending) return r.feedback_es;
+  if (r.empty) return "No lo contestaste.";
+  if (it.type === "multiple_choice" && opts.length){
+    return r.ok ? `Elegiste «${opts[key[0]] || ""}».` : `Elegiste «${opts[Number(ans)] || "?"}»; la correcta era «${opts[key[0]] || ""}».`;
+  }
+  if (it.type === "multi_select" && opts.length){
+    const got = (Array.isArray(ans) ? ans : []).map(Number);
+    const miss = key.filter(k => !got.includes(k)).map(k => `«${opts[k]}»`), extra = got.filter(k => !key.includes(k)).map(k => `«${opts[k]}»`);
+    if (r.ok) return "Encontraste todas las correctas.";
+    return [miss.length ? `Te faltó: ${miss.join(", ")}.` : "", extra.length ? `No eran correctas: ${extra.join(", ")}.` : ""].filter(Boolean).join(" ");
+  }
+  if (it.type === "dictation"){
+    const ops = diffWords(String(it.prompt).split(/\s+/).filter(Boolean), String(ans || "").split(/\s+/).filter(Boolean));
+    const miss = ops.filter(o => o[0] === "miss").map(o => o[1].replace(/^[^A-Za-z0-9']+|[^A-Za-z0-9']+$/g, "")).filter(Boolean);
+    return miss.length ? `Palabras que faltaron o no coinciden: ${miss.slice(0, 8).join(", ")}.` : "Escribiste la oración completa.";
+  }
+  return r.feedback_es || (r.ok ? "Tu respuesta se entiende bien." : "Revisa la respuesta modelo.");
+}
+function qaBreakdown(host, go){
+  if (!host) return;
+  const r = (S.qa.res && S.qa.res.results) || []; host.innerHTML = "";
+  S.qa.items.forEach((it, i) => {
+    const x = r[i]; if (!x) return;
+    const li = document.createElement("li"), b = document.createElement("button"); b.type = "button";
+    b.className = x.pending ? "pend" : x.ok ? "" : "no";
+    const n = document.createElement("span"); n.className = "bk-n"; n.textContent = `${x.pending ? "…" : x.ok ? "✓" : "✗"} Reto ${i + 1}`;
+    const t = document.createElement("span"); t.className = "bk-t";
+    const h = document.createElement("strong"); h.textContent = it.label_es || "Responde";
+    const d = document.createElement("span"); d.className = "bk-d"; d.textContent = qaDetail(it, S.qa.answers[i], x);
+    t.append(h, d); b.append(n, t); b.onclick = () => go(i); li.append(b); host.append(li);
+  });
 }
 /* Ventana de retos: uno por pantalla, con la voz natural del alumno. */
 let qaStep = 0, qaAudio = null;
@@ -2568,7 +2639,7 @@ $("btnQaCheck").onclick = async () => {
   const results = items.map((it, i) => gradeLocal(it, answers[i]));
   const openIdx = items.map((_, i) => results[i] ? -1 : i).filter(i => i >= 0);
   const toAsk = openIdx.filter(i => filled(answers[i]));
-  openIdx.filter(i => !filled(answers[i])).forEach(i => { results[i] = { ok:false, better_en:"", feedback_es:"No contestaste este reto." }; });
+  items.forEach((_, i) => { if (!filled(answers[i])) results[i] = { ok:false, empty:true, better_en: results[i] ? results[i].better_en : "", feedback_es:"No contestaste este reto." }; });
   let summary = "";
   $("btnQaCheck").disabled = true;
   try {
@@ -2578,9 +2649,10 @@ $("btnQaCheck").onclick = async () => {
       else {
         busy(st, "Revisando tus respuestas…");
         const r = await sample.json("evaluar_ejercicios", { level: S.level, story: S.corrected,
-          items: toAsk.map(i => ({ type: items[i].type, prompt: items[i].prompt })), answers: toAsk.map(i => answers[i]) }, { cache:false });
+          items: toAsk.map(i => ({ type: items[i].type, prompt: items[i].prompt })), answers: toAsk.map(i => answers[i]) }, { cache:false, check: (v) => Array.isArray(v.results) && v.results.length >= toAsk.length && v.results.every(x => x && typeof x === "object") });
         const rr = Array.isArray(r && r.results) ? r.results : [];
-        toAsk.forEach((i, k) => { results[i] = rr[k] || { ok:false, better_en:"", feedback_es:"" }; });
+        toAsk.forEach((i, k) => { results[i] = rr[k] && typeof rr[k] === "object" ? { ok: !!rr[k].ok, better_en: String(rr[k].better_en || ""), feedback_es: String(rr[k].feedback_es || "") }
+          : { ok:false, pending:true, better_en:"", feedback_es:"No alcancé a revisar esta respuesta. Toca «Revisar otra vez»." }; });
         summary = (r && r.summary_es) || "";
       }
     }
@@ -2647,7 +2719,7 @@ function summaryText(){
     TF.filter(([k]) => Number(t[k])).map(([k,,name]) => `${name}: ${LV[t[k]-1].label}`).join(" · "), t.text || ""); }
   return lines.join("\n");
 }
-function qaScore(){ const r = S.qa.res && Array.isArray(S.qa.res.results) ? S.qa.res.results : null; return r ? lvLabel(Math.round(r.filter(x => x && x.ok).length / (S.qa.items.length || 1) * 100)) : null; }
+function qaScore(){ return S.qa.res && Array.isArray(S.qa.res.results) ? lvLabel(qaPct()) : null; }
 
 /* ---------- Teacher feedback ---------- */
 const TF = [["pron","tfPron","Pronunciación"],["flu","tfFlu","Fluidez"],["gram","tfGram","Gramática"],["voc","tfVoc","Vocabulario"]];
