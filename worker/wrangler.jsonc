@@ -1,0 +1,29 @@
+// Configuración del Worker de Wrealispec para el despliegue automático desde GitHub (Cloudflare Workers Builds).
+// Cada cambio aceptado en la rama main que toque esta carpeta se despliega solo en Cloudflare.
+// Las llaves (ANTHROPIC_API_KEY, GOOGLE_TTS_KEY, HASH_SALT) NO van aquí: siguen como secretos en Cloudflare.
+{
+  // Debe ser idéntico al nombre del Worker en Cloudflare, o el despliegue falla.
+  "name": "wrealispec-ai",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-01",
+
+  // Mantiene la dirección wrealispec-ai.hcpopoca.workers.dev, que es la que usa la app (AI_URL).
+  "workers_dev": true,
+
+  // Conserva las variables de texto puestas en el panel de Cloudflare (por ejemplo DAILY_AI_PER_PERSON).
+  "keep_vars": true,
+
+  // Base de datos con los contadores del límite diario de uso. Sin ella, el Worker bloquea todo.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "wrealispec-usage",
+      "database_id": "8a52869c-bede-4480-90d6-f4601985062c"
+    }
+  ],
+
+  // Workers AI: Whisper, para convertir la voz del alumno en texto.
+  "ai": {
+    "binding": "AI"
+  }
+}

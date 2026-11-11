@@ -2,6 +2,15 @@
 
 Este Worker guarda en secreto la llave de la API de Claude y la de Google (voz), solo acepta las tareas de Wrealispec que llegan desde wrealispec.com y limita cuánto puede usar cada persona al día.
 
+## Despliegue automático desde GitHub
+
+El Worker se despliega solo cuando un cambio llega a la rama `main` (Cloudflare Workers Builds). Ya no se copia y pega el código en Cloudflare.
+
+- Configuración: `wrangler.jsonc` en esta carpeta (nombre del Worker, base D1 `DB`, Workers AI `AI`, `keep_vars`).
+- En Cloudflare: `wrealispec-ai` → Settings → Build → repositorio `tochtlipoka/wrealispec`, rama `main`, Root directory `worker`, Build command vacío, Deploy command `npx wrangler deploy`.
+- Las llaves siguen como secretos en Cloudflare; nunca van en el repositorio.
+- Si un despliegue sale mal: Cloudflare → `wrealispec-ai` → Deployments → regresar a la versión anterior.
+
 ## Tareas de la IA (v2, nov 2026)
 
 Las instrucciones de la IA viven en `worker.js`, no en la app. La app manda solo el nombre de la tarea y los datos del alumno:
