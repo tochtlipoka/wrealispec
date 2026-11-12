@@ -611,6 +611,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
             </div>
             <button class="btn ac-go" id="acGo" type="submit">Entrar</button>
             <span class="status" id="acSt" role="status"></span>
+            <button type="button" class="linkbtn" id="acResend" hidden>Reenviar el correo de confirmación</button>
             <div class="ac-alt"><button type="button" class="linkbtn" id="acCancel">Seguir sin cuenta</button>
               <span class="small muted" id="acForgot">¿Olvidaste tu contraseña? <a id="acForgotWa" href="https://wa.me/5215530337547?text=Hola%2C%20olvid%C3%A9%20mi%20contrase%C3%B1a%20de%20Wrealispec" target="_blank" rel="noopener" style="color:var(--accent);font-weight:700">Escríbenos</a><button type="button" class="linkbtn" id="acForgotBtn" hidden>Te mando un enlace</button></span>
               <button type="button" class="linkbtn" id="acBackIn" hidden>Volver a entrar</button></div>
@@ -1224,7 +1225,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     </form>
   </div>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.11.3 · actualizado el 12 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.11.4 · actualizado el 12 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -3560,6 +3561,7 @@ function getSb(){
       // Supabase pide no esperar otras llamadas dentro de este aviso: se difiere un instante.
       setTimeout(() => {
         if (ev === "PASSWORD_RECOVERY") openPwModal(u);
+        else if (u && ev === "SIGNED_IN" && /type=signup/.test(authHash) && !pwRecovery){ authHash = ""; setTimeout(() => openAcct(), 400); }
         if (u && (!me || me.id !== u.id)) { me = u; afterLogin(); }
         else if (!u && me) { me = null; setCloud("guest"); renderAcct(); }
       }, 0);
@@ -3600,7 +3602,7 @@ function setAcMode(m){
   $("acMeter").hidden = m !== "up"; $("acPassHint").hidden = m !== "up"; acStrength();
   $("acPass2F").hidden = m !== "up"; acMatch();
   $("acPass").autocomplete = m === "up" ? "new-password" : "current-password";
-  $("acSt").textContent = "";
+  $("acSt").textContent = ""; $("acResend").hidden = true;
   if (m === "up" && !$("acName").value) $("acName").value = store.name || "";
 }
 document.querySelectorAll("[data-ac]").forEach(b => b.addEventListener("click", () => setAcMode(b.dataset.ac)));
@@ -3672,7 +3674,8 @@ $("acForm").addEventListener("submit", async (e) => {
     if (acMode === "up"){
       const { data, error } = await c.auth.signUp({ email, password: pass, options: { data: { nombre: name }, emailRedirectTo: location.origin + location.pathname } });
       if (error) throw error;
-      if (!data.session) { $("acSt").classList.remove("bad"); $("acSt").textContent = "Listo. Te mandamos un correo para confirmar tu cuenta; ábrelo y luego entra aquí."; return; }
+      if (!data.session) { $("acSt").classList.remove("bad"); $("acResend").hidden = false; acResendTo = email;
+        $("acSt").textContent = `Listo. Te mandamos un correo a ${email} para confirmar tu cuenta. Ábrelo en este dispositivo y entrarás solo. Revisa también spam y promociones.`; return; }
       if (!store.name) { store.name = name; renderHello(); }
     } else {
       const { error } = await c.auth.signInWithPassword({ email, password: pass });
@@ -3680,9 +3683,24 @@ $("acForm").addEventListener("submit", async (e) => {
     }
     $("acPass").value = ""; $("acPass2").value = ""; acMatch(); $("acSt").textContent = "";
     // afterLogin() llega solo por onAuthStateChange
-  } catch (err) { fail($("acSt"), authError(err)); }
+  } catch (err) {
+    fail($("acSt"), authError(err));
+    if (/email_not_confirmed|not confirmed/i.test(String((err && (err.code || err.message)) || ""))) { $("acResend").hidden = false; acResendTo = email; }
+  }
   finally { $("acGo").disabled = false; }
 });
+var acResendTo = "";
+$("acResend").onclick = async () => {
+  const email = acResendTo || $("acEmail").value.trim(); if (!email) return;
+  $("acResend").disabled = true; busy($("acSt"), "Reenviando…");
+  try {
+    const c = await getSb();
+    const { error } = await c.auth.resend({ type: "signup", email, options: { emailRedirectTo: location.origin + location.pathname } });
+    if (error) throw error;
+    $("acSt").classList.remove("bad"); $("acSt").textContent = `Te lo mandé otra vez a ${email}. Revisa también spam y promociones.`;
+  } catch (err) { fail($("acSt"), authError(err)); }
+  finally { setTimeout(() => { $("acResend").disabled = false; }, 30000); }
+};
 $("acOutBtn").onclick = async () => {
   $("acOutBtn").disabled = true; setCloud("saving");
   try { await cloudNow(); } catch(e){}
