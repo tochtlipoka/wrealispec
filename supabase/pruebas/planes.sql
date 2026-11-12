@@ -1,7 +1,7 @@
 -- Pruebas de planes.sql. Correr en un Postgres VACÍO después de imitar-supabase.sql, schema.sql y planes.sql.
 \set QUIET on
 \pset tuples_only on
-create function pg_temp.ok(nombre text, cond boolean) returns void language plpgsql as $$
+create or replace function pg_temp.ok(nombre text, cond boolean) returns void language plpgsql as $$
 begin raise notice '% %', case when cond then 'PASA ' else 'FALLA' end, nombre; end $$;
 
 insert into auth.users (id, email, raw_user_meta_data) values
