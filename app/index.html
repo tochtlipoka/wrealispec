@@ -332,6 +332,25 @@ details[open] > .pillsum::after{transform:rotate(180deg)}
 .wcount{font-family:var(--f-mono);font-size:.82rem;color:var(--ink-soft)}
 .wcount[data-state="ok"]{color:var(--ok);font-weight:700}
 .wcount[data-state="high"]{color:var(--margin)}
+/* Dictado en vivo: micrófono junto a los cuadros de texto */
+.dict{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px}
+.dict-b{display:inline-flex;align-items:center;gap:7px;font:inherit;font-weight:700;font-size:.88rem;padding:7px 14px;border-radius:999px;
+  border:1.5px solid var(--rule);background:var(--sheet);color:var(--ink);cursor:pointer}
+.dict-b svg{width:17px;height:17px;flex-shrink:0}
+.dict-b:hover{border-color:var(--accent);color:var(--accent)}
+.dict-b[aria-pressed="true"]{background:var(--margin);border-color:var(--margin);color:#fff}
+.dict-b[aria-pressed="true"] .dict-dot{display:inline-block}
+.dict-dot{display:none;width:8px;height:8px;border-radius:50%;background:#fff;animation:dictPulse 1s ease-in-out infinite}
+@keyframes dictPulse{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.dict-dot{animation:none}}
+.dict-st{font-size:.85rem;color:var(--ink-soft)}
+.dict-st.bad{color:var(--margin)}
+textarea.dicting{border-color:var(--margin);box-shadow:0 0 0 3px color-mix(in srgb,var(--margin) 18%,transparent)}
+.dict-tip{font-size:.85rem;color:var(--ink-soft);border-left:3px solid var(--hl);padding:2px 0 2px 10px;margin:4px 0 0}
+/* Cámara para la foto del cuaderno */
+.cam-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center}
+.cam-v{width:100%;max-height:60dvh;background:#000;border-radius:10px;object-fit:contain}
+.cam-tip{font-size:.85rem;color:var(--ink-soft);margin:0}
 /* Fase 2: voz elegida, selector con retratos y reproductor flotante */
 .av{display:inline-block;width:64px;height:64px;border-radius:16px;overflow:hidden;flex:none;background:var(--chip)}
 .av svg{display:block;width:100%;height:100%}
@@ -580,7 +599,8 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
             <button class="btn ac-go" id="acGo" type="submit">Entrar</button>
             <span class="status" id="acSt" role="status"></span>
             <div class="ac-alt"><button type="button" class="linkbtn" id="acCancel">Seguir sin cuenta</button>
-              <span class="small muted" id="acForgot">¿Olvidaste tu contraseña? <a href="https://wa.me/5215530337547?text=Hola%2C%20olvid%C3%A9%20mi%20contrase%C3%B1a%20de%20Wrealispec" target="_blank" rel="noopener" style="color:var(--accent);font-weight:700">Escríbenos</a></span></div>
+              <span class="small muted" id="acForgot">¿Olvidaste tu contraseña? <a id="acForgotWa" href="https://wa.me/5215530337547?text=Hola%2C%20olvid%C3%A9%20mi%20contrase%C3%B1a%20de%20Wrealispec" target="_blank" rel="noopener" style="color:var(--accent);font-weight:700">Escríbenos</a><button type="button" class="linkbtn" id="acForgotBtn" hidden>Te mando un enlace</button></span>
+              <button type="button" class="linkbtn" id="acBackIn" hidden>Volver a entrar</button></div>
             <p class="ac-foot" id="acFoot">Al crear tu cuenta aceptas el <a href="../privacidad/" target="_blank" rel="noopener">aviso de privacidad</a>.</p>
           </form>
         </div>
@@ -947,13 +967,15 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <div id="panePhoto" role="tabpanel" aria-labelledby="tabPhoto" class="field" hidden>
       <ol class="steps">
         <li>Escribe tu historia en tu cuaderno, con pluma.</li>
-        <li>Tómale una foto clara: derecha y con buena luz.</li>
-        <li>Súbela aquí.</li>
+        <li>Tómale una foto clara con el botón <strong>Tomar foto</strong>: derecha y con buena luz.</li>
+        <li>O, si ya la tienes, súbela aquí.</li>
       </ol>
       <div class="drop" id="drop">
         <img id="preview" alt="Foto de tu cuaderno" hidden>
+        <div class="cam-row"><button type="button" class="btn" id="btnCam"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg> Tomar foto</button></div>
         <p><strong>Arrastra aquí la foto de tu cuaderno</strong> o elígela</p>
         <input type="file" id="photo" accept="image/jpeg,image/png,image/webp">
+        <input type="file" id="photoCam" accept="image/*" capture="environment" hidden>
         <p class="small muted" id="imgNote"></p>
       </div>
     </div>
@@ -1156,7 +1178,28 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <pre id="promptView"></pre>
   </details>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.10.3 · actualizado el 11 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <div class="modal" id="camModal" hidden role="dialog" aria-modal="true" aria-labelledby="camTitle">
+    <div class="modal-card" style="max-width:720px">
+      <span class="eyebrow">Foto de tu cuaderno</span>
+      <h2 id="camTitle" style="margin:0">Encuadra tu hoja</h2>
+      <video id="camV" class="cam-v" playsinline muted autoplay></video>
+      <p class="cam-tip">Pon la hoja derecha, con buena luz y que ocupe casi toda la imagen. La cámara de una computadora suele salir borrosa: si la IA no alcanza a leer tu letra, usa tu celular.</p>
+      <div class="row"><button type="button" class="btn" id="camShot">Tomar la foto</button><button type="button" class="btn quiet" id="camFlip" hidden>Cambiar cámara</button><button type="button" class="btn quiet" id="camCancel">Cancelar</button><span class="status" id="camSt" role="status"></span></div>
+    </div>
+  </div>
+
+  <div class="modal" id="pwModal" hidden role="dialog" aria-modal="true" aria-labelledby="pwTitle">
+    <form class="modal-card" id="pwForm" novalidate>
+      <span class="eyebrow">Tu cuenta</span>
+      <h2 id="pwTitle" style="margin:0">Crea tu nueva contraseña</h2>
+      <p class="muted small" id="pwWho"></p>
+      <div class="ac-f"><label for="pwNew">Nueva contraseña</label><input type="password" id="pwNew" autocomplete="new-password" minlength="8" placeholder="Mínimo 8 caracteres"></div>
+      <div class="ac-f"><label for="pwNew2">Repítela</label><input type="password" id="pwNew2" autocomplete="new-password" placeholder="Escríbela otra vez"><span class="ac-hint" id="pwMatch" aria-live="polite"></span></div>
+      <div class="row"><button class="btn" id="pwGo" type="submit">Guardar contraseña</button><span class="status" id="pwSt" role="status"></span></div>
+    </form>
+  </div>
+
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.11.0 · actualizado el 12 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -1422,6 +1465,51 @@ const drop = $("drop");
 drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
 drop.addEventListener("dragleave", () => drop.classList.remove("over"));
 drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); setPhoto(e.dataTransfer.files[0]); });
+/* ---------- Cámara: en celular abre la cámara trasera; en computadora, la cámara web dentro de la app ---------- */
+$("photoCam").onchange = (e) => setPhoto(e.target.files[0]);
+const touchFirst = window.matchMedia && matchMedia("(pointer: coarse)").matches;
+let cam = null;
+$("btnCam").onclick = () => {
+  const canLive = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+  if (touchFirst || !canLive) { $("photoCam").value = ""; $("photoCam").click(); return; }
+  openCam("environment");
+};
+async function openCam(facing){
+  const st = $("camSt"); st.textContent = ""; st.classList.remove("bad");
+  $("camModal").hidden = false; $("camShot").disabled = true;
+  stopCam(true);
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio:false,
+      video: { facingMode: { ideal: facing }, width: { ideal: 1920 }, height: { ideal: 1080 } } });
+    cam = { stream, facing };
+    const v = $("camV"); v.srcObject = stream; await v.play().catch(() => {});
+    $("camShot").disabled = false; $("camShot").focus();
+    navigator.mediaDevices.enumerateDevices().then(ds => { $("camFlip").hidden = ds.filter(d => d.kind === "videoinput").length < 2; }).catch(() => {});
+  } catch(e){
+    const denied = e && /NotAllowed|Security/.test(e.name);
+    fail(st, denied ? "No me diste permiso de usar la cámara. Actívalo en el candado de la barra de direcciones, o sube la foto."
+                    : "No encontré una cámara disponible. Sube la foto desde tu celular o tu computadora.");
+  }
+}
+function stopCam(keepOpen){
+  if (cam && cam.stream) cam.stream.getTracks().forEach(t => { try { t.stop(); } catch(e){} });
+  cam = null; $("camV").srcObject = null;
+  if (!keepOpen) $("camModal").hidden = true;
+}
+$("camCancel").onclick = () => stopCam();
+$("camFlip").onclick = () => openCam(cam && cam.facing === "environment" ? "user" : "environment");
+$("camModal").addEventListener("click", (e) => { if (e.target === $("camModal")) stopCam(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("camModal").hidden) stopCam(); });
+$("camShot").onclick = () => {
+  const v = $("camV"); if (!v.videoWidth) return fail($("camSt"), "La cámara todavía no está lista. Espera un segundo.");
+  const c = document.createElement("canvas"); c.width = v.videoWidth; c.height = v.videoHeight;
+  c.getContext("2d").drawImage(v, 0, 0);
+  c.toBlob(b => {
+    if (!b) return fail($("camSt"), "No pude tomar la foto. Inténtalo otra vez.");
+    setPhoto(new File([b], `cuaderno-${Date.now()}.jpg`, { type: "image/jpeg" }));
+    stopCam(); $("imgNote").textContent = "Foto tomada. Revisa que se lea bien antes de corregir.";
+  }, "image/jpeg", 0.92);
+};
 
 async function runCorrection(textOverride, statusEl, btn, clar){
   const sample = await sampleP;
@@ -1445,7 +1533,7 @@ async function runCorrection(textOverride, statusEl, btn, clar){
       useful_phrases: Array.isArray(r.useful_phrases) ? r.useful_phrases : [],
       assignment: S.assignment || null,
       assignment_check: Array.isArray(r.assignment_check) ? r.assignment_check.filter(x => x && x.item) : [],
-      fromPhoto: !!(pending && pending.photo), emojis: String(r.emojis || ""),
+      fromPhoto: !!(pending && pending.photo), emojis: String(r.emojis || ""), dictated: !useImage && storyDictated,
     });
     S.example = false; busy(statusEl, ""); $("clarify").hidden = true; save(); renderAll(); go(0, 1); showFeedbackModal();
   } catch(e){ if (e && e.code === "cancelled") busy(statusEl,""); else fail(statusEl, errMsg(e)); }
@@ -2630,6 +2718,7 @@ function renderQa(){
       if (it.type === "dictation"){ ta.spellcheck = false; ta.placeholder = "Escribe exactamente lo que escuchas…"; }
       ta.value = typeof S.qa.answers[i] === "string" ? S.qa.answers[i] : ""; ta.oninput = () => { S.qa.answers[i] = ta.value; save(); };
       li.append(ta);
+      if (it.type !== "dictation" && !res[i]) li.append(dictUI(ta));
     }
     if (res[i]){
       const r = document.createElement("div"); r.className = "res" + (res[i].ok && !res[i].pending ? "" : " no");
@@ -3104,7 +3193,7 @@ $("btnNew").onclick = () => {
   const a = { topic: t, structure: $("hwStruct").value.trim(), verbs: splitList($("hwVerbs").value), adjectives: splitList($("hwAdj").value), needQuestion: $("hwQ").checked };
   const hasReq = a.structure || a.verbs.length || a.adjectives.length || a.needQuestion;
   store.current = blank(t, S.level); S = store.current; S.assignment = hasReq ? a : null; photoFile = null;
-  $("preview").hidden = true; $("photo").value = ""; $("typed").value = "";
+  $("preview").hidden = true; $("photo").value = ""; $("typed").value = ""; storyDictated = false;
   ["newTopic","hwStruct","hwVerbs","hwAdj"].forEach(id => { $(id).value = ""; }); $("hwQ").checked = false;
   save(); renderAll(); go(0);
 };
@@ -3275,6 +3364,130 @@ function renderAll(){
     document.querySelector(".brand").append(t);
   }
 }
+/* ---------- Dictado en vivo ----------
+   Con el reconocimiento de voz del navegador (Chrome, Edge, Safari) el texto aparece mientras hablas
+   y no gasta crédito de Wrealispec. Si el alumno escribe o corrige, el dictado se pausa para no pisar su corrección.
+   Donde el navegador no lo tiene (Firefox), se graba y se pasa a texto al final con Whisper (Worker). */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const MIC_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>`;
+let dict = null, storyDictated = false;
+function dictJoin(pre, add){
+  const t = String(add || "").replace(/\s+/g, " ").trim();
+  return !t ? pre : pre + (pre && !/\s$/.test(pre) ? " " : "") + t;
+}
+function dictSet(ta, v){ ta.value = v; ta.dispatchEvent(new Event("input", { bubbles: true })); ta.scrollTop = ta.scrollHeight; }
+function dictUI(ta, opts){
+  opts = opts || {};
+  const wrap = document.createElement("div"); wrap.className = "dict";
+  const b = document.createElement("button"); b.type = "button"; b.className = "dict-b"; b.setAttribute("aria-pressed", "false");
+  b.setAttribute("aria-controls", ta.id || ""); b.innerHTML = `${MIC_SVG}<span class="dict-dot" aria-hidden="true"></span><span class="dict-l">Dictar</span>`;
+  const st = document.createElement("span"); st.className = "dict-st"; st.setAttribute("role", "status");
+  wrap.append(b, st);
+  const lang = opts.lang || "en-US";
+  b.onclick = () => { if (dict && dict.ta === ta) stopDict("done"); else startDict(ta, b, st, lang, opts.onUse); };
+  // Si el alumno escribe mientras dicta, se pausa para que corrija tranquilo.
+  ta.addEventListener("input", (e) => { if (e.isTrusted && dict && dict.ta === ta && dict.live) stopDict("edit"); });
+  return wrap;
+}
+function dictBtnState(d, on){
+  d.b.setAttribute("aria-pressed", String(on)); d.b.querySelector(".dict-l").textContent = on ? "Detener" : "Dictar";
+  d.ta.classList.toggle("dicting", on);
+}
+function startDict(ta, b, st, lang, onUse){
+  if (dict) stopDict("switch");
+  st.classList.remove("bad"); st.textContent = "";
+  if (!SR) return whisperDict(ta, b, st, lang, onUse);
+  if (typeof stopSpeech === "function") stopSpeech();
+  const rec = new SR();
+  rec.lang = lang; rec.interimResults = true; rec.maxAlternatives = 1;
+  rec.continuous = !/Android/i.test(navigator.userAgent); // en Android el modo continuo repite frases: se reinicia por frase
+  const d = dict = { ta, b, st, rec, live: true, on: true, pre: ta.value, heard: Date.now(), used: false, onUse };
+  dictBtnState(d, true);
+  st.textContent = lang.startsWith("es") ? "Habla, te escucho…" : "Habla en inglés, te escucho…";
+  rec.onresult = (e) => {
+    if (dict !== d || !d.on) return;
+    if (!ta.isConnected) return stopDict("switch");
+    let fin = "", mid = "";
+    for (let i = 0; i < e.results.length; i++){ const r = e.results[i]; if (r.isFinal) fin += r[0].transcript + " "; else mid += r[0].transcript + " "; }
+    d.heard = Date.now();
+    if (!d.used && (fin + mid).trim()){ d.used = true; if (d.onUse) d.onUse(); }
+    dictSet(ta, dictJoin(d.pre, fin + mid));
+    st.textContent = "Escuchando… Si algo salió mal, toca el texto y corrígelo.";
+  };
+  rec.onerror = (e) => {
+    if (dict !== d) return;
+    const er = e && e.error;
+    if (er === "no-speech" || er === "aborted") return;
+    const msg = er === "not-allowed" || er === "service-not-allowed" ? "No me diste permiso de usar el micrófono. Actívalo en el candado de la barra de direcciones."
+      : er === "audio-capture" ? "No encontré un micrófono. Revisa que esté conectado."
+      : er === "network" ? "El dictado necesita internet. Revisa tu conexión."
+      : er === "language-not-supported" ? "Tu navegador no dicta en este idioma. Usa el micrófono del teclado."
+      : "Se cortó el dictado. Toca «Dictar» para seguir.";
+    stopDict("error"); st.classList.add("bad"); st.textContent = msg;
+  };
+  rec.onend = () => {
+    if (dict !== d || !d.on) return;
+    d.pre = ta.value; // lo dicho hasta aquí queda fijo; la siguiente frase se agrega al final
+    if (Date.now() - d.heard > 30000) return stopDict("idle");
+    try { rec.start(); } catch(e){ stopDict("error"); }
+  };
+  d.idle = setInterval(() => { if (dict === d && Date.now() - d.heard > 30000) stopDict("idle"); }, 2000);
+  try { rec.start(); } catch(e){ stopDict("error"); st.classList.add("bad"); st.textContent = "No pude abrir el micrófono. Recarga la página y vuelve a intentar."; }
+}
+function stopDict(why){
+  const d = dict; if (!d) return;
+  d.on = false; d.live = false; dict = null; clearInterval(d.idle);
+  if (d.rec){ d.rec.onend = null; try { d.rec.abort(); } catch(e){} }
+  if (d.mr && d.mr.state === "recording"){ d.discard = why === "switch"; try { d.mr.stop(); } catch(e){} }
+  dictBtnState(d, false);
+  d.st.classList.remove("bad");
+  d.st.textContent = why === "edit" ? "Pausé el dictado para que corrijas. Toca «Dictar» para seguir."
+    : why === "idle" ? "Dejé de escuchar porque no oí nada. Toca «Dictar» para seguir."
+    : why === "done" && !d.mr ? "Listo. Revisa tu texto antes de seguir." : d.st.textContent;
+}
+// Respaldo sin reconocimiento del navegador: graba y pasa a texto al terminar.
+async function whisperDict(ta, b, st, lang, onUse){
+  const no = (m) => { st.classList.add("bad"); st.textContent = m; };
+  if (!lang.startsWith("en")) return no("Tu navegador no tiene dictado. Usa Chrome o el micrófono del teclado.");
+  if (!ttsOn) return no("El dictado funciona en wrealispec.com. Aquí escribe tu texto.");
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) return no("Tu navegador no permite dictar. Usa Chrome o el micrófono del teclado.");
+  let stream; try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
+  catch(e){ return no("No me diste permiso de usar el micrófono. Actívalo en el candado de la barra de direcciones."); }
+  const type = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"].find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t));
+  const mr = new MediaRecorder(stream, type ? { mimeType: type } : undefined), chunks = [];
+  const d = dict = { ta, b, st, mr, live: false, on: true, heard: Date.now() };
+  dictBtnState(d, true);
+  st.textContent = "Grabando… Toca «Detener» al terminar y aparece tu texto. (En Chrome o Safari aparece mientras hablas.)";
+  mr.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+  mr.onstop = async () => {
+    try { stream.getTracks().forEach(t => t.stop()); } catch(e){}
+    clearTimeout(d.cap); if (dict === d) { dict = null; dictBtnState(d, false); }
+    if (d.discard || !chunks.length) return;
+    b.disabled = true; busy(st, "Pasando tu voz a texto…");
+    try {
+      const audio = await toWav16k(new Blob(chunks, { type: mr.mimeType || type || "audio/webm" }));
+      let r; try { r = await fetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ stt: { audio } }) }); }
+      catch(e){ throw new Error("network"); }
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "stt_error");
+      const txt = String(j.text || "").trim(); if (!txt) throw new Error("short");
+      if (onUse) onUse();
+      dictSet(ta, dictJoin(ta.value, txt)); busy(st, ""); st.textContent = "Listo. Revisa tu texto y corrige lo que haga falta.";
+    } catch(e){
+      fail(st, e.message === "short" ? "No alcancé a escucharte. Acércate al micrófono y vuelve a intentarlo." : STT_MSG[e.message] || "No pude pasar tu voz a texto. Inténtalo de nuevo o escríbelo.");
+    } finally { b.disabled = false; }
+  };
+  d.cap = setTimeout(() => { try { mr.stop(); } catch(e){} }, 120000);
+  mr.start();
+}
+// Dónde va el micrófono: la historia (con aviso), volver a contarla y los comentarios del maestro.
+(function(){
+  const tip = document.createElement("p"); tip.className = "dict-tip";
+  tip.innerHTML = "Te recomendamos <strong>escribirla</strong>: así practicas tu <em>writing</em>. Si prefieres dictarla, habla claro y a buen ritmo, y revisa el texto antes de corregir: a veces el dictado arregla tus errores sin avisar y la corrección ya no los ve.";
+  $("typedCount").before(dictUI($("typed"), { onUse: () => { storyDictated = true; } }), tip);
+  $("retell").after(dictUI($("retell")));
+  $("tfText").after(dictUI($("tfText"), { lang: "es-MX" }));
+})();
 /* ---------- Cuenta y nube (capa 3: Supabase) ----------
    La app sigue funcionando sin cuenta (modo invitado, solo en este navegador).
    Con cuenta, cada historia se guarda también en Supabase. Las reglas por fila
@@ -3285,6 +3498,10 @@ var SB_CDN = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supa
 var SB_TOKEN_KEY = "sb-bbepraefoojognseuxzq-auth-token";
 var sb = null, sbLoading = null, me = null, cloudTimer = null, cloudBusy = false, cloudAgain = false, cloudState = "guest";
 var acMode = "in";
+/* Correo propio (Resend con wrealispec.com). Mientras sea false, «¿Olvidaste tu contraseña?» manda a WhatsApp;
+   en true, la app manda el enlace de recuperación por correo. Encenderlo solo cuando Resend esté verificado en Supabase. */
+var MAIL_READY = false;
+var pwRecovery = false;
 
 function getSb(){
   if (sb) return Promise.resolve(sb);
@@ -3294,6 +3511,7 @@ function getSb(){
       const u = session && session.user ? session.user : null;
       // Supabase pide no esperar otras llamadas dentro de este aviso: se difiere un instante.
       setTimeout(() => {
+        if (ev === "PASSWORD_RECOVERY") openPwModal(u);
         if (u && (!me || me.id !== u.id)) { me = u; afterLogin(); }
         else if (!u && me) { me = null; setCloud("guest"); renderAcct(); }
       }, 0);
@@ -3322,11 +3540,15 @@ function renderAcct(){
 /* ---- Abrir, entrar, crear cuenta ---- */
 function setAcMode(m){
   acMode = m;
-  $("acTabIn").setAttribute("aria-selected", m === "in"); $("acTabUp").setAttribute("aria-selected", m === "up");
+  $("acTabIn").setAttribute("aria-selected", m !== "up"); $("acTabUp").setAttribute("aria-selected", m === "up");
   $("acNameF").hidden = m !== "up"; $("acForgot").hidden = m !== "in";
-  $("acGo").textContent = m === "up" ? "Crear mi cuenta" : "Entrar";
-  $("acTitle").innerHTML = m === "up" ? "Empieza tu <em>cuaderno</em>" : "Bienvenido <em>de vuelta</em>";
-  $("acSub").textContent = m === "up" ? "Crea tu cuenta en un minuto. Lo que ya hiciste en este navegador se sube solo." : "Entra para seguir justo donde te quedaste.";
+  $("acForgotWa").hidden = MAIL_READY; $("acForgotBtn").hidden = !MAIL_READY;
+  document.querySelector(".ac-pair").hidden = m === "forgot"; $("acBackIn").hidden = m !== "forgot";
+  $("acGo").textContent = m === "up" ? "Crear mi cuenta" : m === "forgot" ? "Mandarme el enlace" : "Entrar";
+  $("acTitle").innerHTML = m === "up" ? "Empieza tu <em>cuaderno</em>" : m === "forgot" ? "¿Olvidaste tu <em>contraseña</em>?" : "Bienvenido <em>de vuelta</em>";
+  $("acSub").textContent = m === "up" ? "Crea tu cuenta en un minuto. Lo que ya hiciste en este navegador se sube solo."
+    : m === "forgot" ? "Escribe el correo de tu cuenta y te mando un enlace para crear una contraseña nueva."
+    : "Entra para seguir justo donde te quedaste.";
   $("acMeter").hidden = m !== "up"; $("acPassHint").hidden = m !== "up"; acStrength();
   $("acPass2F").hidden = m !== "up"; acMatch();
   $("acPass").autocomplete = m === "up" ? "new-password" : "current-password";
@@ -3342,6 +3564,8 @@ function openAcct(mode){
 }
 function closeAcct(){ $("acctModal").hidden = true; }
 $("btnAcct").onclick = () => openAcct();
+$("acForgotBtn").onclick = () => { setAcMode("forgot"); $("acEmail").focus(); };
+$("acBackIn").onclick = () => { setAcMode("in"); $("acPass").focus(); };
 $("acCancel").onclick = closeAcct; $("acClose").onclick = closeAcct; $("acX").onclick = closeAcct; $("acX2").onclick = closeAcct;
 $("acEye").onclick = () => { const show = $("acPass").type === "password"; $("acPass").type = show ? "text" : "password"; $("acPass2").type = $("acPass").type;
   $("acEye").setAttribute("aria-pressed", show); $("acEye").setAttribute("aria-label", show ? "Ocultar contraseña" : "Mostrar contraseña"); $("acPass").focus(); };
@@ -3379,6 +3603,19 @@ $("acForm").addEventListener("submit", async (e) => {
   const email = $("acEmail").value.trim(), pass = $("acPass").value, name = $("acName").value.trim();
   if (acMode === "up" && !name) { $("acName").setAttribute("aria-invalid","true"); $("acName").focus(); return fail($("acSt"), "Escribe tu nombre."); }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { $("acEmail").setAttribute("aria-invalid","true"); $("acEmail").focus(); return fail($("acSt"), "Escribe un correo válido."); }
+  if (acMode === "forgot"){
+    $("acGo").disabled = true; busy($("acSt"), "Mandando el enlace…");
+    try {
+      const c = await getSb();
+      const { error } = await c.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+      if (error) throw error;
+      // Por seguridad no se dice si el correo tiene cuenta o no.
+      $("acSt").classList.remove("bad");
+      $("acSt").textContent = "Listo. Si ese correo tiene cuenta, en unos minutos te llega un enlace de Wrealispec. Revisa también tu carpeta de spam. El enlace sirve una sola vez y vence en una hora.";
+    } catch (err) { fail($("acSt"), authError(err)); }
+    finally { $("acGo").disabled = false; }
+    return;
+  }
   if (pass.length < 8) { $("acPass").setAttribute("aria-invalid","true"); $("acPass").focus(); return fail($("acSt"), "La contraseña necesita al menos 8 caracteres."); }
   if (acMode === "up" && $("acPass2").value !== pass) { $("acPass2").setAttribute("aria-invalid","true"); $("acPass2").focus(); return fail($("acSt"), "Las dos contraseñas no coinciden. Escríbelas igual."); }
   $("acGo").disabled = true; busy($("acSt"), acMode === "up" ? "Creando tu cuenta…" : "Entrando…");
@@ -3515,8 +3752,50 @@ async function afterLogin(){
   }
 }
 
+/* ---- Nueva contraseña: se llega aquí desde el enlace del correo ---- */
+function openPwModal(u){
+  pwRecovery = true; closeAcct();
+  $("pwWho").textContent = u && u.email ? `Cuenta: ${u.email}` : "";
+  $("pwNew").value = ""; $("pwNew2").value = ""; $("pwSt").textContent = ""; pwMatchUI();
+  $("pwModal").hidden = false; setTimeout(() => $("pwNew").focus(), 50);
+}
+function pwMatchUI(){
+  const a = $("pwNew").value, b = $("pwNew2").value, h = $("pwMatch");
+  h.className = "ac-hint" + (!b ? "" : a === b ? " ok" : " no");
+  h.textContent = !b ? "" : a === b ? "✓ Las contraseñas coinciden" : "Todavía no coinciden";
+}
+["pwNew","pwNew2"].forEach(id => $(id).addEventListener("input", pwMatchUI));
+$("pwForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const a = $("pwNew").value, b = $("pwNew2").value;
+  if (a.length < 8) { $("pwNew").focus(); return fail($("pwSt"), "La contraseña necesita al menos 8 caracteres."); }
+  if (a !== b) { $("pwNew2").focus(); return fail($("pwSt"), "Las dos contraseñas no coinciden. Escríbelas igual."); }
+  $("pwGo").disabled = true; busy($("pwSt"), "Guardando…");
+  try {
+    const c = await getSb();
+    const { error } = await c.auth.updateUser({ password: a });
+    if (error) throw error;
+    pwRecovery = false; $("pwSt").classList.remove("bad"); $("pwSt").textContent = "✓ Listo. Ya entraste con tu contraseña nueva.";
+    setTimeout(() => { $("pwModal").hidden = true; }, 1600);
+  } catch (err) {
+    const m = String((err && (err.code || err.message)) || "").toLowerCase();
+    fail($("pwSt"), /same_password|different from the old/.test(m) ? "Esa es tu contraseña anterior. Escribe una distinta."
+      : /session|jwt|expired|not.*auth/.test(m) ? "El enlace ya venció. Pide otro desde «¿Olvidaste tu contraseña?»." : authError(err));
+  } finally { $("pwGo").disabled = false; }
+});
+/* Enlaces de correo (recuperar contraseña o confirmar cuenta): vienen con datos en la dirección. */
+var authHash = location.hash || "", authQuery = location.search || "";
+var fromMailLink = /access_token=|type=(recovery|signup|invite|magiclink)/.test(authHash) || /[?&]code=/.test(authQuery);
+if (/error_code=|error=/.test(authHash)){
+  const h = new URLSearchParams(authHash.slice(1)), code = h.get("error_code") || h.get("error") || "";
+  try { history.replaceState(null, "", location.pathname + location.search); } catch(e){}
+  setTimeout(() => { openAcct("in");
+    fail($("acSt"), /expired/.test(code) ? "Ese enlace ya venció o ya se usó. Pide uno nuevo." : "Ese enlace no es válido. Pide uno nuevo."); }, 300);
+}
+
 setCloud("guest"); renderAcct();
-if (hasSavedSession()) getSb().catch(() => setCloud("error", "No pude conectar con tu cuenta. Tu trabajo sigue en este navegador."));
+if (fromMailLink) getSb().catch(() => setCloud("error", "No pude abrir el enlace de tu correo. Revisa tu internet y vuelve a abrirlo."));
+else if (hasSavedSession()) getSb().catch(() => setCloud("error", "No pude conectar con tu cuenta. Tu trabajo sigue en este navegador."));
 
 renderAll();
 go(S.corrected ? S.step : 0);
