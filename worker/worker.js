@@ -1,4 +1,4 @@
-// Wrealispec · servidor intermedio para la IA (Cloudflare Worker) · v2
+// Wrealispec · servidor intermedio para la IA (Cloudflare Worker) · v3
 // Guarda en secreto la llave de Claude (ANTHROPIC_API_KEY) y la de Google para la voz (GOOGLE_TTS_KEY).
 //
 // Desde la v2 (nov 2026) las instrucciones de la IA viven AQUÍ, no en el navegador.
@@ -63,6 +63,204 @@ const STT_MAX_BASE64 = 9000000; // ~6.5 MB: unos 3 minutos de lectura en WAV de 
 // Frase que se oye al probar cada voz.
 const SAMPLE_TEXT = "Hi! I'm the voice that will read your story. Let's practice together.";
 const KEEP_DAYS = 2; // los contadores viejos se borran solos
+
+// ======================================================================
+//  Cuentas, planes y fases (desde la v3, nov 2026)
+//  La app manda «Authorization: Bearer <token de Supabase>» si el alumno entró a su cuenta.
+//  El Worker revisa el sello del token él solo, con las llaves públicas (JWKS) de Supabase,
+//  sin preguntarle a Supabase en cada petición. El plan viaja dentro del token (dato «wplan»,
+//  que agrega el Auth Hook public.claim_plan; ver supabase/planes.sql).
+//
+//  Interruptor AUTH_MODE (variable del panel de Cloudflare, sin desplegar):
+//    off      → todo como antes: límites por IP y sin revisar tokens.
+//    observe  → (por omisión) revisa tokens y planes y anota en el registro lo que bloquearía,
+//               pero no bloquea: los límites siguen por IP como antes.
+//    enforce  → bloquea: 401 token inválido, 403 fase fuera del plan, límites por cuenta.
+// ======================================================================
+const SB_URL_DEFAULT = "https://bbepraefoojognseuxzq.supabase.co";
+const AUTH_MODES = ["off", "observe", "enforce"];
+
+// Qué fase usa cada tarea. Una tarea que no esté aquí se rechaza, así ninguna queda abierta por olvido.
+const PHASE_OF = {
+  aclarar: 1, corregir: 1, historia_ia: 1, vocabulario: 1,       // 1 · Escribe y corrijo
+  tts: 2, sample: 2,                                            // 2 · Escucha y repite
+  stt: 3, evaluar_lectura: 3, volver_a_contar: 3, ejercicios: 3, // 3 · Grábate y te dicto
+  evaluar_ejercicios: 3, pizarra_error: 3, pizarra_pronunciacion: 3,
+  conversacion: 4,                                              // 4 · Conversemos
+};
+// Qué fases abre cada plan. «vencido» = la prueba de 7 días ya terminó.
+const PLAN_PHASES = {
+  invitado: [1, 2], prueba: [1, 2, 3, 4], ia: [1, 2, 3, 4], pro: [1, 2, 3, 4], piloto: [1, 2, 3, 4], vencido: [],
+};
+// Límites diarios por plan. Se cambian sin desplegar con variables LIMIT_<PLAN>_<TIPO>,
+// por ejemplo LIMIT_IA_AI = 120 o LIMIT_INVITADO_TTS = 30.
+const PLAN_LIMITS = {
+  invitado: { ai: 10,  tts: 40,  sample: 10, stt: 20 },
+  prueba:   { ai: 60,  tts: 120, sample: 20, stt: 60 },
+  ia:       { ai: 100, tts: 150, sample: 20, stt: 100 },
+  pro:      { ai: 120, tts: 200, sample: 20, stt: 120 },
+  piloto:   { ai: 80,  tts: 150, sample: 20, stt: 80 },
+};
+// Precio de Claude en USD por millón de tokens (entrada, salida), para medir el costo por alumno.
+const PRICES = { "claude-haiku-5-5": [0.10, 0.50], "claude-sonnet-5-5": [2, 10] };
+
+const authMode = (env) => (AUTH_MODES.includes(env.AUTH_MODE) ? env.AUTH_MODE : "observe");
+const sbUrl = (env) => String(env.SUPABASE_URL || SB_URL_DEFAULT).replace(/\/+$/, "");
+
+function b64u(s) {
+  s = s.replace(/-/g, "+").replace(/_/g, "/");
+  while (s.length % 4) s += "=";
+  const bin = atob(s), out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+// Llaves públicas en memoria 10 minutos (lo que pide Supabase para poder revocarlas).
+// Si llega un kid desconocido se vuelve a pedir el JWKS, como máximo una vez por minuto.
+let jwks = { keys: new Map(), at: 0, forcedAt: 0 };
+async function loadJwks(env, force) {
+  const now = Date.now();
+  if (!force && jwks.at && now - jwks.at < 600e3) return;
+  if (force) { if (now - jwks.forcedAt < 60e3) return; jwks.forcedAt = now; }
+  const r = await fetch(sbUrl(env) + "/auth/v1/.well-known/jwks.json");
+  if (!r.ok) throw new Error("jwks_" + r.status);
+  const d = await r.json();
+  const keys = new Map();
+  for (const k of (d && d.keys) || []) {
+    if (!k || k.kty !== "EC" || k.crv !== "P-256" || typeof k.kid !== "string" || (k.alg && k.alg !== "ES256")) continue;
+    try {
+      keys.set(k.kid, await crypto.subtle.importKey("jwk", { kty: "EC", crv: "P-256", x: k.x, y: k.y, ext: true },
+        { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]));
+    } catch (e) { /* llave mal formada: se ignora */ }
+  }
+  jwks = { keys, at: now, forcedAt: jwks.forcedAt };
+}
+
+// Devuelve { claims } si el token es auténtico y vigente, { bad: motivo } si no, o { down: true }
+// si no se pudieron obtener las llaves de Supabase.
+async function verifyToken(token, env) {
+  const parts = token.split(".");
+  if (parts.length !== 3 || parts.some((x) => !/^[A-Za-z0-9_-]+$/.test(x))) return { bad: "format" };
+  let head, claims, sig;
+  try {
+    head = JSON.parse(new TextDecoder().decode(b64u(parts[0])));
+    claims = JSON.parse(new TextDecoder().decode(b64u(parts[1])));
+    sig = b64u(parts[2]);
+  } catch (e) { return { bad: "format" }; }
+  if (!head || typeof head !== "object" || !claims || typeof claims !== "object") return { bad: "format" };
+  if (head.alg !== "ES256" || typeof head.kid !== "string") return { bad: "alg" }; // ni none ni HS256
+  if (sig.length !== 64) return { bad: "sig" };
+  try { await loadJwks(env, false); } catch (e) { if (!jwks.keys.size) return { down: true }; }
+  let key = jwks.keys.get(head.kid);
+  if (!key) { try { await loadJwks(env, true); } catch (e) {} key = jwks.keys.get(head.kid); }
+  if (!key) return { bad: "kid" };
+  const ok = await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, key, sig,
+    new TextEncoder().encode(parts[0] + "." + parts[1]));
+  if (!ok) return { bad: "sig" };
+  const now = Math.floor(Date.now() / 1000), skew = 30;
+  if (typeof claims.exp !== "number" || claims.exp + skew < now) return { bad: "exp" };
+  if (typeof claims.nbf === "number" && claims.nbf - skew > now) return { bad: "nbf" };
+  if (typeof claims.iat === "number" && claims.iat - skew > now) return { bad: "iat" };
+  if (claims.iss !== sbUrl(env) + "/auth/v1") return { bad: "iss" };
+  const aud = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
+  if (!aud.includes("authenticated") || claims.role !== "authenticated") return { bad: "aud" };
+  if (typeof claims.sub !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(claims.sub)) return { bad: "sub" };
+  return { claims };
+}
+
+function planOf(claims, env) {
+  const fallback = has(PLAN_LIMITS, env.DEFAULT_PLAN || "") ? env.DEFAULT_PLAN : "piloto";
+  let plan = typeof claims.wplan === "string" && has(PLAN_LIMITS, claims.wplan) && claims.wplan !== "invitado" ? claims.wplan : fallback;
+  if (plan === "prueba" && typeof claims.wtrial === "number" && claims.wtrial < Date.now() / 1000) plan = "vencido";
+  return plan;
+}
+
+// Quién hace la petición: invitado (sin encabezado), alumno con su plan, token inválido o llaves caídas.
+async function whoIsIt(request, env) {
+  const h = request.headers.get("Authorization");
+  if (h === null) return { plan: "invitado" };
+  const m = /^Bearer ([A-Za-z0-9._-]+)$/.exec(h.trim());
+  if (!m) return { bad: "header" };
+  const v = await verifyToken(m[1], env);
+  if (v.down) return { down: true };
+  if (v.bad) return { bad: v.bad };
+  return { sub: v.claims.sub, plan: planOf(v.claims, env) };
+}
+
+// ¿Puede esta persona usar esta tarea? null = sí; si no, [estado, cuerpo de la respuesta].
+function gate(actor, key) {
+  if (actor.down) return [503, { error: "auth_unavailable" }];
+  if (actor.bad) return [401, { error: "session_invalid" }];
+  const phase = PHASE_OF[key];
+  if (!phase) return [400, { error: "bad_request" }];
+  if ((PLAN_PHASES[actor.plan] || []).includes(phase)) return null;
+  if (actor.plan === "vencido") return [403, { error: "trial_ended", phase }];
+  return [403, { error: "plan_required", phase }];
+}
+
+function planLimit(env, plan, kind) {
+  const v = parseInt(env[`LIMIT_${plan.toUpperCase()}_${kind.toUpperCase()}`], 10);
+  return Number.isFinite(v) && v >= 0 ? v : ((PLAN_LIMITS[plan] || {})[kind] || 0);
+}
+
+// Límite por cuenta (o por IP para invitados) con una sola instrucción atómica: si hay cupo devuelve
+// el nuevo conteo; si ya está en el tope no escribe nada. Así 20 peticiones simultáneas con cupo 5
+// dejan pasar exactamente 5. Devuelve { err } o { refund } para regresar el cupo si falla el proveedor.
+const BUMP = `INSERT INTO usage (day, who, kind, n) VALUES (?1, ?2, ?3, 1)
+              ON CONFLICT(day, who, kind) DO UPDATE SET n = n + 1 WHERE n < ?4 RETURNING n`;
+const UNBUMP = "UPDATE usage SET n = n - 1 WHERE day = ?1 AND who = ?2 AND kind = ?3 AND n > 0";
+async function useQuotaPlan(request, env, ctx, kind, actor) {
+  if (!env.DB) return { err: "limit_not_configured" };
+  const cap = planLimit(env, actor.plan, kind);
+  const [, totalName] = LIMIT_NAMES[kind] || LIMIT_NAMES.ai;
+  const tv = parseInt(env[totalName], 10);
+  const total = Number.isFinite(tv) && tv >= 0 ? tv : LIMIT_DEFAULTS[totalName];
+  const day = mxDay(0), salt = env.HASH_SALT || "wrealispec";
+  const who = actor.sub ? "u:" + await hash(`${actor.sub}|${salt}`)
+    : "ip:" + await hash(`${request.headers.get("CF-Connecting-IP") || "unknown"}|${day}|${salt}`);
+  if (cap <= 0) return { err: "daily_limit" };
+  try {
+    const a = await env.DB.prepare(BUMP).bind(day, who, kind, cap).all();
+    if (!a.results || !a.results.length) return { err: "daily_limit" };
+    const b = total > 0 ? await env.DB.prepare(BUMP).bind(day, "*", kind, total).all() : { results: [] };
+    if (!b.results || !b.results.length) {
+      await env.DB.prepare(UNBUMP).bind(day, who, kind).run();
+      return { err: "service_busy" };
+    }
+  } catch (e) {
+    return { err: "limit_not_configured" };
+  }
+  if (Math.random() < 0.02 && ctx && ctx.waitUntil) {
+    ctx.waitUntil(env.DB.prepare("DELETE FROM usage WHERE day < ?1").bind(mxDay(KEEP_DAYS)).run().catch(() => {}));
+  }
+  const refund = () => {
+    const p = env.DB.batch([env.DB.prepare(UNBUMP).bind(day, who, kind), env.DB.prepare(UNBUMP).bind(day, "*", kind)]).catch(() => {});
+    if (ctx && ctx.waitUntil) ctx.waitUntil(p);
+    return p;
+  };
+  return { refund };
+}
+
+// Costo de Claude por alumno y mes (para validar los precios de los planes). El alumno se guarda como
+// un código irreversible; los invitados se suman juntos en «invitado».
+let costTableReady = false;
+async function recordCost(env, actor, model, usage) {
+  if (!env.DB || !usage) return;
+  const [pin, pout] = PRICES[model] || PRICES[MODEL];
+  const inT = Number(usage.input_tokens) || 0, outT = Number(usage.output_tokens) || 0;
+  const usd = (inT * pin + outT * pout) / 1e6;
+  if (!costTableReady) {
+    await env.DB.prepare(`CREATE TABLE IF NOT EXISTS ai_cost (month TEXT NOT NULL, who TEXT NOT NULL, plan TEXT NOT NULL DEFAULT '',
+      calls INTEGER NOT NULL DEFAULT 0, in_tok INTEGER NOT NULL DEFAULT 0, out_tok INTEGER NOT NULL DEFAULT 0,
+      usd REAL NOT NULL DEFAULT 0, PRIMARY KEY (month, who))`).run();
+    costTableReady = true;
+  }
+  const who = actor.sub ? "u:" + await hash(`${actor.sub}|${env.HASH_SALT || "wrealispec"}`) : "invitado";
+  await env.DB.prepare(`INSERT INTO ai_cost (month, who, plan, calls, in_tok, out_tok, usd) VALUES (?1, ?2, ?3, 1, ?4, ?5, ?6)
+    ON CONFLICT(month, who) DO UPDATE SET plan = excluded.plan, calls = calls + 1, in_tok = in_tok + excluded.in_tok,
+    out_tok = out_tok + excluded.out_tok, usd = usd + excluded.usd`)
+    .bind(mxDay(0).slice(0, 7), who, actor.plan || "invitado", inT, outT, usd).run();
+}
 
 // ======================================================================
 //  Plantillas de las instrucciones de la IA (copiadas tal cual de la app v0.9.22)
@@ -364,7 +562,7 @@ export default {
     const cors = {
       "Access-Control-Allow-Origin": allowed ? origin : ALLOWED_ORIGINS[0],
       "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
       "Vary": "Origin",
     };
 
@@ -374,18 +572,35 @@ export default {
     try { body = await request.json(); } catch (e) { return reply({ error: "bad_request" }, 400, cors); }
     if (!body || typeof body !== "object") return reply({ error: "bad_request" }, 400, cors);
 
+    // Quién es y si su plan le permite esta parte (según AUTH_MODE).
+    const mode = authMode(env);
+    const actor = mode === "off" ? { plan: "invitado", legacy: true } : await whoIsIt(request, env);
+    // Revisa la puerta y cobra el cupo. Devuelve una respuesta de error o { refund }.
+    const admit = async (key, kind) => {
+      const g = gate(actor, key);
+      if (mode === "enforce") {
+        if (g) return { res: reply(g[1], g[0], cors) };
+        const q = await useQuotaPlan(request, env, ctx, kind, actor);
+        return q.err ? { res: reply({ error: q.err }, 429, cors) } : q;
+      }
+      if (g && mode === "observe") console.log(JSON.stringify({ wrealispec: "observe", would: g[1].error, task: key, plan: actor.plan || "", why: actor.bad || "" }));
+      const q = await useQuota(request, env, ctx, kind);
+      return q ? { res: reply({ error: q }, 429, cors) } : { refund: () => {} };
+    };
+    const settle = (res, a) => { if (res.status >= 500 || res.status === 429) a.refund(); return res; };
+
     if (body.stt) {
-      const q = await useQuota(request, env, ctx, "stt");
-      if (q) return reply({ error: q }, 429, cors);
-      return stt(body.stt, env, cors);
+      const a = await admit("stt", "stt");
+      if (a.res) return a.res;
+      return settle(await stt(body.stt, env, cors), a);
     }
     if (body.tts) {
       const isSample = body.tts.sample === true;
-      const q = await useQuota(request, env, ctx, isSample ? "sample" : "tts");
-      if (q) return reply({ error: q }, 429, cors);
-      if (isSample) return tts({ text: SAMPLE_TEXT, voice: body.tts.voice, rate: 1 }, env, cors);
-      if (Array.isArray(body.tts.sentences)) return ttsMarked(body.tts, env, cors);
-      return tts(body.tts, env, cors);
+      const a = await admit(isSample ? "sample" : "tts", isSample ? "sample" : "tts");
+      if (a.res) return a.res;
+      if (isSample) return settle(await tts({ text: SAMPLE_TEXT, voice: body.tts.voice, rate: 1 }, env, cors), a);
+      if (Array.isArray(body.tts.sentences)) return settle(await ttsMarked(body.tts, env, cors), a);
+      return settle(await tts(body.tts, env, cors), a);
     }
 
     // Instrucciones de la corrección, para la sección «para profesores» de la app. No usa la IA ni cuota.
@@ -417,9 +632,9 @@ export default {
     }
     if (prompt.length > MAX_PROMPT_CHARS) return reply({ error: "too_long" }, 400, cors);
 
-    // Se cuenta antes de llamar a la IA: si ya se llegó al límite, no se gasta nada.
-    const q = await useQuota(request, env, ctx, "ai");
-    if (q) return reply({ error: q }, 429, cors);
+    // Se cuenta antes de llamar a la IA: si ya se llegó al límite o el plan no lo incluye, no se gasta nada.
+    const a = await admit(name, "ai");
+    if (a.res) return a.res;
 
     const content = [];
     if (hasImage) content.push({ type: "image", source: { type: "base64", media_type: body.image.media_type, data: body.image.data } });
@@ -457,13 +672,18 @@ export default {
         upstream = await callClaude(payload);
       }
     } catch (e) {
+      a.refund();
       return reply({ error: "upstream_error" }, 502, cors);
     }
 
-    if (upstream.status === 429 || upstream.status === 529) return reply({ error: "rate_limited" }, 429, cors);
-    if (!upstream.ok) return reply({ error: "upstream_error" }, 502, cors);
+    // Si falla Claude, el cupo se le regresa al alumno: no es su culpa.
+    if (upstream.status === 429 || upstream.status === 529) { a.refund(); return reply({ error: "rate_limited" }, 429, cors); }
+    if (!upstream.ok) { a.refund(); return reply({ error: "upstream_error" }, 502, cors); }
 
     const data = await upstream.json();
+    if (mode !== "off" && !actor.bad && !actor.down && ctx && ctx.waitUntil) {
+      ctx.waitUntil(recordCost(env, actor, payload.model, data.usage).catch(() => {}));
+    }
     const tool = (data.content || []).find((c) => c.type === "tool_use");
     if (wantJson && tool && tool.input && typeof tool.input === "object") {
       return reply({ json: tool.input, stop: data.stop_reason || "" }, 200, cors);
