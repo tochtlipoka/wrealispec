@@ -9,6 +9,8 @@ La app (capa 1) sigue hablando con el Worker (capa 2) para la IA. Supabase (capa
 | `schema.sql` | Esquema completo: 7 tablas, reglas por fila (RLS) y la función para unirse a un grupo con código. Se puede correr varias veces sin romper nada. |
 | `pruebas/imitar-supabase.sql` | Imita en un Postgres local lo que Supabase trae de fábrica (roles `anon` y `authenticated`, `auth.uid()`). |
 | `pruebas/reglas.sql` | 25 pruebas de las reglas: quién ve y quién cambia qué. |
+| `planes.sql` | Planes de venta (prueba de 7 días, ia, pro, piloto) y el Auth Hook `claim_plan` que mete el plan en la sesión. Se corre después de `schema.sql`; los pasos están arriba del archivo. |
+| `pruebas/planes.sql` | 12 pruebas de los planes y del hook. |
 
 ## Las 7 tablas
 

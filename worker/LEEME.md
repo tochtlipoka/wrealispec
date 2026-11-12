@@ -11,6 +11,45 @@ El Worker se despliega solo cuando un cambio llega a la rama `main` (Cloudflare 
 - Las llaves siguen como secretos en Cloudflare; nunca van en el repositorio.
 - Si un despliegue sale mal: Cloudflare → `wrealispec-ai` → Deployments → regresar a la versión anterior.
 
+## Cuentas, planes y fases (v3, 12 nov 2026)
+
+La app manda la sesión del alumno en cada llamada (`Authorization: Bearer <token de Supabase>`). El Worker revisa el sello del token él solo, con las llaves públicas de Supabase (JWKS, en memoria 10 minutos), sin preguntarle a Supabase en cada petición. El plan viaja dentro del token (`wplan`, y `wtrial` si está en prueba) gracias al Auth Hook `public.claim_plan` de `supabase/planes.sql`.
+
+**Interruptor `AUTH_MODE`** (variable de texto en Settings → Variables, se cambia sin desplegar):
+
+| Valor | Qué hace |
+|---|---|
+| `off` | Todo como antes: límites por IP y no se revisan tokens. Reversa instantánea. |
+| `observe` (por omisión) | Revisa tokens y planes y anota en Logs lo que bloquearía (`"wrealispec":"observe"`), pero no bloquea: los límites siguen por IP. |
+| `enforce` | Modo final: 401 si la sesión es falsa o venció, 403 si la fase no está en el plan, límites por cuenta. |
+
+**Fases por plan:**
+
+| Fase | Tareas | Sin cuenta | Prueba (7 días) | IA | Pro | Piloto |
+|---|---|---|---|---|---|---|
+| 1 · Escribe y corrijo | aclarar, corregir, historia_ia, vocabulario | Sí | Sí | Sí | Sí | Sí |
+| 2 · Escucha y repite | voz natural (tts, muestras) | Sí | Sí | Sí | Sí | Sí |
+| 3 · Grábate y te dicto | stt, evaluar_lectura, volver_a_contar, ejercicios, evaluar_ejercicios, pizarras | No | Sí | Sí | Sí | Sí |
+| 4 · Conversemos | conversacion | No | Sí | Sí | Sí | Sí |
+
+Al vencer la prueba, la IA responde `403 trial_ended`. Una fase fuera del plan responde `403 plan_required` con el número de fase.
+
+**Límites diarios por plan** (llamadas a la IA / audios / muestras de voz / grabaciones):
+
+| Plan | IA | Audios | Muestras | Grabaciones |
+|---|---|---|---|---|
+| Sin cuenta (por IP) | 10 | 40 | 10 | 20 |
+| Prueba | 60 | 120 | 20 | 60 |
+| IA | 100 | 150 | 20 | 100 |
+| Pro | 120 | 200 | 20 | 120 |
+| Piloto | 80 | 150 | 20 | 80 |
+
+Se cambian sin desplegar con variables `LIMIT_<PLAN>_<TIPO>`, por ejemplo `LIMIT_IA_AI = 120` o `LIMIT_INVITADO_TTS = 30` (tipos: `AI`, `TTS`, `SAMPLE`, `STT`). Los topes de todo el sitio siguen siendo `DAILY_*_TOTAL`. El conteo es atómico: con cupo 5, de 20 peticiones simultáneas pasan exactamente 5. Si falla Claude o Google, el cupo se devuelve.
+
+**Costo por alumno:** en `observe` y `enforce`, cada respuesta de Claude suma tokens y costo aproximado en la tabla D1 `ai_cost` (se crea sola), por mes y por cuenta (código irreversible `u:…`; los invitados juntos en `invitado`). Para verla: D1 → `wrealispec-usage` → Console → `SELECT plan, COUNT(*) alumnos, SUM(calls) llamadas, ROUND(SUM(usd), 2) usd FROM ai_cost WHERE month = '2026-11' GROUP BY plan;`
+
+**Pruebas automáticas:** `node --test worker/tests/*.test.mjs` (Node 22, sin instalar nada). Corren solas en cada PR con GitHub Actions.
+
 ## Tareas de la IA (v2, nov 2026)
 
 Las instrucciones de la IA viven en `worker.js`, no en la app. La app manda solo el nombre de la tarea y los datos del alumno:

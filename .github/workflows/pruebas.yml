@@ -1,0 +1,39 @@
+# Pruebas automáticas de Wrealispec: corren en cada solicitud (PR) y en cada cambio a main.
+name: Pruebas
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  worker:
+    name: Worker (cuentas, planes y límites)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test --no-warnings worker/tests/*.test.mjs
+  supabase:
+    name: Supabase (reglas y planes)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: pruebas
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: pruebas
+    steps:
+      - uses: actions/checkout@v4
+      - name: Esquema y planes
+        run: psql -v ON_ERROR_STOP=1 -q -f supabase/pruebas/imitar-supabase.sql -f supabase/schema.sql -f supabase/planes.sql
+      - name: Pruebas
+        run: |
+          psql -q -f supabase/pruebas/reglas.sql -f supabase/pruebas/planes.sql 2>&1 | tee salida.txt
+          grep -c "PASA" salida.txt
+          if grep -qE "FALLA|ERROR" salida.txt; then echo "Hay pruebas que fallaron"; exit 1; fi

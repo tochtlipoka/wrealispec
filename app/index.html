@@ -1131,7 +1131,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     <div class="field">
       <span class="pick-label">Tu plan <span class="small muted">(en la demo puedes cambiarlo para ver qué incluye cada uno)</span></span>
       <div class="seg" role="tablist" aria-label="Tu plan">
-        <button role="tab" data-plan="auto" aria-selected="false">Autodidacta</button>
+        <button role="tab" data-plan="prueba" aria-selected="false">Prueba gratis</button>
         <button role="tab" data-plan="ia" aria-selected="false">IA</button>
         <button role="tab" data-plan="pro" aria-selected="true">Pro</button>
       </div>
@@ -1139,7 +1139,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     </div>
     <div id="upsell" class="assign" hidden>
       <span class="eyebrow">La Fase 4 está en los planes IA y Pro</span>
-      <p>Con el plan <strong>IA ($30 USD al mes)</strong> conversas con la IA sobre tu historia: te pide que la expliques, te hace preguntas y te da retroalimentación. Con el plan <strong>Pro ($99 USD al mes)</strong> además tienes 6 clases con tu profesor.</p>
+      <p>Con el plan <strong>IA ($20 USD al mes)</strong> conversas con la IA sobre tu historia: te pide que la expliques, te hace preguntas y te da retroalimentación. Con el plan <strong>Pro ($99 USD al mes)</strong> además tienes 6 clases con tu profesor.</p>
       <p class="small muted">Puedes cambiar de plan cada mes: si un mes quieres practicar por tu cuenta, está bien, y regresas cuando quieras.</p>
     </div>
     <div id="prepBox" class="field">
@@ -1225,7 +1225,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     </form>
   </div>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.11.4 · actualizado el 12 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.12.0 · actualizado el 12 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -1329,6 +1329,28 @@ async function toImagePayload(file){
   const data = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1]); r.onerror = rej; r.readAsDataURL(blob); });
   return { media_type: blob.type === "image/png" || blob.type === "image/webp" ? blob.type : "image/jpeg", data };
 }
+/* La sesión del alumno viaja al Worker en cada llamada («Authorization: Bearer …»).
+   Así el Worker sabe su plan, abre sus fases y le cuenta su propio límite diario.
+   Si el Worker dice que la sesión no sirve (401), se renueva una vez y se reintenta;
+   si vuelve a fallar, se avisa y la llamada sigue como invitado. */
+async function aiToken(){
+  if (!me && !hasSavedSession()) return null;
+  try { const c = await getSb(); const { data } = await c.auth.getSession(); return data && data.session ? data.session.access_token : null; }
+  catch(e){ return null; }
+}
+async function aiFetch(url, init){
+  const go = (tok) => { const h = Object.assign({}, init.headers || {}); if (tok) h.Authorization = "Bearer " + tok; return fetch(url, Object.assign({}, init, { headers: h })); };
+  let tok = await aiToken();
+  let r;
+  // Si el Worker todavía no acepta el encabezado (por ejemplo, durante el minuto en que se publica), se reintenta sin sesión.
+  try { r = await go(tok); } catch(e){ if (!tok) throw e; tok = null; r = await go(null); }
+  if (r.status === 401 && tok){
+    try { const { data } = await sb.auth.refreshSession(); tok = data && data.session ? data.session.access_token : null; } catch(e){ tok = null; }
+    if (tok) r = await go(tok);
+    if (r.status === 401 || !tok){ setCloud("error", "Tu sesión caducó. Vuelve a entrar a tu cuenta; mientras, sigues como invitado."); r = await go(null); }
+  }
+  return r;
+}
 function workerSample(){
   if (!AI_URL) return null;
   const call = async (task, data, opts = {}, asJson = false) => {
@@ -1336,7 +1358,7 @@ function workerSample(){
     if (asJson) body.json = true;
     if (opts.images && opts.images[0]) body.image = await toImagePayload(opts.images[0]);
     let r;
-    try { r = await fetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body) }); }
+    try { r = await aiFetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body) }); }
     catch(e){ throw { code:"network" }; }
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw { code: d.error || "upstream_error" };
@@ -1372,7 +1394,7 @@ function workerSample(){
 }
 const sampleP = Promise.resolve(workerSample());
 // Instrucciones fijas de la corrección (sección «para profesores»): las da el servidor, sin usar la IA.
-if (AI_URL) fetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ task:"instrucciones" }) })
+if (AI_URL) aiFetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ task:"instrucciones" }) })
   .then(r => r.json()).then(d => { $("promptView").textContent = d.text || ""; })
   .catch(() => { $("promptView").textContent = "No se pudieron cargar las instrucciones en este momento."; });
 let canImages = false;
@@ -1415,7 +1437,11 @@ const ERR = {
   not_granted:"No diste permiso para usar Claude en esta página.", sampling_disabled:"Claude no está disponible en esta cuenta.",
   rate_limited:"Demasiadas solicitudes seguidas. Espera un momento e inténtalo de nuevo.", session_expired:"Tu sesión expiró. Vuelve a iniciar sesión.",
   image_rejected:"No pude abrir esa foto. Prueba con otra en JPG o PNG.", images_unavailable:"Este visor no puede enviar fotos. Escribe o pega tu texto.",
-  invalid_json:"La respuesta llegó incompleta. Inténtalo de nuevo.", refused:"La IA no pudo procesar ese texto.",
+  invalid_json:"La respuesta llegó incompleta. Inténtalo de nuevo.",
+  plan_required:"Esta parte es para cuentas. Crea tu cuenta gratis (botón «Entrar», arriba) y prueba Wrealispec completo 7 días.",
+  trial_ended:"Tu semana de prueba terminó. Para seguir con la IA, pasa al plan IA (20 USD al mes): escríbenos por WhatsApp al +52 55 3033 7547.",
+  session_invalid:"Tu sesión caducó. Vuelve a entrar a tu cuenta e inténtalo otra vez.",
+  auth_unavailable:"No pude revisar tu cuenta en este momento. Inténtalo de nuevo en un minuto.", refused:"La IA no pudo procesar ese texto.",
   empty_completion:"La IA no respondió. Inténtalo de nuevo.",
   daily_limit:"Llegaste al límite de práctica con IA de hoy. ¡Buen trabajo! Mañana se renueva.",
   service_busy:"La demo alcanzó su límite de uso de hoy. Vuelve a intentarlo mañana.",
@@ -2025,7 +2051,7 @@ async function ensureNatural(parts){
 }
 async function fetchMarked(sentences, voice){
   let r;
-  try { r = await fetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ tts: { sentences, voice } }) }); }
+  try { r = await aiFetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ tts: { sentences, voice } }) }); }
   catch(e){ throw new Error("network"); }
   const d = await r.json().catch(() => ({}));
   if (!r.ok || !Array.isArray(d.segments)) throw new Error(d.error || "tts_error");
@@ -2055,6 +2081,8 @@ const TTS_MSG = {
   service_busy:"La voz natural alcanzó su límite de hoy. Mientras, escuchas la voz de tu navegador.",
   tts_too_long:"Tu historia es demasiado larga para la voz natural. Escuchas la voz de tu navegador.",
   network:"No hay conexión con el servidor de voz. Escuchas la voz de tu navegador.",
+  plan_required:"La voz natural es para cuentas: crea tu cuenta gratis (botón «Entrar»). Mientras, escuchas la voz de tu navegador.",
+  trial_ended:"Tu semana de prueba terminó. Mientras, escuchas la voz de tu navegador.",
 };
 /* Prepara la voz natural; si no se puede, deja la del navegador y avisa. */
 async function prepareVoice(){
@@ -2192,7 +2220,7 @@ async function trySample(k, btn){
   try {
     if (!sampleCache[k]){
       busy(st, "Preparando la voz…");
-      const r = await fetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ tts: { sample: true, voice: k } }) });
+      const r = await aiFetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ tts: { sample: true, voice: k } }) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok || !d.audio) throw new Error(d.error || "tts_error");
       sampleCache[k] = URL.createObjectURL(new Blob([b64ToBytes(d.audio)], { type:"audio/mpeg" }));
@@ -2409,6 +2437,9 @@ const REC_MAX = 180;   // segundos máximos de grabación
 const UP_MAX = 200;    // segundos máximos de un audio subido
 let rec = null, recBlob = null;
 const STT_MSG = {
+  plan_required:"Grabarte es para cuentas: crea tu cuenta gratis (botón «Entrar», arriba) y prueba Wrealispec completo 7 días.",
+  trial_ended:"Tu semana de prueba terminó. Para seguir, pasa al plan IA (20 USD al mes): escríbenos por WhatsApp al +52 55 3033 7547.",
+  session_invalid:"Tu sesión caducó. Vuelve a entrar a tu cuenta e inténtalo otra vez.",
   stt_not_configured:"La grabación todavía no está activada. Mientras, usa el dictado del teclado (abajo).",
   daily_limit:"Llegaste al límite de lecturas de hoy. Mañana se renueva; mientras, sigue practicando con el modo eco.",
   service_busy:"La grabación alcanzó su límite de hoy. Vuelve a intentarlo mañana.",
@@ -2525,7 +2556,7 @@ $("recSend").onclick = async () => {
   busy(st, "Escuchando tu lectura…");
   try {
     const audio = await toWav16k(recBlob);
-    let r; try { r = await fetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ stt: { audio } }) }); }
+    let r; try { r = await aiFetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ stt: { audio } }) }); }
     catch(e){ throw new Error("network"); }
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.error || "stt_error");
@@ -3025,8 +3056,8 @@ function renderClass(){
 $("btnCopySum").onclick = () => copy(summaryText(), $("st6"));
 /* ---------- Planes ---------- */
 const PLANS = {
-  auto: { name:"Autodidacta", desc:"Autodidacta · $10 USD al mes: Fases 1 a 3 con la IA (corrección, audio, lectura y retos)." },
-  ia:   { name:"IA", desc:"IA · $30 USD al mes: todo lo de Autodidacta, más la Fase 4 con la IA." },
+  prueba: { name:"Prueba gratis", desc:"Prueba gratis · 7 días: todas las funciones con la IA, de la Fase 1 a la 4. Al terminar conservas tus historias." },
+  ia:   { name:"IA", desc:"IA · $20 USD al mes: todas las funciones con la IA, incluida la conversación de la Fase 4." },
   pro:  { name:"Pro", desc:"Pro · $99 USD al mes: todo lo anterior, más 6 clases con tu profesor (semanas 1 y 3, una clase; semanas 2 y 4, dos clases), su retroalimentación, tu tarea, la agenda y el proyecto del mes." },
 };
 function plan(){ return PLANS[store.plan] ? store.plan : "pro"; }
@@ -3188,7 +3219,7 @@ async function startChatRec(){
     $("chatMic").disabled = true; busy(st, "Escuchando tu respuesta…");
     try {
       const audio = await toWav16k(blob);
-      let r; try { r = await fetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ stt: { audio } }) }); }
+      let r; try { r = await aiFetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ stt: { audio } }) }); }
       catch(e){ throw new Error("network"); }
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error || "stt_error");
@@ -3508,7 +3539,7 @@ async function whisperDict(ta, b, st, lang, onUse){
     b.disabled = true; busy(st, "Pasando tu voz a texto…");
     try {
       const audio = await toWav16k(new Blob(chunks, { type: mr.mimeType || type || "audio/webm" }));
-      let r; try { r = await fetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ stt: { audio } }) }); }
+      let r; try { r = await aiFetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ stt: { audio } }) }); }
       catch(e){ throw new Error("network"); }
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.error || "stt_error");
@@ -3714,7 +3745,9 @@ $("acOutBtn").onclick = async () => {
 async function loadGroups(){
   const ul = $("acGroups"); ul.innerHTML = `<li class="muted">Cargando…</li>`;
   try {
-    const { data, error } = await sb.from("inscripciones").select("grupos(nombre, maestro:perfiles(nombre))");
+    // «!grupos_maestro_id_fkey»: entre grupos y perfiles hay dos caminos (el maestro y los alumnos inscritos);
+    // sin esta pista Supabase no sabe cuál usar y la consulta falla.
+    const { data, error } = await sb.from("inscripciones").select("grupos(nombre, maestro:perfiles!grupos_maestro_id_fkey(nombre))");
     if (error) throw error;
     ul.innerHTML = "";
     if (!data.length) { ul.innerHTML = `<li class="muted">Todavía no estás en ningún grupo.</li>`; return; }
