@@ -485,6 +485,18 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
 .chip-w:hover{border-color:var(--accent);color:var(--accent)}
 .chip-w.used{opacity:.45}
 .chat-end{justify-content:flex-end}
+/* Caja para escribir en la conversación: flota abajo y deja ver la pregunta del tutor */
+#chatInputRow.writing .ctrl-bar,#chatInputRow.writing .ctrl-state{display:none}
+.cc{position:sticky;bottom:0;z-index:2;display:flex;flex-direction:column;gap:6px;background:var(--sheet);border:1.5px solid var(--accent);
+  border-radius:14px;padding:10px 12px;box-shadow:0 -10px 24px -14px rgba(14,19,34,.45)}
+.cc-lbl{font-weight:700;font-size:.85rem}
+.cc-hint{font-weight:400;color:var(--ink-soft)}
+.cc-row{display:flex;gap:10px;align-items:flex-end}
+.cc-row textarea{min-height:48px;max-height:140px;resize:none;flex:1;line-height:1.45}
+.cc-row .btn{flex-shrink:0}
+.cc-tools{display:flex;gap:8px;flex-wrap:wrap}
+.cc-tools .linkbtn{padding:4px 12px;font-size:.82rem}
+@media (max-width:620px){.cc-hint{display:none}}
 .bubble.me .heard-lbl{display:block;font-size:.75rem;opacity:.8;margin-bottom:2px}
 /* Pizarra */
 .bd-btn{grid-column:1 / -1;justify-self:start;display:inline-flex;align-items:center;gap:7px;font:inherit;font-weight:700;font-size:.88rem;
@@ -767,7 +779,8 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
       <div class="row qa-nav">
         <button class="btn quiet" id="qaPrev">Anterior</button>
         <button class="btn" id="qaNext">Siguiente</button>
-        <button class="btn" id="btnQaCheck" hidden>Revisar respuestas</button>
+        <button class="btn quiet" id="btnQaCheck" hidden>Revisar respuestas</button>
+        <button class="btn" id="qaGoOn" hidden>Continuar: vuelve a contar tu historia →</button>
       </div>
       <span class="status" id="stQa2" role="status"></span>
     </div>
@@ -798,10 +811,10 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
           </button>
         </div>
         <p class="ctrl-state" id="chatMicState">Toca el micrófono y contesta en inglés</p>
-        <div class="field" id="chatWrite" hidden>
-          <label for="chatIn" class="small">Tu respuesta en inglés</label>
-          <textarea id="chatIn" placeholder="Write your answer…"></textarea>
-          <div class="row"><button class="btn" id="btnChatSend">Enviar</button></div>
+        <div class="cc" id="chatWrite" hidden>
+          <label for="chatIn" class="cc-lbl">Tu respuesta en inglés <span class="cc-hint">· Enter envía, Shift + Enter hace un salto de línea</span></label>
+          <div class="cc-row"><textarea id="chatIn" rows="2" placeholder="Write your answer…"></textarea><button class="btn" id="btnChatSend">Enviar</button></div>
+          <div class="cc-tools"><button type="button" class="linkbtn" id="ccHelp">Ayuda</button><button type="button" class="linkbtn" id="ccMic">Mejor hablo</button></div>
         </div>
         <div class="row chat-end"><button class="btn quiet" id="btnChatEnd">Terminar y recibir retroalimentación</button></div>
       </div>
@@ -1211,7 +1224,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     </form>
   </div>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.11.1 · actualizado el 12 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.11.2 · actualizado el 12 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -2535,16 +2548,19 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("recM
 let bd = null, bdKey = "";
 const bdAudio = {};   // audios ya preparados en esta visita, por error
 function cleanBoard(r){
-  const steps = (Array.isArray(r && r.steps) ? r.steps : []).slice(0, 8).map(st => ({
-    say: String(st && st.say_es || "").trim().slice(0, 300),
-    en: String(st && st.en || "").trim().slice(0, 140),
-    slow: !!(st && st.slow),
-    board: (Array.isArray(st && st.board) ? st.board : []).slice(0, 3).map(l => ({
-      t: String(l && l.t || "").trim().slice(0, 60),
-      k: ["wrong", "right", "note", "example"].includes(l && l.k) ? l.k : "note",
-      hl: String(l && l.hl || "").trim(),
-    })).filter(l => l.t),
-  })).filter(st => st.say || st.board.length || st.en);
+  // Acepta pequeñas variaciones de la IA: pasos como objeto, líneas como texto suelto o con otro nombre.
+  const asList = (x) => Array.isArray(x) ? x : x && typeof x === "object" ? Object.values(x) : typeof x === "string" && x.trim() ? [x] : [];
+  const raw = r && (r.steps || r.pasos || (r.lesson && r.lesson.steps));
+  const steps = asList(raw).slice(0, 8).map(st => { st = typeof st === "string" ? { say_es: st } : st || {}; return {
+    say: String(st.say_es || st.say || st.text || "").trim().slice(0, 300),
+    en: String(st.en || st.english || "").trim().slice(0, 140),
+    slow: !!st.slow,
+    board: asList(st.board || st.lines).slice(0, 3).map(l => { l = typeof l === "string" ? { t: l } : l || {}; return {
+      t: String(l.t || l.text || l.line || "").trim().slice(0, 60),
+      k: ["wrong", "right", "note", "example"].includes(l.k || l.kind) ? (l.k || l.kind) : "note",
+      hl: String(l.hl || "").trim(),
+    }; }).filter(l => l.t),
+  }; }).filter(st => st.say || st.board.length || st.en);
   return steps.length >= 2 ? { title: String(r.title_es || "Tu error, paso a paso").trim().slice(0, 60), steps } : null;
 }
 function chalkLine(l){
@@ -2647,7 +2663,8 @@ async function startBoard(key, holder, makeReq){
     if (!sample){ $("bdLines").innerHTML = ""; return fail($("bdSt"), "La pizarra funciona en wrealispec.com con la IA activada."); }
     try {
       busy($("bdSt"), "La IA está preparando tu pizarra…");
-      const r = await sample.json(...makeReq());
+      const [task, data] = makeReq();
+      const r = await sample.json(task, data, { check: (v) => !!cleanBoard(v) });
       bd = cleanBoard(r); if (!bd) throw { code:"invalid_json" };
       holder.board = { title_es: bd.title, steps: bd.steps.map(x => ({ say_es: x.say, en: x.en, slow: x.slow, board: x.board })) }; save();
       busy($("bdSt"), "");
@@ -2812,6 +2829,8 @@ function qaShow(){
   $("qaDots").innerHTML = lis.map((_, i) => `<span class="dot${i <= qaStep ? " on" : ""}"></span>`).join("");
   $("qaPrev").disabled = qaStep === 0; $("qaNext").hidden = last;
   $("btnQaCheck").hidden = !last; $("btnQaCheck").textContent = S.qa.res ? "Revisar otra vez" : "Revisar respuestas";
+  // Ya revisados: el botón principal lleva a la siguiente actividad; «Revisar otra vez» queda como secundario.
+  const done = last && !!S.qa.res; $("qaGoOn").hidden = !done; $("btnQaCheck").classList.toggle("quiet", done);
   $("qaResM").hidden = !(last && S.qa.res);
 }
 function openQa(start){
@@ -2824,6 +2843,7 @@ $("qaClose").onclick = closeQa;
 $("qaPrev").onclick = () => { stopSpeech(); qaStep--; qaShow(); };
 $("qaNext").onclick = () => { stopSpeech(); qaStep++; qaShow(); };
 $("btnQaOpen").onclick = () => openQa(0);
+$("qaGoOn").onclick = () => { closeQa(); const b = $("btnRetellOpen"); b.scrollIntoView({ behavior: "smooth", block: "center" }); setTimeout(() => b.click(), 450); };
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("qaModal").hidden) closeQa(); });
 async function prepareQaVoice(){
   if (!ttsOn || !S.qa.items.length) return null;
@@ -2844,7 +2864,7 @@ $("btnQa").onclick = () => { if (S.qa.items.length) openQa(0); else { $("qaList"
 $("qaNew").onclick = () => createQa();
 function qaEmptyUI(){
   $("qaTitle").textContent = "Preparando tus retos…"; $("qaDots").innerHTML = "";
-  ["qaPrev","qaNext","btnQaCheck"].forEach(id => $(id).hidden = true); $("qaResM").hidden = true;
+  ["qaPrev","qaNext","btnQaCheck","qaGoOn"].forEach(id => $(id).hidden = true); $("qaResM").hidden = true;
 }
 // Acepta los retos aunque la IA los mande con otra forma: otro nombre de lista, cada reto como texto,
 // o "question" en lugar de "prompt".
@@ -3114,13 +3134,21 @@ $("btnChatOpen").onclick = openChat;
 $("btnChatStart").onclick = () => { S.chat = { turns:[], done:false, feedback:null }; save(); openChat(); chatTurn(false, $("stChat2")); };
 function sendChatText(t, byVoice){
   S.chat.turns.push(byVoice ? { who:"me", text:t, voice:true } : { who:"me", text:t });
-  $("chatIn").value = ""; $("chatChips").hidden = true; $("chatHelp").classList.remove("on"); save(); renderChat(); chatTurn(false, $("stChat2"));
+  $("chatIn").value = ""; ccGrow(); $("chatChips").hidden = true; $("chatHelp").classList.remove("on"); save(); renderChat(); chatTurn(false, $("stChat2"));
 }
 $("btnChatSend").onclick = () => {
   const t = $("chatIn").value.trim(); if (!t) return fail($("stChat2"), "Escribe tu respuesta.");
   sendChatText(t, false);
 };
-$("chatWriteT").onclick = () => { const w = $("chatWrite"); w.hidden = !w.hidden; $("chatWriteT").classList.toggle("on", !w.hidden); if (!w.hidden) $("chatIn").focus(); };
+function setChatWrite(on){
+  $("chatWrite").hidden = !on; $("chatInputRow").classList.toggle("writing", on); $("chatWriteT").classList.toggle("on", on);
+  if (on){ ccGrow(); const log = $("chatLog"); log.scrollTop = log.scrollHeight; setTimeout(() => $("chatIn").focus(), 30); }
+}
+function ccGrow(){ const t = $("chatIn"); t.style.height = "auto"; t.style.height = Math.min(140, Math.max(48, t.scrollHeight + 2)) + "px"; }
+$("chatIn").addEventListener("input", ccGrow);
+$("chatWriteT").onclick = () => setChatWrite($("chatWrite").hidden);
+$("ccMic").onclick = () => { setChatWrite(false); $("chatMic").focus(); };
+$("ccHelp").onclick = () => $("chatHelp").click();
 // Palabras revueltas: ayudan a armar la respuesta sin darla.
 $("chatHelp").onclick = () => {
   const last = [...S.chat.turns].reverse().find(t => t.who === "ai");
@@ -3132,7 +3160,7 @@ $("chatHelp").onclick = () => {
   for (let i = words.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [words[i], words[j]] = [words[j], words[i]]; }
   box.innerHTML = `<span class="chips-lbl">Palabras que te pueden servir (en desorden). Úsalas para armar tu respuesta; toca una para escribirla.</span>`;
   words.forEach(w => { const c = document.createElement("button"); c.type = "button"; c.className = "chip-w"; c.textContent = w;
-    c.onclick = () => { const ta = $("chatIn"); $("chatWrite").hidden = false; $("chatWriteT").classList.add("on");
+    c.onclick = () => { const ta = $("chatIn"); if ($("chatWrite").hidden) setChatWrite(true);
       ta.value = (ta.value.trim() ? ta.value.trim() + " " : "") + w; c.classList.add("used"); ta.focus(); };
     box.append(c); });
   box.hidden = false;
