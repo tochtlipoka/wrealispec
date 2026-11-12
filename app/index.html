@@ -346,7 +346,8 @@ details[open] > .pillsum::after{transform:rotate(180deg)}
 .dict-st{font-size:.85rem;color:var(--ink-soft)}
 .dict-st.bad{color:var(--margin)}
 textarea.dicting{border-color:var(--margin);box-shadow:0 0 0 3px color-mix(in srgb,var(--margin) 18%,transparent)}
-.dict-tip{font-size:.85rem;color:var(--ink-soft);border-left:3px solid var(--hl);padding:2px 0 2px 10px;margin:4px 0 0}
+.dict-ask p{margin:0;line-height:1.55}
+.dict-ask .dict-mark{font-size:.88rem;color:var(--ink-soft);border-left:3px solid var(--hl);padding:2px 0 2px 10px}
 /* Cámara para la foto del cuaderno */
 .cam-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center}
 .cam-v{width:100%;max-height:60dvh;background:#000;border-radius:10px;object-fit:contain}
@@ -1188,6 +1189,17 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     </div>
   </div>
 
+  <div class="modal" id="dictModal" hidden role="dialog" aria-modal="true" aria-labelledby="dictTitle">
+    <div class="modal-card dict-ask">
+      <span class="eyebrow">Antes de dictar</span>
+      <h2 id="dictTitle" style="margin:0">¿La escribes o la dictas?</h2>
+      <p>Te recomendamos <strong>escribirla</strong>: así practicas tu <em>writing</em> (ortografía, puntuación y cómo armas tus oraciones).</p>
+      <p>Si prefieres dictarla, habla claro y a buen ritmo, y revisa el texto antes de corregir: a veces el dictado arregla tus errores sin avisar y la corrección ya no los ve.</p>
+      <p class="dict-mark">Tu maestro verá que esta historia fue dictada.</p>
+      <div class="row"><button type="button" class="btn" id="dictWrite">Mejor la escribo</button><button type="button" class="btn quiet" id="dictGo">Sí, quiero dictarla</button></div>
+    </div>
+  </div>
+
   <div class="modal" id="pwModal" hidden role="dialog" aria-modal="true" aria-labelledby="pwTitle">
     <form class="modal-card" id="pwForm" novalidate>
       <span class="eyebrow">Tu cuenta</span>
@@ -1199,7 +1211,7 @@ ul.modes-mini{margin:0;padding:0;list-style:none;display:flex;flex-direction:col
     </form>
   </div>
 
-  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.11.0 · actualizado el 12 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
+  <footer><a href="../" style="color:inherit">wrealispec.com</a> · Wrealispec v0.11.1 · actualizado el 12 nov 2026 · prototipo para pruebas · <a href="../privacidad/" style="color:inherit">Aviso de privacidad</a></footer>
 </div>
 
 <script>
@@ -3193,7 +3205,7 @@ $("btnNew").onclick = () => {
   const a = { topic: t, structure: $("hwStruct").value.trim(), verbs: splitList($("hwVerbs").value), adjectives: splitList($("hwAdj").value), needQuestion: $("hwQ").checked };
   const hasReq = a.structure || a.verbs.length || a.adjectives.length || a.needQuestion;
   store.current = blank(t, S.level); S = store.current; S.assignment = hasReq ? a : null; photoFile = null;
-  $("preview").hidden = true; $("photo").value = ""; $("typed").value = ""; storyDictated = false;
+  $("preview").hidden = true; $("photo").value = ""; $("typed").value = ""; storyDictated = false; storyDictOk = false;
   ["newTopic","hwStruct","hwVerbs","hwAdj"].forEach(id => { $(id).value = ""; }); $("hwQ").checked = false;
   save(); renderAll(); go(0);
 };
@@ -3370,7 +3382,7 @@ function renderAll(){
    Donde el navegador no lo tiene (Firefox), se graba y se pasa a texto al final con Whisper (Worker). */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 const MIC_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>`;
-let dict = null, storyDictated = false;
+let dict = null, storyDictated = false, storyDictOk = false;
 function dictJoin(pre, add){
   const t = String(add || "").replace(/\s+/g, " ").trim();
   return !t ? pre : pre + (pre && !/\s$/.test(pre) ? " " : "") + t;
@@ -3384,7 +3396,8 @@ function dictUI(ta, opts){
   const st = document.createElement("span"); st.className = "dict-st"; st.setAttribute("role", "status");
   wrap.append(b, st);
   const lang = opts.lang || "en-US";
-  b.onclick = () => { if (dict && dict.ta === ta) stopDict("done"); else startDict(ta, b, st, lang, opts.onUse); };
+  const go = () => startDict(ta, b, st, lang, opts.onUse);
+  b.onclick = () => { if (dict && dict.ta === ta) stopDict("done"); else if (opts.ask) opts.ask(go); else go(); };
   // Si el alumno escribe mientras dicta, se pausa para que corrija tranquilo.
   ta.addEventListener("input", (e) => { if (e.isTrusted && dict && dict.ta === ta && dict.live) stopDict("edit"); });
   return wrap;
@@ -3482,9 +3495,16 @@ async function whisperDict(ta, b, st, lang, onUse){
 }
 // Dónde va el micrófono: la historia (con aviso), volver a contarla y los comentarios del maestro.
 (function(){
-  const tip = document.createElement("p"); tip.className = "dict-tip";
-  tip.innerHTML = "Te recomendamos <strong>escribirla</strong>: así practicas tu <em>writing</em>. Si prefieres dictarla, habla claro y a buen ritmo, y revisa el texto antes de corregir: a veces el dictado arregla tus errores sin avisar y la corrección ya no los ve.";
-  $("typedCount").before(dictUI($("typed"), { onUse: () => { storyDictated = true; } }), tip);
+  // La primera vez que se dicta cada historia sale una ventana que recomienda escribirla.
+  let resume = null;
+  const closeAsk = (dictate) => { $("dictModal").hidden = true; const r = resume; resume = null;
+    if (dictate){ storyDictOk = true; if (r) r(); } else $("typed").focus(); };
+  $("dictWrite").onclick = () => closeAsk(false);
+  $("dictGo").onclick = () => closeAsk(true);
+  $("dictModal").addEventListener("click", (e) => { if (e.target === $("dictModal")) closeAsk(false); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("dictModal").hidden) closeAsk(false); });
+  const ask = (go) => { if (storyDictOk) return go(); resume = go; $("dictModal").hidden = false; setTimeout(() => $("dictWrite").focus(), 50); };
+  $("typedCount").before(dictUI($("typed"), { ask, onUse: () => { storyDictated = true; } }));
   $("retell").after(dictUI($("retell")));
   $("tfText").after(dictUI($("tfText"), { lang: "es-MX" }));
 })();
