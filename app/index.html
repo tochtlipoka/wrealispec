@@ -3745,7 +3745,9 @@ $("acOutBtn").onclick = async () => {
 async function loadGroups(){
   const ul = $("acGroups"); ul.innerHTML = `<li class="muted">Cargando…</li>`;
   try {
-    const { data, error } = await sb.from("inscripciones").select("grupos(nombre, maestro:perfiles(nombre))");
+    // «!grupos_maestro_id_fkey»: entre grupos y perfiles hay dos caminos (el maestro y los alumnos inscritos);
+    // sin esta pista Supabase no sabe cuál usar y la consulta falla.
+    const { data, error } = await sb.from("inscripciones").select("grupos(nombre, maestro:perfiles!grupos_maestro_id_fkey(nombre))");
     if (error) throw error;
     ul.innerHTML = "";
     if (!data.length) { ul.innerHTML = `<li class="muted">Todavía no estás en ningún grupo.</li>`; return; }
